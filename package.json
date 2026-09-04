@@ -1,0 +1,10 @@
+{
+  "name": "loadbook-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Source of record for the Loadbook artifact (training ledger + dinosaur cabinet).",
+  "scripts": {
+    "test": "node test/boot-smoke.mjs && node test/boot-interactions.mjs"
+  },
+  "devDependencies": { "jsdom": "^26.0.0" }
+}
