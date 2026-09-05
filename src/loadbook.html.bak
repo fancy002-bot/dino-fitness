@@ -4,44 +4,39 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
   :root{
-    /* candy red / charcoal / white / dark oak */
-    --candy:#F42B41; --candy-hi:#FF5C6C; --candy-deep:#960C1D;
-    --oak:#6B4A26; --oak-hi:#8A6234; --oak-deep:#3E2A14;
-    --ground:#131313; --surface:#1A1A1A; --surface-2:#232323; --surface-3:#2E2E2E;
-    --ink:#FFFFFF; --ink-soft:#B8B4B0; --ink-mute:#8B8783;
-    --line:rgba(138,98,52,0.42); --line-strong:rgba(160,116,64,0.78);
-    --bronze:var(--candy); --bronze-hi:var(--candy-hi); --bronze-deep:var(--candy-deep);
-    --marble:#0D0D0D; --vitrine:#101010; --study:#ECE6D8;
-    --g-standard:#8F8B87; --g-select:#C0904F; --g-reserve:#F42B41; --g-archival:#FF7E8B;
-    --good:#4FA05F; --warn:#E0A030;
-    --dial-a:#F42B41; --dial-b:#C0904F; --dial-c:#FF7E8B;
-    --shadow:0 30px 60px -30px rgba(0,0,0,0.85), 0 2px 6px rgba(0,0,0,0.55);
-    --spot:radial-gradient(ellipse 70% 55% at 30% 0%, rgba(244,43,65,0.10), transparent 70%);
+    --ground:#0F0E0C; --surface:#17150F; --surface-2:#221F17; --surface-3:#2B2820;
+    --ink:#EAE2D2; --ink-soft:#9C9280; --ink-mute:#6B6250;
+    --line:rgba(200,149,90,0.16); --line-strong:rgba(200,149,90,0.34);
+    --bronze:#C8955A; --bronze-hi:#E8C58A; --bronze-deep:#8B5A2B;
+    --marble:#0A0A0C; --vitrine:#101012; --study:#ECE6D8;
+    --g-standard:#9C9280; --g-select:#7FA3A0; --g-reserve:#C8955A; --g-archival:#E8C58A;
+    --good:#7DA06A; --warn:#C4913B;
+    --dial-a:#C8955A; --dial-b:#7FA3A0; --dial-c:#E8C58A;
+    --shadow:0 30px 60px -30px rgba(0,0,0,0.8), 0 2px 6px rgba(0,0,0,0.5);
+    --spot:radial-gradient(ellipse 70% 55% at 30% 0%, rgba(232,197,138,0.10), transparent 70%);
   }
   :root[data-theme="light"]{
-    --candy:#C40E24; --candy-hi:#E4152F; --candy-deep:#7E0A18;
-    --oak:#5C3F20; --oak-hi:#7A5530; --oak-deep:#33210F;
-    --ground:#EFECE7; --surface:#F8F6F2; --surface-2:#E6E2DB; --surface-3:#D8D3CA;
-    --ink:#141414; --ink-soft:#5A5652; --ink-mute:#8A8580;
-    --line:rgba(92,63,32,0.28); --line-strong:rgba(92,63,32,0.62);
-    --g-standard:#5A5652; --g-select:#7A5530; --g-reserve:#C40E24; --g-archival:#E4152F;
-    --good:#3F7A45; --warn:#9A6B18;
-    --dial-a:#C40E24; --dial-b:#7A5530; --dial-c:#E4152F;
-    --shadow:0 24px 50px -28px rgba(20,20,20,0.35), 0 2px 8px rgba(20,20,20,0.10);
-    --spot:radial-gradient(ellipse 70% 55% at 30% 0%, rgba(196,14,36,0.07), transparent 70%);
+    --ground:#EDE7DA; --surface:#F6F1E6; --surface-2:#E9E2D3; --surface-3:#DED6C4;
+    --ink:#1A1710; --ink-soft:#6B6250; --ink-mute:#9C9280;
+    --line:rgba(139,90,43,0.18); --line-strong:rgba(139,90,43,0.38);
+    --bronze:#8B5A2B; --bronze-hi:#B07A3E; --bronze-deep:#5E3B1A;
+    --g-standard:#6B6250; --g-select:#4E7A77; --g-reserve:#8B5A2B; --g-archival:#9C6A1F;
+    --good:#4F7A3E; --warn:#9A6B18;
+    --dial-a:#8B5A2B; --dial-b:#4E7A77; --dial-c:#B07A3E;
+    --shadow:0 24px 50px -28px rgba(40,30,10,0.35), 0 2px 8px rgba(40,30,10,0.08);
+    --spot:radial-gradient(ellipse 70% 55% at 30% 0%, rgba(139,90,43,0.08), transparent 70%);
   }
   @media (prefers-color-scheme: light){
     :root:not([data-theme="dark"]){
-      --candy:#C40E24; --candy-hi:#E4152F; --candy-deep:#7E0A18;
-      --oak:#5C3F20; --oak-hi:#7A5530; --oak-deep:#33210F;
-      --ground:#EFECE7; --surface:#F8F6F2; --surface-2:#E6E2DB; --surface-3:#D8D3CA;
-      --ink:#141414; --ink-soft:#5A5652; --ink-mute:#8A8580;
-      --line:rgba(92,63,32,0.28); --line-strong:rgba(92,63,32,0.62);
-      --g-standard:#5A5652; --g-select:#7A5530; --g-reserve:#C40E24; --g-archival:#E4152F;
-      --good:#3F7A45; --warn:#9A6B18;
-      --dial-a:#C40E24; --dial-b:#7A5530; --dial-c:#E4152F;
-      --shadow:0 24px 50px -28px rgba(20,20,20,0.35), 0 2px 8px rgba(20,20,20,0.10);
-      --spot:radial-gradient(ellipse 70% 55% at 30% 0%, rgba(196,14,36,0.07), transparent 70%);
+      --ground:#EDE7DA; --surface:#F6F1E6; --surface-2:#E9E2D3; --surface-3:#DED6C4;
+      --ink:#1A1710; --ink-soft:#6B6250; --ink-mute:#9C9280;
+      --line:rgba(139,90,43,0.18); --line-strong:rgba(139,90,43,0.38);
+      --bronze:#8B5A2B; --bronze-hi:#B07A3E; --bronze-deep:#5E3B1A;
+      --g-standard:#6B6250; --g-select:#4E7A77; --g-reserve:#8B5A2B; --g-archival:#9C6A1F;
+      --good:#4F7A3E; --warn:#9A6B18;
+      --dial-a:#8B5A2B; --dial-b:#4E7A77; --dial-c:#B07A3E;
+      --shadow:0 24px 50px -28px rgba(40,30,10,0.35), 0 2px 8px rgba(40,30,10,0.08);
+      --spot:radial-gradient(ellipse 70% 55% at 30% 0%, rgba(139,90,43,0.08), transparent 70%);
     }
   }
 
@@ -58,7 +53,7 @@
   @media (max-width:640px){ .wrap{padding:0 16px 60px;} }
   button{font:inherit; color:inherit;}
   :focus-visible{outline:1px solid var(--bronze-hi); outline-offset:3px;}
-  ::selection{background:rgba(244,43,65,0.32);}
+  ::selection{background:rgba(200,149,90,0.3);}
   .rule{height:1px; background:linear-gradient(90deg, transparent, var(--line-strong) 20%, var(--line-strong) 80%, transparent);}
 
   /* ---- masthead ---- */
@@ -107,7 +102,7 @@
 
   .shelf-vitrine{display:grid; grid-template-columns:repeat(5,1fr); gap:10px;}
   .vit{aspect-ratio:1/1; background:var(--vitrine); border:1px solid var(--line-strong); position:relative; overflow:hidden; cursor:pointer; display:flex; align-items:center; justify-content:center;}
-  .vit::after{content:""; position:absolute; inset:0; background:radial-gradient(ellipse 80% 60% at 30% 0%, rgba(244,43,65,0.16), transparent 65%); pointer-events:none; opacity:0.7; transition:opacity .9s ease;}
+  .vit::after{content:""; position:absolute; inset:0; background:radial-gradient(ellipse 80% 60% at 30% 0%, rgba(232,197,138,0.18), transparent 65%); pointer-events:none; opacity:0.7; transition:opacity .9s ease;}
   .vit:hover::after{opacity:1;}
   .vit img{width:100%; height:100%; object-fit:contain; display:block;}
   .vit.study{background:var(--study);}
@@ -264,7 +259,7 @@
   .plate.locked .vit img{filter:grayscale(1) brightness(0.55);}
   .plate.locked .vit.card svg{filter:grayscale(1) brightness(0.97);}
   .plate{content-visibility:auto; contain-intrinsic-size:auto 252px;}
-  .brass{margin-top:8px; background:linear-gradient(180deg, var(--bronze-hi), var(--bronze) 55%, var(--bronze-deep)); color:#FFFFFF; padding:7px 9px 6px; text-align:center; border:1px solid var(--bronze-deep); box-shadow:inset 0 1px 0 rgba(255,255,255,0.35);}
+  .brass{margin-top:8px; background:linear-gradient(180deg, var(--bronze-hi), var(--bronze) 55%, var(--bronze-deep)); color:#1A1206; padding:7px 9px 6px; text-align:center; border:1px solid var(--bronze-deep); box-shadow:inset 0 1px 0 rgba(255,255,255,0.35);}
   .brass .no{font-family:'JetBrains Mono',monospace; font-size:0.56rem; letter-spacing:0.18em;}
   .brass .nm{font-family:'Cormorant Garamond',serif; font-weight:700; font-size:0.92rem; line-height:1.1; letter-spacing:0.02em; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .brass .gr{font-family:'JetBrains Mono',monospace; font-size:0.52rem; letter-spacing:0.16em; text-transform:uppercase; margin-top:2px; opacity:0.8;}
@@ -277,7 +272,7 @@
   .grade-standard{color:var(--g-standard);} .grade-select{color:var(--g-select);} .grade-reserve{color:var(--g-reserve);} .grade-archival{color:var(--g-archival);}
 
   /* ---- specimen label sheet ---- */
-  .sheet-backdrop{position:fixed; inset:0; background:rgba(10,10,10,0.76); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:24px; z-index:200; opacity:0; pointer-events:none; transition:opacity .3s ease;}
+  .sheet-backdrop{position:fixed; inset:0; background:rgba(5,4,2,0.72); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; padding:24px; z-index:200; opacity:0; pointer-events:none; transition:opacity .3s ease;}
   .sheet-backdrop.show{opacity:1; pointer-events:auto;}
   .sheet{background:var(--surface); border:1px solid var(--line-strong); box-shadow:var(--shadow); width:100%; max-width:720px; max-height:88vh; overflow-y:auto; transform:translateY(10px); transition:transform .4s cubic-bezier(.2,.8,.2,1); position:relative;}
   .sheet::before{content:""; position:absolute; inset:7px; border:1px solid var(--line); pointer-events:none;}
@@ -2133,7 +2128,7 @@ var FINISHES = [
   function specPlate(id){
     var d = DINOS.find(function(x){ return x.id === id; }) || {}, b = DINO_BIOS[id] || {};
     var p = periodInfo(b.period), len = parseLengthM(b.size);
-    var ink = "#1A1A1A", mute = "rgba(26,26,26,0.55)", hair = "rgba(92,63,32,0.32)";
+    var ink = "#1A1710", mute = "rgba(26,23,16,0.52)", hair = "rgba(26,23,16,0.18)";
     var mass = b.mass || "\u2014", diet = b.diet || "\u2014";
     var glyph = DIET_GLYPH[diet] || '<circle cx="5.5" cy="5.5" r="5" fill="none" stroke="currentColor" stroke-width="1"/>';
     var barW = len ? Math.max(3, plateFrac(len)*PLATE_W) : 0;
