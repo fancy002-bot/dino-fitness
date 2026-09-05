@@ -30,7 +30,7 @@ is refused.
 | In the page | In the artifact db |
 |---|---|
 | species catalogue, biographies, cast images | `settings/goals`, `settings/rewards` |
-| | `sessions/*`, `exercises/*` |
+| | `sessions/*`, `exercises/*`, `routines/*` |
 | | `profiles/*`, `invites/*`, `friends/*/list/*` |
 
 Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
@@ -38,7 +38,20 @@ Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
 ## Three volumes
 
 - **I — The Ledger.** Set logging, goal dials, daily stipend, streak freezes, and five
-  eras that unlock at 1 / 3 / 5 / 8 / 12 completed five-day streaks.
+  eras that unlock at 1 / 3 / 5 / 8 / 12 completed five-day streaks. Plus **Routines**:
+  workouts you compose yourself — a title and an ordered list of movements, each with
+  sets, reps, a target weight (or minutes, for cardio) and a rest interval. The four
+  built-in standards (Push / Pull / Leg / Cardio & Core) are read-only starters you
+  *adopt* into a routine of your own. Saved routines also join the quick-pick pills
+  above the log form.
+
+  **The runner.** "Begin" opens a runner overlay: a countdown dial, the ordered
+  movements with one filled pip per completed set, and per-set weight/rep fields
+  prefilled from the target. Logging a set writes straight into the ledger (PR
+  detection and all) and starts that movement's rest clock, which chimes through
+  WebAudio at zero — so there is no audio asset to ship. Space toggles the clock,
+  esc closes, and ±30 sec adjusts it mid-rest. The clock reads Date.now() deltas
+  rather than accumulating ticks, so a throttled background tab does not drift.
 - **II — The Cabinet.** 618 specimens, each with a biography. Grades: Standard /
   Select / Reserve / Archival.
 - **III — The Society.** Collector cards, one-time friend codes (`LB-XXXX-XXXX`),
@@ -76,8 +89,8 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-33 checks over the catalogue, plates, sheets, buying, the display shelf, filters and
-the debounced search. `test/harness.mjs` injects a `window.__lb` bridge to reach
+93 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+the debounced search, and the routines panel and its workout runner. `test/harness.mjs` injects a `window.__lb` bridge to reach
 inside the IIFE; the published file is never modified.
 
 ## Layout

@@ -14,7 +14,7 @@ export async function boot({ hooks = false } = {}) {
     const marker = "  /* ---------- boot ---------- */";
     if (!html.includes(marker)) throw new Error("boot marker missing - did the source structure change?");
     html = html.replace(marker,
-      "  window.__lb={get state(){return state;}, ERAS:ERAS, DINOS:DINOS, DINO_IMG:DINO_IMG, renderAll:renderAll, toggleShelf:toggleShelf, buyDino:buyDino, specPlate:specPlate};\n" + marker);
+      "  window.__lb={get state(){return state;}, ERAS:ERAS, DINOS:DINOS, DINO_IMG:DINO_IMG, renderAll:renderAll, toggleShelf:toggleShelf, buyDino:buyDino, specPlate:specPlate, timer:timer, openRunner:openRunner, closeRunner:closeRunner, timerToggle:timerToggle, timerNudge:timerNudge, timerTick:timerTick, routineMinutes:routineMinutes, allRoutines:allRoutines};\n" + marker);
   }
   const errors = [];
   const vc = new VirtualConsole();
