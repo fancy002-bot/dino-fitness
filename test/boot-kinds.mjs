@@ -147,15 +147,13 @@ check("a different added load has its own record", lb.bestFor("pull-up", "bodywe
 check("best hold is the longest", lb.bestFor("hollow-hold", "hold", 0), 62);
 check("a hold is not judged on weight", lb.entryMetric({ type: "hold", secs: 62 }), 62);
 
-/* --- the repertoire reports each movement in its own unit --- */
+/* --- a movement's own record reports it in its own unit --- */
 lb.renderAll();
-const libText = id => {
-  const name = ex(id).name;
-  return [...q("#libraryList .lib-row")].find(r => r.querySelector(".lib-name").textContent === name).textContent;
-};
-check("bodyweight best is in reps", /20 reps/.test(libText("push-up")));
-check("hold best is a duration", /1:02/.test(libText("hollow-hold")));
-check("cardio has no single best", /time-based/.test(libText("running")));
+const mvText = id => { lb.openMovement(id); return d.getElementById("movementInner").textContent; };
+check("bodyweight best is in reps", /20 reps/.test(mvText("push-up")));
+check("hold best is a duration", /1:02/.test(mvText("hollow-hold")));
+check("cardio has no single best", /time-based/.test(mvText("running")));
+d.getElementById("movementSheet").classList.remove("show");
 
 /* --- the log form carries every kind --- */
 check("kind picker offers four", d.querySelectorAll("#logType option").length, 4);

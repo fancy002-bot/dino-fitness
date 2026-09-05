@@ -61,7 +61,8 @@ check("distance stays in km whichever weight unit", d.getElementById("labDistanc
 
 /* --- a movement has a record of its own --- */
 d.getElementById("settingsSheet").classList.remove("show");
-check("the repertoire is clickable", !!d.querySelector("#libraryList .lib-row[data-id]"));
+check("the retired repertoire is gone", d.getElementById("libraryList"), "null");
+check("a ledger entry opens its movement", !!d.querySelector("#recentList .entry-name[data-mv]"));
 lb.openMovement("front-squat");
 check("the movement sheet opens", d.getElementById("movementSheet").classList.contains("show"));
 check("it names the movement", d.querySelector("#movementInner .runner-title").textContent, "Front Squat");

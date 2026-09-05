@@ -13,7 +13,7 @@ check("plates + casts == catalogue", q("#shopGrid .vit.card svg.spec-plate").len
 check("era tiles", q("#eraTrack .era").length, 5);
 check("shelf slots", q("#shelfGrid .vit").length, 5);
 check("ledger day groups", q("#recentList .day-group").length > 0);
-check("repertoire rows", q("#libraryList .lib-row").length > 0);
+check("ledger entries open their movement", q("#recentList .entry-name[data-mv]").length > 0);
 check("progression chart drew", d.getElementById("chartSvg").childNodes.length > 2);
 check("catalogue hint", d.getElementById("catHint").textContent, "618 of 618 shown");
 check("illustrated stat", d.getElementById("illusCount").textContent.replace(/\s+/g, " ").trim(), "90 of 618");

@@ -162,9 +162,12 @@ rewrites a single entry: 100 kg is kept as 220.46 lb and reads back as 100 kg. D
 deliberately stays in kilometres whichever weight unit is chosen; pairing lb with miles would
 quietly restate every run already in the ledger, which is not a units toggle's job.
 
-**A record per movement.** The repertoire was a dead list; a row now opens the movement's own
-sheet — its best in the right unit, how many sets over how many days, when it was last done,
-its recent sets with PRs marked, and a way through to the progression chart.
+**A record per movement.** Tap a movement's name on any entry in the ledger and it opens that
+movement's own sheet — its best in the right unit, how many sets over how many days, when it was
+last done, its recent sets with PRs marked, and a way through to the progression chart. This
+replaced the Repertoire panel, which listed every movement with its best and was otherwise a
+dead list; the frontispiece's "Repertoire" count went with it, since it counted the same thing.
+The ledger is the better way in — you reach a movement from a set you actually did.
 
 **Attendance.** A year of days, seven rows to the week, shaded by how many sets that day
 carried, with today outlined and frozen days hatched. It scrolls inside its own panel on a
@@ -234,12 +237,12 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-418 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+419 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted
 and assisted variants, and timed holds through the composer, the runner, the log form,
-the weekly volume, personal records and the repertoire; and `boot-prelude.mjs`, which proves
+the weekly volume, personal records and each movement's own record; and `boot-prelude.mjs`, which proves
 the derivation does its job — a leg routine and a pull routine get demonstrably different
 drills, every pattern survives the cap, that the clock chains drill to drill on its own and
 lets go at the end, that a logged set claims it back, and that what was ticked is added up onto
