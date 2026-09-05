@@ -197,6 +197,7 @@
   .template-pill:hover{color:var(--ink); border-color:var(--line-strong);}
 
   /* ---- ledger rows ---- */
+  .log-hint{font-family:var(--font-caps); font-size:0.52rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute); margin-top:12px; min-height:1em;}
   .rest-bar{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-top:16px; padding-top:16px; border-top:2px solid var(--line);}
   .rest-read{font-family:var(--font-caps); font-weight:600; font-size:1.5rem; line-height:1; color:var(--ink); font-variant-numeric:tabular-nums; min-width:62px;}
   .rest-mode{font-family:var(--font-caps); font-size:0.5rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-soft); margin-right:4px;}
@@ -527,6 +528,7 @@
   .run-idx{font-family:var(--font-caps); font-size:0.62rem; letter-spacing:0.1em; color:var(--ink-mute); width:22px; flex-shrink:0;}
   .run-name{font-family:var(--font-display); font-size:1.05rem; line-height:1.2;}
   .run-target{font-family:var(--font-mono); font-size:0.72rem; color:var(--ink-soft); margin-top:3px;}
+  .run-why{display:block; font-family:var(--font-caps); font-size:0.5rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-mute); margin-top:3px;}
   .run-right{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
   .run-inputs{display:flex; gap:5px;}
   .run-inputs input{width:56px; background:var(--surface-2); border:2px solid var(--line); color:var(--ink); padding:5px 7px; font-family:var(--font-mono); font-size:0.78rem; text-align:right; border-radius:0;}
@@ -694,6 +696,7 @@
               <div class="field"><label for="durationInput">Duration (min)</label><input type="number" id="durationInput" min="0" step="1" placeholder="30"></div>
               <div class="field"><label for="distanceInput" id="labDistance">Distance (km)</label><input type="number" id="distanceInput" min="0" step="any" placeholder="4.2"></div>
             </div>
+            <div class="log-hint" id="logHint"></div>
             <div style="margin-top:16px;"><button type="submit" class="btn-primary">Enter into ledger</button></div>
           </form>
           <div class="rest-bar" id="restBar">
@@ -2621,7 +2624,19 @@ var FINISHES = [
       b.innerHTML=g+'<span class="n">'+n+'</span>'; b.addEventListener("click",function(){ state.shopGroup=g; renderShop(); }); w.appendChild(b);
     });
   }
-  function renderShop(){
+  /* Rebuilding 618 cards costs ~100ms on a mid-range phone, and renderAll() runs on
+     every logged set. These are the only inputs that change what the cards look like,
+     so when none of them has moved there is nothing to redraw. */
+  function shopSignature(){
+    var r=state.rewards;
+    return [state.shopGroup, state.shopQuery, r.tokens, (r.owned||[]).length,
+            (r.erasUnlocked||[]).join(","), JSON.stringify(r.finish||{})].join("|");
+  }
+  var shopDrawn=null;
+  function renderShop(force){
+    var sig=shopSignature();
+    if(!force && shopDrawn===sig && document.getElementById("shopGrid").children.length) return;
+    shopDrawn=sig;
     var grid=document.getElementById("shopGrid"); grid.innerHTML=""; renderFilterChips();
     var shown=0;
     DINOS.filter(shopMatches).forEach(function(d){
@@ -3757,6 +3772,97 @@ var FINISHES = [
       list(warm,"warm",r.warmup)+list(cool,"cool",r.cooldown)+'</div>';
   }
 
+  /* ---------- what to do next time ----------
+     Double progression, computed from the ledger at the moment a routine is opened
+     and never written back into it: the routine keeps stating the plan, while the
+     numbers you are handed come from what you actually did. Revising the routine
+     therefore still works, and nothing rewrites your programme behind your back. */
+  function daysForMovement(id,type){
+    var out=[];
+    sessionsSorted().forEach(function(s){
+      if(s.sample) return;   /* specimen entries are illustration, not your work */
+      var sets=s.entries.filter(function(e){ return e.exerciseId===id && e.type===type; });
+      if(sets.length) out.push({date:s.date, sets:sets});
+    });
+    return out;   /* newest first */
+  }
+  /* squats and hinges take bigger jumps than presses; small isolation work smaller */
+  function loadStep(name){
+    var pats=patternsFor({name:name||"", type:"strength"});
+    if(pats.indexOf("squat")!==-1||pats.indexOf("hinge")!==-1) return 10;
+    if(pats.indexOf("arms")!==-1) return 2.5;
+    return 5;
+  }
+  function minOf(list,f){ return list.reduce(function(a,e){ var v=Number(f(e))||0; return a===null?v:Math.min(a,v); }, null)||0; }
+  function maxOf(list,f){ return list.reduce(function(a,e){ return Math.max(a, Number(f(e))||0); }, 0); }
+  function dayMetTarget(day,st){
+    if(day.sets.length < stepSets(st)) return false;
+    if(st.type==="hold")   return minOf(day.sets,function(e){return e.secs;}) >= (Number(st.secs)||0);
+    if(st.type==="cardio") return maxOf(day.sets,function(e){return e.duration;}) >= (Number(st.duration)||0);
+    return minOf(day.sets,function(e){return e.reps;}) >= (Number(st.reps)||0);
+  }
+  /* null when there is no history to go on — then the routine's own plan stands */
+  function suggestNext(st){
+    if(!st||!st.exerciseId) return null;
+    var hist=daysForMovement(st.exerciseId, kindOf(st.type));
+    if(!hist.length) return null;
+    var day=hist[0], met=dayMetTarget(day,st);
+    var out={date:day.date, sets:day.sets, met:met, stepped:false, deload:false};
+    var planReps=Number(st.reps)||0, planAdded=Number(st.added)||0;
+    if(st.type==="hold"){
+      var lastSecs=minOf(day.sets,function(e){return e.secs;});
+      out.secs=Math.max(Number(st.secs)||0, met?lastSecs+5:lastSecs); out.stepped=met;
+    } else if(st.type==="cardio"){
+      var lastDur=maxOf(day.sets,function(e){return e.duration;});
+      out.duration=Math.max(Number(st.duration)||0, met?lastDur+1:lastDur); out.stepped=met;
+    } else if(st.type==="bodyweight"){
+      var lastReps=minOf(day.sets,function(e){return e.reps;});
+      var lastAdded=maxOf(day.sets,function(e){return e.added;});
+      if(planAdded>lastAdded){
+        /* the plan asks for more load than was last carried — that is the step */
+        out.added=planAdded; out.reps=planReps||lastReps; out.stepped=false;
+      } else if(lastAdded>0){
+        out.added = met ? lastAdded+loadStep(st.name) : lastAdded;
+        out.reps = planReps||lastReps; out.stepped=met;
+      } else {
+        out.added=null; out.reps=Math.max(planReps, met?lastReps+1:lastReps); out.stepped=met;
+      }
+    } else {
+      var lastW=maxOf(day.sets,function(e){return e.weight;});
+      var planW=Number(st.weight)||0;
+      var missedTwice = !met && hist.length>1 && !dayMetTarget(hist[1],st);
+      if(missedTwice){ out.weight=Math.max(0, Math.round((lastW*0.9)/5)*5); out.deload=true; }
+      else out.weight=Math.max(planW, met?lastW+loadStep(st.name):lastW);
+      out.reps=planReps||minOf(day.sets,function(e){return e.reps;});
+      out.stepped=met && out.weight>planW;
+    }
+    return out;
+  }
+  function suggestNote(sg,st){
+    if(!sg) return "";
+    var s=sg.sets, tail;
+    if(st.type==="hold") tail=s.map(function(e){ return fmtSecs(e.secs); }).join(", ");
+    else if(st.type==="cardio") tail=s.map(function(e){ return (e.duration||0)+" min"; }).join(", ");
+    else if(st.type==="bodyweight"){
+      var a=maxOf(s,function(e){return e.added;});
+      tail="BW"+(a?fmtAdded(a):"")+" × "+s.map(function(e){ return e.reps; }).join(", ");
+    } else {
+      tail=fmtW(maxOf(s,function(e){return e.weight;}))+" × "+s.map(function(e){ return e.reps; }).join(", ");
+    }
+    return "last time " + tail;
+  }
+  /* fold a suggestion into the numbers a runner step is opened with */
+  function applySuggestion(st){
+    var sg=suggestNext(st);
+    if(!sg) return null;
+    if(sg.weight!==undefined) st.weight=sg.weight;
+    if(sg.added!==undefined) st.added=sg.added;
+    if(sg.reps!==undefined && sg.reps) st.reps=sg.reps;
+    if(sg.secs!==undefined) st.secs=sg.secs;
+    if(sg.duration!==undefined) st.duration=sg.duration;
+    return sg;
+  }
+
   /* ---------- the workout runner and its timer ---------- */
   var timer={running:false, mode:"rest", targetMs:0, leftMs:0, endsAt:0, iv:null, elapsed:false, armed:false, drill:null};
   var audioCtx=null;
@@ -3882,7 +3988,9 @@ var FINISHES = [
       steps:r.steps.map(function(s,i){
         var have=saved?Math.max(0,Number(saved[i])||0):0;
         resumed+=have;
-        return {exerciseId:s.exerciseId, name:s.name, type:kindOf(s.type), sets:s.sets, reps:s.reps, weight:s.weight, added:s.added, secs:s.secs, duration:s.duration, distance:null, restSec:s.restSec, done:have};
+        var step={exerciseId:s.exerciseId, name:s.name, type:kindOf(s.type), sets:s.sets, reps:s.reps, weight:s.weight, added:s.added, secs:s.secs, duration:s.duration, distance:null, restSec:s.restSec, done:have};
+        step.sg=applySuggestion(step);   /* derived here; the routine itself is untouched */
+        return step;
       })};
     renderRunner();
     var act=activeStepIdx();
@@ -4059,7 +4167,10 @@ var FINISHES = [
       row.className="run-step"+(i===act?" active":"")+(st.done>=total?" complete":"");
       row.innerHTML='<div class="run-idx">'+String(i+1).padStart(2,"0")+'</div>'+
         '<div><div class="run-name">'+escapeHtml(st.name)+'</div>'+
-        '<div class="run-target">'+escapeHtml(stepTargetText(st))+'</div></div>'+
+        '<div class="run-target">'+escapeHtml(stepTargetText(st))+
+          (st.sg?'<span class="run-why">'+escapeHtml(suggestNote(st.sg,st))+
+            (st.sg.deload?' · easing off':st.sg.stepped?' · stepping up':'')+'</span>':'')+
+        '</div></div>'+
         '<div class="run-right"><div class="pips">'+pips+'</div><div class="run-inputs">'+
         (k==="cardio"
           ? '<input type="number" class="r-dur" min="1" step="1" aria-label="Minutes" value="'+(st.duration||"")+'">'+
@@ -4139,6 +4250,24 @@ var FINISHES = [
   }
 
   /* ---------- events ---------- */
+  /* typing a movement the ledger already knows fills in where you left off */
+  function prefillLogFrom(){
+    var nameEl=document.getElementById("logName"), name=nameEl.value.trim();
+    if(!name) return;
+    var ex=exerciseById(slugify(name)); if(!ex) return;
+    var typeEl=document.getElementById("logType");
+    typeEl.value=kindOf(ex.type); syncLogFields();
+    var sg=suggestNext({exerciseId:ex.id, name:ex.name, type:kindOf(ex.type), sets:1, reps:0, secs:0, duration:0});
+    if(!sg) return;
+    if(sg.weight!==undefined) document.getElementById("weightInput").value=wField(sg.weight);
+    if(sg.added!==undefined) document.getElementById("addedInput").value=sg.added===null?"":wField(sg.added);
+    if(sg.reps) { document.getElementById("repsInput").value=sg.reps; document.getElementById("bwRepsInput").value=sg.reps; }
+    if(sg.secs) document.getElementById("secsInput").value=sg.secs;
+    if(sg.duration) document.getElementById("durationInput").value=sg.duration;
+    var hint=document.getElementById("logHint");
+    if(hint) hint.textContent=suggestNote(sg,{type:kindOf(ex.type)})+(sg.stepped?" · stepping up":sg.deload?" · easing off":"");
+  }
+  document.getElementById("logName").addEventListener("change",prefillLogFrom);
   document.getElementById("logType").addEventListener("change",syncLogFields);
   document.getElementById("restToggle").addEventListener("click",function(){
     if(!timer.running && timer.leftMs<=0) timerArm(Math.max(1,restSecs())*1000);
@@ -4235,6 +4364,7 @@ var FINISHES = [
     }
     addEntry(date,entry);
     flashLogged(entry);
+    var lh=document.getElementById("logHint"); if(lh) lh.textContent="";
     /* the runner owns the clock while a routine is running; otherwise a logged
        set starts the rest here too, so freeform training has a timer as well */
     var rs=restSecs();

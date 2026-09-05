@@ -140,6 +140,28 @@ Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
   nothing. `#chartExercise` is the one remaining select, and it is a filter over what you
   have already logged rather than a suggestion for what to log.
 
+  **What to do next session.** The runner used to open on the routine's plan, which never
+  moved — week 15 of a commissioned programme prescribed exactly what week 1 did.
+  `suggestNext()` now works it out from the ledger by **double progression**, and like the
+  warm-up drills it is **derived, never written back**: the routine keeps stating the plan,
+  while the numbers you are handed come from what you actually did, so revising a routine still
+  works and nothing rewrites your programme behind your back.
+
+  | kind | met the target | missed it |
+  |---|---|---|
+  | strength | + `loadStep(name)` | hold; **miss twice → ease off ~10%** |
+  | bodyweight | +1 rep, or + load once you are carrying any | hold |
+  | hold | +5 sec | hold |
+  | cardio | +1 min | hold |
+
+  `loadStep()` reuses `PATTERN_TESTS` to size the jump — 10 for squats and hinges, 5 for
+  presses and rows, 2.5 for isolation. Two rules keep it honest: **specimen sample entries are
+  never progressed from** (they are illustration, not your work), and **the plan is a floor** —
+  a plan heavier than your history stands, and a plan that adds load keeps that load rather than
+  having it quietly dropped. The runner shows its reasoning under the target — *last time 225 lb
+  × 5, 5, 5 · stepping up* — so it is obvious when to overrule it. The log form does the same:
+  type a movement it knows and it sets the kind and fills in where you left off.
+
   **The runner.** "Begin" opens a runner overlay: a countdown dial, the ordered
   movements with one filled pip per completed set, and per-set weight/rep fields
   prefilled from the target — with minutes and distance, for a cardio movement.
@@ -239,6 +261,15 @@ reasoning applies in the runner, where a finished movement still accepts an extr
 than disabling its Log button: a ledger that will not write down work you actually did is the
 wrong kind of strict. Extra sets are marked `+n` beside the planned pips.
 
+## Rendering cost
+
+`renderShop()` rebuilds 618 catalogue cards, and `renderAll()` runs on every logged set: on a
+4×-throttled CPU that measured **143 ms per set**, 104 ms of it the catalogue. `shopSignature()`
+now folds every input that changes those cards — filter, query, tokens, owned, eras, finishes —
+into one string, and `renderShop()` returns early when it has not moved. Logging a set touches
+none of them, so it fell to **37 ms**; buying, claiming or unlocking an era still redraws in
+full. Add to the signature if you add an input, or the catalogue will go stale.
+
 ## Three traps in this file
 
 **Number inputs take `step="1"` or `step="any"`, never a grid.** A `step="5"` on the
@@ -266,7 +297,7 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-497 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+537 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted
