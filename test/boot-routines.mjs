@@ -20,7 +20,7 @@ console.log("boot-routines");
 /* --- empty state --- */
 check("starts with no routines", lb.state.routines.length, 0);
 check("empty note shown", /Nothing entered yet/.test(d.getElementById("routineList").textContent));
-check("four standards offered", q("#standardRow .template-pill").length, 4);
+check("five standards offered", q("#standardRow .template-pill").length, 5);
 check("editor starts closed", d.getElementById("routineEditor").classList.contains("show"), "false");
 check("the replaced quick-pick row is gone", d.getElementById("templateRow"), "null");
 
@@ -35,8 +35,10 @@ check("composer opens", d.getElementById("routineEditor").classList.contains("sh
 check("one blank movement to start", rows().length, 1);
 check("movement field is a text input", row(1).querySelector(".s-name").tagName, "INPUT");
 check("no exercise picker in the row", row(1).querySelector("select.s-ex"), "null");
-check("its only select is the two-option kind", row(1).querySelectorAll("select").length, 1);
-check("kind offers exactly two", row(1).querySelectorAll(".s-type option").length, 2);
+check("its only select is the kind", row(1).querySelectorAll("select").length, 1);
+check("kind offers the four kinds of work", row(1).querySelectorAll(".s-type option").length, 4);
+check("and they are the four", [...row(1).querySelectorAll(".s-type option")].map(o => o.value).join(","),
+  "strength,bodyweight,hold,cardio");
 check("movement starts blank", row(1).querySelector(".s-name").value, "");
 
 /* --- typing a name does not touch the repertoire until it is used --- */
@@ -230,7 +232,7 @@ check("a nameless set is refused", entryCount(), logBefore + 1);
 click(d.querySelector("#routineList .r-del"));
 check("routine struck", lb.state.routines.length, 0);
 check("empty note returns", /Nothing entered yet/.test(d.getElementById("routineList").textContent));
-check("the standards remain", q("#standardRow .template-pill").length, 4);
+check("the standards remain", q("#standardRow .template-pill").length, 5);
 
 /* --- number fields must not carry a restrictive step. A step of "5" on the rest
        field makes a browser reject 8 as a step mismatch and silently refuse to

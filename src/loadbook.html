@@ -108,13 +108,15 @@
   .dial-center .v{font-family:var(--font-caps); font-weight:600; font-size:2rem; line-height:1; color:var(--bronze-hi);}
   .dial-center .l{font-family:var(--font-caps); font-size:0.48rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft); margin-top:4px;}
   .dial-legend{display:flex; flex-direction:column; gap:9px; min-width:0;}
-  @media (max-width:380px){ .dials{gap:15px;} .dial-wrap{width:126px; height:126px;} .dl-row .k{min-width:66px;} .dl-row .v{font-size:0.76rem;} }
+  @media (max-width:380px){ .dials{gap:12px; flex-wrap:wrap;} .dial-wrap{width:118px; height:118px;} .dl-row .k{min-width:60px;} .dl-row .v{font-size:0.76rem;} }
   .dl-row{display:flex; align-items:baseline; gap:10px;}
   .dl-row .sw{width:14px; height:2px; flex-shrink:0; margin-bottom:3px;}
   .dl-row.a .sw{background:var(--dial-a);} .dl-row.b .sw{background:var(--dial-b);} .dl-row.c .sw{background:var(--dial-c);}
   .dl-row .k{font-size:0.78rem; color:var(--ink-soft); min-width:88px;}
   .dl-row .v{font-family:var(--font-mono); font-size:0.82rem;}
   .dl-row .v small{color:var(--ink-mute); font-size:0.7rem;}
+  .dl-row.d{margin-top:3px; padding-top:8px; border-top:1px solid var(--line);}
+  .dl-row.d .k{color:var(--ink-mute);}
   .goal-input{width:54px; background:var(--surface-2); border:2px solid var(--line-strong); color:var(--ink); padding:3px 6px; font-family:var(--font-mono); font-size:0.8rem; text-align:right;}
   .edit-btn{background:none; border:none; cursor:pointer; font-family:var(--font-caps); font-size:0.62rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--bronze); padding:4px 0; align-self:flex-start; margin-top:4px;}
   .edit-btn:hover{color:var(--bronze-hi);}
@@ -474,6 +476,7 @@
           <div class="dl-row a"><span class="sw"></span><span class="k">Streak</span><span class="v" id="statStreak">—</span></div>
           <div class="dl-row b"><span class="sw"></span><span class="k">Sessions</span><span class="v" id="statSessions">—</span></div>
           <div class="dl-row c"><span class="sw"></span><span class="k">Volume</span><span class="v" id="statVolume">—</span></div>
+          <div class="dl-row d"><span class="k">Bodyweight</span><span class="v" id="statBodyweight">—</span></div>
           <button type="button" class="edit-btn" id="goalsEditBtn">Edit targets</button>
         </div>
       </div>
@@ -528,12 +531,20 @@
           <form id="logForm">
             <div class="form-row1">
               <div class="field"><label for="logName">Movement</label><input type="text" id="logName" placeholder="Bench Press" maxlength="40" autocomplete="off"></div>
-              <div class="field"><label for="logType">Kind</label><select id="logType"><option value="strength">Weight × reps</option><option value="cardio">Duration / distance</option></select></div>
+              <div class="field"><label for="logType">Kind</label><select id="logType"></select></div>
               <div class="field"><label for="dateInput">Date</label><input type="date" id="dateInput"></div>
             </div>
             <div class="form-grid" id="strengthFields">
               <div class="field"><label for="weightInput">Weight (lb)</label><input type="number" id="weightInput" min="0" step="any" placeholder="135"></div>
               <div class="field"><label for="repsInput">Reps</label><input type="number" id="repsInput" min="1" step="1" placeholder="5"></div>
+            </div>
+            <div class="form-grid" id="bodyweightFields" style="display:none;">
+              <div class="field"><label for="addedInput">Added (lb)</label><input type="number" id="addedInput" step="any" placeholder="— for none"></div>
+              <div class="field"><label for="bwRepsInput">Reps</label><input type="number" id="bwRepsInput" min="1" step="1" placeholder="10"></div>
+            </div>
+            <div class="form-grid" id="holdFields" style="display:none;">
+              <div class="field"><label for="secsInput">Hold (sec)</label><input type="number" id="secsInput" min="1" step="1" placeholder="45"></div>
+              <div class="field"></div>
             </div>
             <div class="form-grid" id="cardioFields" style="display:none;">
               <div class="field"><label for="durationInput">Duration (min)</label><input type="number" id="durationInput" min="0" step="1" placeholder="30"></div>
@@ -638,8 +649,12 @@
     {id:"deadlift", name:"Deadlift", category:"Pull", type:"strength"},
     {id:"overhead-press", name:"Overhead Press", category:"Push", type:"strength"},
     {id:"barbell-row", name:"Barbell Row", category:"Pull", type:"strength"},
-    {id:"pull-up", name:"Pull-up", category:"Pull", type:"strength"},
-    {id:"plank", name:"Plank", category:"Core", type:"cardio"},
+    {id:"pull-up", name:"Pull-up", category:"Pull", type:"bodyweight"},
+    {id:"push-up", name:"Push-up", category:"Push", type:"bodyweight"},
+    {id:"dip", name:"Dip", category:"Push", type:"bodyweight"},
+    {id:"air-squat", name:"Air Squat", category:"Legs", type:"bodyweight"},
+    {id:"plank", name:"Plank", category:"Core", type:"hold"},
+    {id:"hollow-hold", name:"Hollow Hold", category:"Core", type:"hold"},
     {id:"running", name:"Running", category:"Cardio", type:"cardio"}
   ];
 
@@ -647,7 +662,8 @@ var TEMPLATES = [
     {id:"push-day", name:"Push Day", exerciseIds:["bench-press","overhead-press"]},
     {id:"pull-day", name:"Pull Day", exerciseIds:["deadlift","barbell-row","pull-up"]},
     {id:"leg-day", name:"Leg Day", exerciseIds:["squat"]},
-    {id:"cardio-core", name:"Cardio & Core", exerciseIds:["running","plank"]}
+    {id:"cardio-core", name:"Cardio & Core", exerciseIds:["running","plank"]},
+    {id:"bodyweight-day", name:"Bodyweight", exerciseIds:["push-up","pull-up","dip","air-squat","hollow-hold"]}
   ];
 
 var DINOS = [
@@ -2011,23 +2027,23 @@ var FINISHES = [
     {id:"gold",     name:"Gold",     filter:"sepia(1) saturate(3.2) hue-rotate(-8deg) brightness(1.18) contrast(1.1)"}
   ];
 
-    function mkSets(exerciseId, exerciseName, type, n, weight, reps, duration, distance){
+    function mkSets(exerciseId, exerciseName, type, n, weight, reps, duration, distance, secs, added){
     var out = [];
     for (var i = 0; i < n; i++){
-      out.push({id: exerciseId + "-" + i, exerciseId: exerciseId, exerciseName: exerciseName, type: type, weight: weight, reps: reps, duration: duration, distance: distance, isPR: false});
+      out.push({id: exerciseId + "-" + i, exerciseId: exerciseId, exerciseName: exerciseName, type: type, weight: weight, reps: reps, duration: duration, distance: distance, secs: secs===undefined?null:secs, added: added===undefined?null:added, isPR: false});
     }
     return out;
   }
 
   var FALLBACK_SESSIONS = [
     {date:"2026-08-18", sample:true, entries: mkSets("bench-press","Bench Press","strength",3,165,5).concat(mkSets("overhead-press","Overhead Press","strength",3,85,8))},
-    {date:"2026-08-20", sample:true, entries: mkSets("squat","Squat","strength",3,215,5).concat(mkSets("plank","Plank","cardio",3,null,null,1,null))},
+    {date:"2026-08-20", sample:true, entries: mkSets("squat","Squat","strength",3,215,5).concat(mkSets("plank","Plank","hold",3,null,null,null,null,55))},
     {date:"2026-08-22", sample:true, entries: mkSets("running","Running","cardio",1,null,null,30,4.2)},
-    {date:"2026-08-25", sample:true, entries: mkSets("bench-press","Bench Press","strength",3,170,5).concat(mkSets("barbell-row","Barbell Row","strength",3,135,8))},
+    {date:"2026-08-25", sample:true, entries: mkSets("bench-press","Bench Press","strength",3,170,5).concat(mkSets("barbell-row","Barbell Row","strength",3,135,8)).concat(mkSets("push-up","Push-up","bodyweight",3,null,20))},
     {date:"2026-08-27", sample:true, entries: mkSets("squat","Squat","strength",3,220,5).concat(mkSets("deadlift","Deadlift","strength",1,275,5))},
     {date:"2026-08-29", sample:true, entries: mkSets("running","Running","cardio",1,null,null,32,4.5)},
-    {date:"2026-09-01", sample:true, entries: mkSets("bench-press","Bench Press","strength",3,175,5).concat(mkSets("pull-up","Pull-up","strength",3,0,8))},
-    {date:"2026-09-02", sample:true, entries: mkSets("squat","Squat","strength",3,225,5).concat(mkSets("plank","Plank","cardio",3,null,null,1.08,null))}
+    {date:"2026-09-01", sample:true, entries: mkSets("bench-press","Bench Press","strength",3,175,5).concat(mkSets("pull-up","Pull-up","bodyweight",3,null,8))},
+    {date:"2026-09-02", sample:true, entries: mkSets("squat","Squat","strength",3,225,5).concat(mkSets("plank","Plank","hold",3,null,null,null,null,65))}
   ];
   FALLBACK_SESSIONS[3].entries[0].isPR = true;
   FALLBACK_SESSIONS[4].entries[0].isPR = true;
@@ -2132,9 +2148,69 @@ var FINISHES = [
   function isBronze(id){ return BRONZE.indexOf(id) !== -1; }
   function specNo(id){ var i = DINOS.findIndex(function(d){ return d.id === id; }); return "No. " + String(i + 1).padStart(3, "0"); }
 
-  var DEFAULT_GOALS = { streak: 7, sessions: 5, volume: 8000 };
+  var DEFAULT_GOALS = { streak: 7, sessions: 5, volume: 8000, bodyweight: 0 };
   var CATEGORY_VAR = {Push:"--dial-a", Pull:"--g-select", Legs:"--g-archival", Core:"--warn", Cardio:"--good"};
   function catColorVar(cat){ return "var(" + (CATEGORY_VAR[cat] || "--bronze") + ")"; }
+
+  /* Four kinds of work, so the ledger is not only barbells. A "strength" entry
+     carries an absolute load; a "bodyweight" entry carries reps and an optional
+     added load (negative for assistance); a "hold" carries seconds; "cardio"
+     carries minutes and an optional distance. Entries logged before bodyweight
+     and hold existed are strength/cardio and still render through those branches. */
+  var KINDS = {
+    strength:   {label:"Weight × reps",  unit:"lb",   best:"heaviest set"},
+    bodyweight: {label:"Bodyweight reps", unit:"reps", best:"most reps"},
+    hold:       {label:"Timed hold",      unit:"sec",  best:"longest hold"},
+    cardio:     {label:"Duration",        unit:"min",  best:"time-based"}
+  };
+  function kindOf(t){ return KINDS[t] ? t : "strength"; }
+  function kindOptions(sel){
+    return Object.keys(KINDS).map(function(k){
+      return '<option value="'+k+'"'+(k===sel?" selected":"")+'>'+KINDS[k].label+'</option>';
+    }).join("");
+  }
+  function fmtSecs(n){ n=Math.max(0,Math.round(Number(n)||0)); return n>=60 ? (Math.floor(n/60)+":"+String(n%60).padStart(2,"0")) : (n+" sec"); }
+  function fmtAdded(a){ a=Number(a)||0; return a>0 ? " +"+a+" lb" : a<0 ? " \u2212"+Math.abs(a)+" lb" : ""; }
+  function entryDetail(e){
+    if(e.type==="bodyweight") return "BW"+fmtAdded(e.added)+" \u00d7 "+e.reps;
+    if(e.type==="hold") return fmtSecs(e.secs)+" hold";
+    if(e.type==="cardio") return (e.duration||0)+" min"+(e.distance?" \u00b7 "+e.distance+" km":"");
+    return (e.weight?e.weight+" lb \u00d7 ":"BW \u00d7 ")+e.reps;
+  }
+  /* pounds moved, for the weekly volume dial. A bodyweight set only counts once
+     the user has told us what they weigh; holds and cardio carry no load. */
+  function entryLoad(e){
+    if(e.type==="strength") return (Number(e.weight)||0)*(Number(e.reps)||0);
+    if(e.type==="bodyweight"){
+      var bw=Number(state.goals.bodyweight)||0;
+      if(!bw) return 0;
+      return Math.max(0, bw+(Number(e.added)||0))*(Number(e.reps)||0);
+    }
+    return 0;
+  }
+  /* the number a kind is judged on */
+  function entryMetric(e){
+    if(e.type==="bodyweight") return typeof e.reps==="number"?e.reps:null;
+    if(e.type==="hold") return typeof e.secs==="number"?e.secs:null;
+    if(e.type==="cardio") return typeof e.distance==="number"?e.distance:(typeof e.duration==="number"?e.duration:null);
+    return typeof e.weight==="number"?e.weight:null;
+  }
+  /* best is compared within a kind, and for bodyweight within the same added load,
+     so five weighted pull-ups do not have to beat twelve unweighted ones */
+  function bestFor(id,type,added){
+    var b=null, want=Number(added)||0;
+    state.sessions.forEach(function(s){ s.entries.forEach(function(e){
+      if(e.exerciseId!==id||e.type!==type) return;
+      if(type==="bodyweight"&&(Number(e.added)||0)!==want) return;
+      var v=entryMetric(e); if(v!==null&&(b===null||v>b)) b=v;
+    });});
+    return b;
+  }
+  function prText(e){
+    if(e.type==="bodyweight") return e.exerciseName+" \u2014 "+e.reps+" reps"+fmtAdded(e.added);
+    if(e.type==="hold") return e.exerciseName+" \u2014 "+fmtSecs(e.secs);
+    return e.exerciseName+" \u2014 "+e.weight+" lb \u00d7 "+e.reps;
+  }
   var GRADE = {common:"Standard", uncommon:"Select", rare:"Reserve", legendary:"Archival"};
   var GRADE_CLS = {common:"grade-standard", uncommon:"grade-select", rare:"grade-reserve", legendary:"grade-archival"};
   var GRADE_VAR = {common:"--g-standard", uncommon:"--g-select", rare:"--g-reserve", legendary:"--g-archival"};
@@ -2283,7 +2359,7 @@ var FINISHES = [
   function renderStats(){
     var t=todayISO(), ws=addDays(t,-6);
     var wk = state.sessions.filter(function(s){ return s.date>=ws && s.date<=t; });
-    var vol=0; wk.forEach(function(s){ s.entries.forEach(function(e){ if(e.type==="strength"&&e.weight&&e.reps) vol+=e.weight*e.reps; }); });
+    var vol=0; wk.forEach(function(s){ s.entries.forEach(function(e){ vol+=entryLoad(e); }); });
     var streak = computeCurrentStreak();
     document.getElementById("ringsCenterValue").textContent = streak;
     var g = state.goals;
@@ -2291,10 +2367,12 @@ var FINISHES = [
       document.getElementById("statStreak").innerHTML = '<input type="number" class="goal-input" id="goalStreakInput" min="1" value="'+g.streak+'"> <small>days</small>';
       document.getElementById("statSessions").innerHTML = '<input type="number" class="goal-input" id="goalSessionsInput" min="1" value="'+g.sessions+'"> <small>/ wk</small>';
       document.getElementById("statVolume").innerHTML = '<input type="number" class="goal-input" id="goalVolumeInput" min="100" step="any" value="'+g.volume+'"> <small>lb</small>';
+      document.getElementById("statBodyweight").innerHTML = '<input type="number" class="goal-input" id="goalBwInput" min="0" step="any" placeholder="—" value="'+(g.bodyweight||"")+'"> <small>lb</small>';
     } else {
       document.getElementById("statStreak").innerHTML = streak + ' <small>/ ' + g.streak + ' d</small>';
       document.getElementById("statSessions").innerHTML = wk.length + ' <small>/ ' + g.sessions + '</small>';
       document.getElementById("statVolume").innerHTML = Math.round(vol).toLocaleString() + ' <small>/ ' + g.volume.toLocaleString() + ' lb</small>';
+      document.getElementById("statBodyweight").innerHTML = g.bodyweight ? (g.bodyweight + ' <small>lb</small>') : '<small>set it to count bodyweight sets</small>';
     }
     document.getElementById("libCount").innerHTML = state.exercises.length + ' <small>exercises</small>';
     setRing(document.getElementById("ringA"), streak/g.streak, 68);
@@ -2431,7 +2509,12 @@ var FINISHES = [
     });
     syncLogFields();
   }
-  function syncLogFields(){ var c=document.getElementById("logType").value==="cardio"; document.getElementById("strengthFields").style.display=c?"none":"grid"; document.getElementById("cardioFields").style.display=c?"grid":"none"; }
+  function syncLogFields(){
+    var k=kindOf(document.getElementById("logType").value);
+    Object.keys(KINDS).forEach(function(t){
+      document.getElementById(t+"Fields").style.display = t===k ? "grid" : "none";
+    });
+  }
   function renderRecent(){
     var list=document.getElementById("recentList"); list.innerHTML="";
     var sorted=sessionsSorted().slice(0,14).filter(function(s){return s.entries.length;});
@@ -2441,7 +2524,7 @@ var FINISHES = [
       g.innerHTML='<div class="day-head"><span class="d">'+fmtDate(s.date)+'</span><span class="rel">'+relDate(s.date)+'</span>'+(s.sample?'<span class="sample-badge">Specimen entry</span>':'')+'</div>';
       s.entries.forEach(function(e){
         var ex=state.exercises.find(function(x){return x.id===e.exerciseId;});
-        var detail = e.type==="strength" ? ((e.weight?e.weight+" lb × ":"BW × ")+e.reps) : (e.duration+" min"+(e.distance?" · "+e.distance+" km":""));
+        var detail = entryDetail(e);
         var r=document.createElement("div"); r.className="entry-row";
         r.innerHTML='<span class="entry-cat" style="background:'+catColorVar(ex?ex.category:"Push")+';"></span><span class="entry-name">'+e.exerciseName+'</span><span class="entry-detail">'+detail+(e.isPR?' <span class="pr-badge">PR</span>':'')+'</span><button class="entry-del" data-date="'+s.date+'" data-entry="'+e.id+'" title="Strike entry" aria-label="Delete">×</button>';
         g.appendChild(r);
@@ -2453,19 +2536,20 @@ var FINISHES = [
   function renderLibrary(){
     var list=document.getElementById("libraryList"); list.innerHTML="";
     state.exercises.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).forEach(function(ex){
-      var best=null; state.sessions.forEach(function(s){ s.entries.forEach(function(e){ if(e.exerciseId===ex.id&&e.type==="strength"&&typeof e.weight==="number"){ if(best===null||e.weight>best) best=e.weight; } }); });
+      var k=kindOf(ex.type), best=k==="cardio"?null:bestFor(ex.id,k,0);
       var r=document.createElement("div"); r.className="lib-row";
-      r.innerHTML='<span class="entry-cat" style="background:'+catColorVar(ex.category)+';"></span><div><div class="lib-name">'+ex.name+'</div><div class="lib-cat">'+ex.category+'</div></div><div class="lib-best">'+(best!==null?'<b>'+best+' lb</b> best':(ex.type==="cardio"?"time-based":"no record"))+'</div>';
+      r.innerHTML='<span class="entry-cat" style="background:'+catColorVar(ex.category)+';"></span><div><div class="lib-name">'+ex.name+'</div><div class="lib-cat">'+ex.category+'</div></div><div class="lib-best">'+(best!==null?'<b>'+(k==="hold"?fmtSecs(best):best+" "+KINDS[k].unit)+'</b> best':(k==="cardio"?"time-based":"no record"))+'</div>';
       list.appendChild(r);
     });
   }
-  function bestWeightFor(id){ var b=null; state.sessions.forEach(function(s){ s.entries.forEach(function(e){ if(e.exerciseId===id&&e.type==="strength"&&typeof e.weight==="number"){ if(b===null||e.weight>b) b=e.weight; } }); }); return b; }
+
 
   function renderChart(){
     var svg=document.getElementById("chartSvg"), id=document.getElementById("chartExercise").value;
     var ex=state.exercises.find(function(e){return e.id===id;}); svg.innerHTML=""; if(!ex) return;
-    var pts=[]; sessionsSorted().slice().reverse().forEach(function(s){ var top=null; s.entries.forEach(function(e){ if(e.exerciseId!==id) return; var v = ex.type==="strength" ? (typeof e.weight==="number"?e.weight:null) : (typeof e.distance==="number"?e.distance:(e.duration||null)); if(v!==null&&(top===null||v>top)) top=v; }); if(top!==null) pts.push({date:s.date,value:top}); });
-    var unit = ex.type==="strength" ? "lb" : (state.sessions.some(function(s){return s.entries.some(function(e){return e.exerciseId===id&&e.distance;});})?"km":"min");
+    var pts=[]; sessionsSorted().slice().reverse().forEach(function(s){ var top=null; s.entries.forEach(function(e){ if(e.exerciseId!==id) return; var v=entryMetric(e); if(v!==null&&(top===null||v>top)) top=v; }); if(top!==null) pts.push({date:s.date,value:top}); });
+    var k=kindOf(ex.type);
+    var unit = k==="cardio" ? (state.sessions.some(function(s){return s.entries.some(function(e){return e.exerciseId===id&&e.distance;});})?"km":"min") : KINDS[k].unit;
     var ns="http://www.w3.org/2000/svg";
     if (pts.length<2){ var m=document.createElementNS(ns,"text"); m.setAttribute("x","20"); m.setAttribute("y","110"); m.setAttribute("class","chart-axis-label"); m.textContent=pts.length===0?"Enter a few sessions to draw the line.":"One entry — a second draws the line."; svg.appendChild(m); return; }
     var W=520,H=220,pL=34,pR=18,pT=20,pB=30; var vals=pts.map(function(p){return p.value;}); var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals); if(mn===mx){mn-=1;mx+=1;} var rg=mx-mn; mn-=rg*0.15; mx+=rg*0.15;
@@ -2530,15 +2614,16 @@ var FINISHES = [
   /* ---------- mutations ---------- */
   function upsertSessionLocal(date,fn){ var s=state.sessions.find(function(x){return x.date===date;}); if(!s){ s={date:date,sample:false,entries:[]}; state.sessions.push(s);} fn(s); if(!s.entries.length) state.sessions=state.sessions.filter(function(x){return x!==s;}); return s; }
   function addEntry(date,entry){
-    if(entry.type==="strength"&&typeof entry.weight==="number"){ var pb=bestWeightFor(entry.exerciseId); entry.isPR=pb!==null&&entry.weight>pb; } else entry.isPR=false;
+    var pb=bestFor(entry.exerciseId, entry.type, entry.added), mv=entryMetric(entry);
+    entry.isPR = entry.type!=="cardio" && pb!==null && mv!==null && mv>pb;
     upsertSessionLocal(date,function(s){s.entries.push(entry);});
     if(state.dbAvailable){ var ref=state.db.doc("sessions/"+date); ref.get().then(function(snap){ var ex=snap.exists?snap.data():{date:date,sample:false,entries:[],createdAt:new Date().toISOString()}; var en=(ex.entries||[]).slice(); en.push(entry); return ref.set({date:date,sample:ex.sample||false,entries:en,createdAt:ex.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()}); })["catch"](function(err){console.error("Loadbook: save set",err);}); }
-    renderAll(); if(entry.isPR) showToast(STAR_SVG,"Personal record",entry.exerciseName+" — "+entry.weight+" lb × "+entry.reps); checkEras();
+    renderAll(); if(entry.isPR) showToast(STAR_SVG,"Personal record",prText(entry)); checkEras();
   }
   function deleteEntry(date,id){ upsertSessionLocal(date,function(s){ s.entries=s.entries.filter(function(e){return e.id!==id;}); }); if(state.dbAvailable){ var ref=state.db.doc("sessions/"+date); ref.get().then(function(snap){ if(!snap.exists) return; var en=(snap.data().entries||[]).filter(function(e){return e.id!==id;}); if(en.length) return ref.set(Object.assign({},snap.data(),{entries:en,updatedAt:new Date().toISOString()})); return ref.delete(); })["catch"](function(err){console.error("Loadbook: delete",err);}); } renderAll(); }
   function addExercise(ex){ state.exercises.push(ex); if(state.dbAvailable) state.db.doc("exercises/"+ex.id).set(ex)["catch"](function(err){console.error("Loadbook: exercise",err);}); }
   function clearSampleData(){ state.sessions=state.sessions.filter(function(s){return !s.sample;}); if(state.dbAvailable){ state.db.collection("sessions").where("sample","==",true).get().then(function(snap){ snap.docs.forEach(function(d){ state.db.doc("sessions/"+d.id).delete()["catch"](function(){}); }); })["catch"](function(err){console.error("Loadbook: clear",err);}); } renderAll(); }
-  function saveGoals(){ var ns=Number(document.getElementById("goalStreakInput").value), nse=Number(document.getElementById("goalSessionsInput").value), nv=Number(document.getElementById("goalVolumeInput").value); state.goals={streak:ns>0?ns:state.goals.streak,sessions:nse>0?nse:state.goals.sessions,volume:nv>0?nv:state.goals.volume}; if(state.dbAvailable) state.db.doc("settings/goals").set(state.goals)["catch"](function(err){console.error("Loadbook: goals",err);}); }
+  function saveGoals(){ var ns=Number(document.getElementById("goalStreakInput").value), nse=Number(document.getElementById("goalSessionsInput").value), nv=Number(document.getElementById("goalVolumeInput").value), nb=Number(document.getElementById("goalBwInput").value); state.goals={streak:ns>0?ns:state.goals.streak,sessions:nse>0?nse:state.goals.sessions,volume:nv>0?nv:state.goals.volume,bodyweight:nb>0?nb:0}; if(state.dbAvailable) state.db.doc("settings/goals").set(state.goals)["catch"](function(err){console.error("Loadbook: goals",err);}); }
   function persistRewards(){ if(!state.dbAvailable) return; state.db.doc("settings/rewards").set({tokens:state.rewards.tokens,lastClaimedDate:state.rewards.lastClaimedDate,owned:state.rewards.owned,variants:state.rewards.variants||{},finish:state.rewards.finish||{},freezes:state.rewards.freezes||0,frozenDates:state.rewards.frozenDates||[],bonusClaimed:!!state.rewards.bonusClaimed,shelf:state.rewards.shelf||[],erasUnlocked:state.rewards.erasUnlocked||[]})["catch"](function(err){console.error("Loadbook: rewards",err);}); }
   function claimDaily(){ if(state.rewards.lastClaimedDate===todayISO()||!todaysSessionLogged()) return; var s=computeCurrentStreak(), r=rewardAmountForStreak(s); state.rewards.tokens+=r; state.rewards.lastClaimedDate=todayISO(); persistRewards(); renderRewards(); renderShop(); renderFreeze(); showToast(COIN_SVG,"+"+r+" stipend drawn",s+"-day streak bonus"); }
   function buyDino(id){ var d=DINOS.find(function(x){return x.id===id;}); if(!d||state.rewards.owned.indexOf(id)!==-1||state.rewards.tokens<d.cost||!eraUnlocked(eraOf(id))) return; state.rewards.tokens-=d.cost; state.rewards.owned.push(id); persistRewards(); renderAll(); showToast(vitrine(id,true),"Acquired",d.name+" · "+specNo(id)); checkCompletionBonus(); }
@@ -2690,14 +2775,19 @@ var FINISHES = [
      the repertoire is only written to when a routine is saved or a set is logged. */
   var DEFAULT_REST=90, CARDIO_REST=60, WORK_SET_SEC=45;
   function exerciseById(id){ return state.exercises.find(function(e){ return e.id===id; })||null; }
-  function isCardio(st){ return st && st.type==="cardio"; }
   function routineId(){ return "r_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
   function scrollToEl(el){ if(el&&typeof el.scrollIntoView==="function"){ try{ el.scrollIntoView({behavior:"smooth",block:"center"}); }catch(e){} } }
   function fmtClock(ms){ var t=Math.max(0,Math.round(ms/1000)); return Math.floor(t/60)+":"+String(t%60).padStart(2,"0"); }
   function defaultStep(name,type){
-    var c=type==="cardio";
-    return {exerciseId:slugify(name||"movement"), name:name||"", type:c?"cardio":"strength",
-            sets:c?1:3, reps:c?null:5, weight:null, duration:c?20:null, restSec:c?CARDIO_REST:DEFAULT_REST};
+    var k=kindOf(type);
+    var st={exerciseId:slugify(name||"movement"), name:name||"", type:k,
+            sets:1, reps:null, weight:null, added:null, secs:null, duration:null,
+            restSec:(k==="cardio"||k==="hold")?CARDIO_REST:DEFAULT_REST};
+    if(k==="strength"){ st.sets=3; st.reps=5; }
+    else if(k==="bodyweight"){ st.sets=3; st.reps=8; }
+    else if(k==="hold"){ st.sets=3; st.secs=45; }
+    else st.duration=20;
+    return st;
   }
   function stepFromExercise(id){
     var ex=exerciseById(id); if(!ex) return null;
@@ -2713,21 +2803,30 @@ var FINISHES = [
   function stepSets(st){ return Math.max(1, Number(st.sets)||1); }
   function routineMinutes(r){
     var s=0; (r.steps||[]).forEach(function(st){ var n=stepSets(st);
-      s += (isCardio(st) ? (Number(st.duration)||0)*60 : n*WORK_SET_SEC) + n*(Number(st.restSec)||0); });
+      var work = st.type==="cardio" ? (Number(st.duration)||0)*60
+               : st.type==="hold"   ? n*(Number(st.secs)||0)
+               : n*WORK_SET_SEC;
+      s += work + n*(Number(st.restSec)||0); });
     return Math.max(1, Math.round(s/60));
   }
   function stepTargetText(st){
-    var rest=" · rest "+fmtClock((Number(st.restSec)||0)*1000);
-    if(isCardio(st)) return (st.duration||0)+" min"+rest;
+    var rest=" \u00b7 rest "+fmtClock((Number(st.restSec)||0)*1000);
+    var n=stepSets(st);
+    if(st.type==="cardio") return (st.duration||0)+" min"+rest;
+    if(st.type==="hold") return n+" \u00d7 "+fmtSecs(st.secs)+rest;
+    if(st.type==="bodyweight"){
+      var a=(st.added===null||st.added===undefined||st.added==="")?0:Number(st.added);
+      return n+" \u00d7 "+(st.reps||1)+" \u00b7 "+(a?("bodyweight"+fmtAdded(a)):"bodyweight")+rest;
+    }
     var w=(st.weight===null||st.weight===undefined||st.weight==="")?"bodyweight":(st.weight+" lb");
-    return stepSets(st)+" × "+(st.reps||1)+" · "+w+rest;
+    return n+" \u00d7 "+(st.reps||1)+" \u00b7 "+w+rest;
   }
   function clampNum(el,lo,hi,dflt){ var n=Number(el&&el.value); if(!el||el.value===""||!isFinite(n)) n=dflt; return Math.max(lo,Math.min(hi,Math.round(n))); }
   function persistRoutine(r){ if(!state.dbAvailable) return; state.db.doc("routines/"+r.id).set(r)["catch"](function(err){ console.error("Loadbook: routine",err); }); }
   /* a typed name only reaches the repertoire when it is actually used */
   function ensureExercise(name,type){
     var id=slugify(name);
-    if(!exerciseById(id)) addExercise({id:id, name:name, category:type==="cardio"?"Cardio":"Other", type:type});
+    if(!exerciseById(id)) addExercise({id:id, name:name, category:type==="cardio"?"Cardio":type==="hold"?"Core":"Other", type:kindOf(type)});
     return id;
   }
 
@@ -2736,22 +2835,23 @@ var FINISHES = [
     var d=state.routineDraft; wrap.innerHTML="";
     if(!d) return;
     d.steps.forEach(function(st,i){
-      var cardio=isCardio(st);
+      var k=kindOf(st.type), setsCell='<label><span class="k">Sets</span><input type="number" class="s-sets" min="1" max="20" step="1" value="'+stepSets(st)+'"></label>';
+      var repsCell='<label><span class="k">Reps</span><input type="number" class="s-reps" min="1" max="100" step="1" value="'+(st.reps||8)+'"></label>';
+      var fields =
+        k==="cardio"     ? '<label><span class="k">Minutes</span><input type="number" class="s-dur" min="1" max="600" step="1" value="'+(st.duration||20)+'"></label><span></span><span></span>'
+      : k==="hold"       ? setsCell+'<label><span class="k">Seconds</span><input type="number" class="s-secs" min="1" max="3600" step="1" value="'+(st.secs||45)+'"></label><span></span>'
+      : k==="bodyweight" ? setsCell+repsCell+'<label><span class="k">Added lb</span><input type="number" class="s-add" step="any" placeholder="—" value="'+(st.added===null||st.added===undefined?"":st.added)+'"></label>'
+      :                    setsCell+repsCell+'<label><span class="k">Weight lb</span><input type="number" class="s-wt" min="0" step="any" placeholder="—" value="'+(st.weight===null||st.weight===undefined?"":st.weight)+'"></label>';
       var row=document.createElement("div"); row.className="step-row";
-      row.innerHTML='<label><span class="k">Movement</span><input type="text" class="s-name" maxlength="40" autocomplete="off" placeholder="Bench Press" value="'+escapeHtml(st.name||"")+'"></label>'+
-        '<label><span class="k">Kind</span><select class="s-type"><option value="strength"'+(cardio?"":" selected")+'>Weight × reps</option><option value="cardio"'+(cardio?" selected":"")+'>Duration</option></select></label>'+
-        (cardio
-          ? '<label><span class="k">Minutes</span><input type="number" class="s-dur" min="1" max="600" step="1" value="'+(st.duration||20)+'"></label><span></span><span></span>'
-          : '<label><span class="k">Sets</span><input type="number" class="s-sets" min="1" max="20" step="1" value="'+stepSets(st)+'"></label>'+
-            '<label><span class="k">Reps</span><input type="number" class="s-reps" min="1" max="100" step="1" value="'+(st.reps||5)+'"></label>'+
-            '<label><span class="k">Weight lb</span><input type="number" class="s-wt" min="0" step="any" placeholder="—" value="'+(st.weight===null||st.weight===undefined?"":st.weight)+'"></label>')+
+      row.innerHTML='<label><span class="k">Movement</span><input type="text" class="s-name" maxlength="40" autocomplete="off" placeholder="Push-up" value="'+escapeHtml(st.name||"")+'"></label>'+
+        '<label><span class="k">Kind</span><select class="s-type">'+kindOptions(k)+'</select></label>'+ fields +
         '<label><span class="k">Rest sec</span><input type="number" class="s-rest" min="0" max="900" step="1" value="'+(Number(st.restSec)||0)+'"></label>'+
         '<button type="button" class="step-del" aria-label="Remove movement">×</button>';
       row.querySelector(".s-type").addEventListener("change",function(){
-        var wasCardio=isCardio(d.steps[i]);
+        var was=kindOf(d.steps[i].type), rest=d.steps[i].restSec;
         syncDraft();
-        var now=d.steps[i];
-        if(wasCardio!==isCardio(now)) now.restSec=isCardio(now)?CARDIO_REST:DEFAULT_REST;
+        var now=kindOf(d.steps[i].type), name=d.steps[i].name;
+        if(was!==now){ d.steps[i]=defaultStep(name, now); if(was!=="cardio"&&was!=="hold"&&now!=="cardio"&&now!=="hold") d.steps[i].restSec=rest; }
         renderStepRows();
       });
       row.querySelector(".step-del").addEventListener("click",function(){ syncDraft(); d.steps.splice(i,1); renderStepRows(); });
@@ -2771,16 +2871,18 @@ var FINISHES = [
     document.querySelectorAll("#stepRows .step-row").forEach(function(row){
       var name=row.querySelector(".s-name").value.trim();
       if(!name&&!keepBlank) return;
-      var type=row.querySelector(".s-type").value==="cardio"?"cardio":"strength";
+      var type=kindOf(row.querySelector(".s-type").value);
       var st={name:name, type:type, exerciseId:slugify(name||"movement"),
-              restSec:clampNum(row.querySelector(".s-rest"),0,900,type==="cardio"?CARDIO_REST:DEFAULT_REST)};
-      if(type==="cardio"){ st.sets=1; st.reps=null; st.weight=null; st.duration=clampNum(row.querySelector(".s-dur"),1,600,20); }
+              sets:1, reps:null, weight:null, added:null, secs:null, duration:null,
+              restSec:clampNum(row.querySelector(".s-rest"),0,900,(type==="cardio"||type==="hold")?CARDIO_REST:DEFAULT_REST)};
+      if(type==="cardio"){ st.duration=clampNum(row.querySelector(".s-dur"),1,600,20); }
+      else if(type==="hold"){ st.sets=clampNum(row.querySelector(".s-sets"),1,20,3); st.secs=clampNum(row.querySelector(".s-secs"),1,3600,45); }
       else{
         st.sets=clampNum(row.querySelector(".s-sets"),1,20,3);
-        st.reps=clampNum(row.querySelector(".s-reps"),1,100,5);
-        var w=row.querySelector(".s-wt").value;
-        st.weight=w===""?null:Math.max(0,Number(w)||0);
-        st.duration=null;
+        st.reps=clampNum(row.querySelector(".s-reps"),1,100,type==="bodyweight"?8:5);
+        /* mid-switch the row is still drawn for the old kind, so these may not be here yet */
+        if(type==="bodyweight"){ var aEl=row.querySelector(".s-add"), a=aEl?aEl.value:""; st.added=a===""?null:(Number(a)||0); }
+        else { var wEl=row.querySelector(".s-wt"), w=wEl?wEl.value:""; st.weight=w===""?null:Math.max(0,Number(w)||0); }
       }
       out.push(st);
     });
@@ -2920,7 +3022,7 @@ var FINISHES = [
   function openRunner(id){
     var r=routineById(id); if(!r||!r.steps.length) return;
     state.runner={routineId:id, name:r.name, startedAt:Date.now(), logged:0,
-      steps:r.steps.map(function(s){ return {exerciseId:s.exerciseId, name:s.name, type:s.type, sets:s.sets, reps:s.reps, weight:s.weight, duration:s.duration, distance:null, restSec:s.restSec, done:0}; })};
+      steps:r.steps.map(function(s){ return {exerciseId:s.exerciseId, name:s.name, type:kindOf(s.type), sets:s.sets, reps:s.reps, weight:s.weight, added:s.added, secs:s.secs, duration:s.duration, distance:null, restSec:s.restSec, done:0}; })};
     renderRunner();
     timerArm((Number(r.steps[0].restSec)||DEFAULT_REST)*1000);
     document.getElementById("runnerSheet").classList.add("show");
@@ -2971,17 +3073,22 @@ var FINISHES = [
     var wrap=document.getElementById("runSteps"); if(!wrap) return;
     var act=activeStepIdx(); wrap.innerHTML="";
     run.steps.forEach(function(st,i){
-      var total=stepSets(st), cardio=isCardio(st);
-      var pips=""; for(var k=0;k<total;k++) pips+='<span class="pip'+(k<st.done?" on":"")+'"></span>';
+      var total=stepSets(st), k=kindOf(st.type);
+      var pips=""; for(var p=0;p<total;p++) pips+='<span class="pip'+(p<st.done?" on":"")+'"></span>';
       var row=document.createElement("div");
       row.className="run-step"+(i===act?" active":"")+(st.done>=total?" complete":"");
       row.innerHTML='<div class="run-idx">'+String(i+1).padStart(2,"0")+'</div>'+
         '<div><div class="run-name">'+escapeHtml(st.name)+'</div>'+
         '<div class="run-target">'+escapeHtml(stepTargetText(st))+'</div></div>'+
         '<div class="run-right"><div class="pips">'+pips+'</div><div class="run-inputs">'+
-        (cardio
+        (k==="cardio"
           ? '<input type="number" class="r-dur" min="1" step="1" aria-label="Minutes" value="'+(st.duration||"")+'">'+
             '<input type="number" class="r-dist" min="0" step="any" placeholder="km" aria-label="Distance" value="'+(st.distance===null||st.distance===undefined?"":st.distance)+'">'
+        : k==="hold"
+          ? '<input type="number" class="r-secs" min="1" step="1" aria-label="Seconds" value="'+(st.secs||"")+'">'
+        : k==="bodyweight"
+          ? '<input type="number" class="r-add" step="any" placeholder="+lb" aria-label="Added weight" value="'+(st.added===null||st.added===undefined?"":st.added)+'">'+
+            '<input type="number" class="r-reps" min="1" step="1" aria-label="Reps" value="'+(st.reps||"")+'">'
           : '<input type="number" class="r-wt" min="0" step="any" placeholder="lb" aria-label="Weight" value="'+(st.weight===null||st.weight===undefined?"":st.weight)+'">'+
             '<input type="number" class="r-reps" min="1" step="1" aria-label="Reps" value="'+(st.reps||"")+'">')+
         '</div><button type="button" class="btn-secondary r-log"'+(st.done>=total?" disabled":"")+'>Log</button></div>';
@@ -3003,9 +3110,10 @@ var FINISHES = [
     var st=run.steps[i], total=stepSets(st); if(st.done>=total) return;
     if(!st.name) return;
     var exId=ensureExercise(st.name, st.type);
+    var k=kindOf(st.type);
     var entry={id:exId+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),
-               exerciseId:exId, exerciseName:st.name, type:st.type};
-    if(isCardio(st)){
+               exerciseId:exId, exerciseName:st.name, type:k};
+    if(k==="cardio"){
       var dEl=row.querySelector(".r-dur"), du=Number(dEl&&dEl.value);
       if(!isFinite(du)||du<=0) du=Number(st.duration)||0;
       if(!du){ if(dEl) dEl.focus(); return; }
@@ -3013,15 +3121,27 @@ var FINISHES = [
       var xEl=row.querySelector(".r-dist"), dist=(xEl&&xEl.value!=="")?Number(xEl.value):null;
       entry.distance=(dist!==null&&isFinite(dist)&&dist>=0)?dist:null;
       if(entry.distance!==null) st.distance=entry.distance;
+    } else if(k==="hold"){
+      var sEl=row.querySelector(".r-secs"), sv=Number(sEl&&sEl.value);
+      if(!isFinite(sv)||sv<=0) sv=Number(st.secs)||0;
+      if(!sv){ if(sEl) sEl.focus(); return; }
+      entry.secs=sv; st.secs=sv;
     } else {
-      var wEl=row.querySelector(".r-wt"), rEl=row.querySelector(".r-reps");
+      var rEl=row.querySelector(".r-reps");
       var reps=Number(rEl&&rEl.value);
       if(!isFinite(reps)||reps<=0) reps=Number(st.reps)||0;
       if(!reps){ if(rEl) rEl.focus(); return; }
-      var wv=(wEl&&wEl.value!=="")?Number(wEl.value):(st.weight===null||st.weight===undefined?0:st.weight);
-      entry.weight=isFinite(wv)?wv:0; entry.reps=reps;
-      if(wEl&&wEl.value!=="") st.weight=entry.weight;
-      st.reps=reps;
+      entry.reps=reps; st.reps=reps;
+      if(k==="bodyweight"){
+        var aEl=row.querySelector(".r-add"), av=(aEl&&aEl.value!=="")?Number(aEl.value):(st.added===null||st.added===undefined?null:st.added);
+        entry.added=(av!==null&&isFinite(av))?av:null;
+        if(aEl&&aEl.value!=="") st.added=entry.added;
+      } else {
+        var wEl=row.querySelector(".r-wt");
+        var wv=(wEl&&wEl.value!=="")?Number(wEl.value):(st.weight===null||st.weight===undefined?0:st.weight);
+        entry.weight=isFinite(wv)?wv:0;
+        if(wEl&&wEl.value!=="") st.weight=entry.weight;
+      }
     }
     st.done+=1; run.logged+=1;
     addEntry(todayISO(),entry);
@@ -3063,17 +3183,37 @@ var FINISHES = [
     ev.preventDefault();
     var nameEl=document.getElementById("logName"), exerciseName=nameEl.value.trim();
     if(!exerciseName){ nameEl.focus(); return; }
-    var type=document.getElementById("logType").value==="cardio"?"cardio":"strength";
+    var type=kindOf(document.getElementById("logType").value);
     var exerciseId=ensureExercise(exerciseName,type);
     renderExerciseSelects();
     var date=document.getElementById("dateInput").value||todayISO();
     var entry={id:exerciseId+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),exerciseId:exerciseId,exerciseName:exerciseName,type:type};
-    if(type==="strength"){ var w=document.getElementById("weightInput").value, r=document.getElementById("repsInput").value; if(!r){ document.getElementById("repsInput").focus(); return; } entry.weight=w===""?0:Number(w); entry.reps=Number(r); document.getElementById("weightInput").value=""; document.getElementById("repsInput").value=""; }
-    else { var du=document.getElementById("durationInput").value, di=document.getElementById("distanceInput").value; if(!du){ document.getElementById("durationInput").focus(); return; } entry.duration=Number(du); entry.distance=di===""?null:Number(di); document.getElementById("durationInput").value=""; document.getElementById("distanceInput").value=""; }
+    if(type==="strength"){
+      var w=document.getElementById("weightInput"), r=document.getElementById("repsInput");
+      if(!r.value){ r.focus(); return; }
+      entry.weight=w.value===""?0:Number(w.value); entry.reps=Number(r.value);
+      w.value=""; r.value="";
+    } else if(type==="bodyweight"){
+      var a=document.getElementById("addedInput"), br=document.getElementById("bwRepsInput");
+      if(!br.value){ br.focus(); return; }
+      entry.reps=Number(br.value); entry.added=a.value===""?null:Number(a.value);
+      a.value=""; br.value="";
+    } else if(type==="hold"){
+      var sc=document.getElementById("secsInput");
+      if(!sc.value||Number(sc.value)<=0){ sc.focus(); return; }
+      entry.secs=Number(sc.value); sc.value="";
+    } else {
+      var du=document.getElementById("durationInput"), di=document.getElementById("distanceInput");
+      if(!du.value){ du.focus(); return; }
+      entry.duration=Number(du.value); entry.distance=di.value===""?null:Number(di.value);
+      du.value=""; di.value="";
+    }
     addEntry(date,entry);
   });
 
   /* ---------- boot ---------- */
+  document.getElementById("logType").innerHTML=kindOptions("strength");
+  syncLogFields();
   document.getElementById("dateInput").value=todayISO();
   loadMe();
   renderAll();
@@ -3084,7 +3224,7 @@ var FINISHES = [
     state.db.collection("exercises").onSnapshot(function(snap){ if(!snap.empty) state.exercises=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}); got.ex=true; ready(); },function(err){console.error("Loadbook: exercises",err);});
     state.db.collection("routines").onSnapshot(function(snap){ state.routines=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}).filter(function(r){return r.steps&&r.steps.length;}); renderRoutines(); },function(err){console.error("Loadbook: routines",err);});
     state.db.collection("sessions").orderBy("date","desc").limit(400).onSnapshot(function(snap){ state.sessions=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}).filter(function(s){return s.entries&&s.entries.length;}); got.se=true; ready(); },function(err){console.error("Loadbook: sessions",err);});
-    state.db.doc("settings/goals").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.goals={streak:d.streak||DEFAULT_GOALS.streak,sessions:d.sessions||DEFAULT_GOALS.sessions,volume:d.volume||DEFAULT_GOALS.volume}; renderStats(); } })["catch"](function(err){console.error("Loadbook: goals",err);});
+    state.db.doc("settings/goals").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.goals={streak:d.streak||DEFAULT_GOALS.streak,sessions:d.sessions||DEFAULT_GOALS.sessions,volume:d.volume||DEFAULT_GOALS.volume,bodyweight:d.bodyweight||0}; renderStats(); } })["catch"](function(err){console.error("Loadbook: goals",err);});
     state.db.doc("settings/rewards").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.rewards={tokens:d.tokens||0,lastClaimedDate:d.lastClaimedDate||null,owned:d.owned||[],variants:d.variants||{},finish:d.finish||{},freezes:d.freezes||0,frozenDates:d.frozenDates||[],bonusClaimed:!!d.bonusClaimed,shelf:d.shelf||[],erasUnlocked:d.erasUnlocked||[]}; renderAll(); checkCompletionBonus(); checkEras(); } })["catch"](function(err){console.error("Loadbook: rewards",err);});
   }
   if (window.claude && typeof window.claude.use==="function"){ window.claude.use("db").then(function(db){ if(db){ state.db=db; state.dbAvailable=true; renderTopbar(); hydrateFromDb(); renderSociety(); subscribeSociety(); syncProfile(true); } else renderTopbar(); })["catch"](function(){ renderTopbar(); }); }

@@ -31,6 +31,7 @@ is refused.
 |---|---|
 | species catalogue, biographies, cast images | `settings/goals`, `settings/rewards` |
 | | `sessions/*`, `exercises/*`, `routines/*` |
+| | `settings/goals.bodyweight` |
 | | `profiles/*`, `invites/*`, `friends/*/list/*` |
 
 Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
@@ -46,10 +47,31 @@ Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
   tray that used to sit above the log form; `TEMPLATES` survives only as the seed for
   those four standards.
 
+  **Four kinds of work, because this is not only a barbell ledger.** `KINDS` is the single
+  description of them and everything else reads from it:
+
+  | kind | fields | judged on |
+  |---|---|---|
+  | `strength` | sets, reps, weight | heaviest set |
+  | `bodyweight` | sets, reps, added lb (may be negative for assistance) | most reps at that added load |
+  | `hold` | sets, seconds | longest hold |
+  | `cardio` | minutes, distance | distance, else duration |
+
+  A pull-up is a `bodyweight` movement, not a 0 lb lift; a plank is a `hold`, not 0.75
+  minutes of cardio. Entries written before these kinds existed are `strength`/`cardio` and
+  still render through those branches — a legacy 0 lb set still reads "BW × 8".
+
+  **The weekly volume counts bodyweight work.** A calisthenics session used to move the
+  Volume dial not at all, because volume was `weight × reps`. `entryLoad()` now counts a
+  bodyweight set as `(your bodyweight + added) × reps`, which needs a number from you:
+  `settings/goals.bodyweight`, edited beside the goal targets. Until it is set, bodyweight
+  sets contribute nothing and the frontispiece says so rather than guessing what you weigh.
+  Holds and cardio carry no pounds and are excluded by design.
+
   **Every movement is typed, never picked.** There is no exercise list to choose from —
   not in the composer, not in the log form. A step carries its own `name` and `type`, so
-  it describes itself without consulting the repertoire; the only select is a two-option
-  *Kind* (weight × reps, or duration) that decides which fields the row shows.
+  it describes itself without consulting the repertoire; the only select is the *Kind*,
+  which decides which fields the row shows.
   `ensureExercise()` slugs a typed name into an id and adds it to `exercises/*` the first
   time it is actually used — saving a routine, or logging a set — so merely typing enrols
   nothing. `#chartExercise` is the one remaining select, and it is a filter over what you
@@ -93,13 +115,19 @@ Why the other 528 have no figure, and what it would take:
   (Google AI Studio, OpenAI, Replicate/fal), roughly $2–21 for 528. GitHub is not an
   option — GitHub Models is retired (`github_models_retirement_brownout`).
 
-## Two traps in this file
+## Three traps in this file
 
 **Number inputs take `step="1"` or `step="any"`, never a grid.** A `step="5"` on the
 rest field makes a browser reject 8 as a step mismatch and silently refuse to submit the
 whole composer — no error, nothing saved. jsdom does no constraint validation, so the
 suite cannot see it; `boot-routines.mjs` guards it structurally instead, by asserting no
 number field anywhere carries a restrictive step.
+
+**A row read mid-kind-switch has the old kind's fields.** When the Kind select changes, the
+row in the DOM is still drawn for the *previous* kind while the select already reads the new
+one, so `readStepRows()` must guard every optional field (`.s-add`, `.s-wt`) rather than
+dereference `.value` on it. Read the typed name back *after* `syncDraft()`, not before, or
+switching kind silently reverts it.
 
 **`renderStepRows()` redraws from the draft, so read the rows back first.** Anything
 typed into a step row lives only in the DOM until `syncDraft()` copies it into
@@ -114,10 +142,12 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-142 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
-the debounced search, and the routines panel and its workout runner — including a
-block that walks a three-movement routine set by set and asserts the rest clock tracks
-whichever movement was just logged. `test/harness.mjs` injects a `window.__lb` bridge to reach
+226 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+the debounced search, the routines panel and its workout runner — including a block that
+walks a three-movement routine set by set and asserts the rest clock tracks whichever
+movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted
+and assisted variants, and timed holds through the composer, the runner, the log form,
+the weekly volume, personal records and the repertoire. `test/harness.mjs` injects a `window.__lb` bridge to reach
 inside the IIFE; the published file is never modified.
 
 ## Layout
