@@ -149,6 +149,31 @@ Why the other 528 have no figure, and what it would take:
   (Google AI Studio, OpenAI, Replicate/fal), roughly $2–21 for 528. GitHub is not an
   option — GitHub Models is retired (`github_models_retirement_brownout`).
 
+## The parts an app is expected to have
+
+**Settings**, reached from the masthead or the frontispiece. Units, bodyweight, the three
+weekly targets, the default rest, the theme, a summary of your record, an export and a
+two-step clear. The goal editor that used to live inline on the dials is gone; the
+frontispiece only reports now.
+
+**Units.** `settings/goals.units` is `lb` or `kg`. Weight is stored canonically in pounds and
+converted only at the edges — `wOut`/`wIn` on the way out and in — so switching units never
+rewrites a single entry: 100 kg is kept as 220.46 lb and reads back as 100 kg. Distance
+deliberately stays in kilometres whichever weight unit is chosen; pairing lb with miles would
+quietly restate every run already in the ledger, which is not a units toggle's job.
+
+**A record per movement.** The repertoire was a dead list; a row now opens the movement's own
+sheet — its best in the right unit, how many sets over how many days, when it was last done,
+its recent sets with PRs marked, and a way through to the progression chart.
+
+**Attendance.** A year of days, seven rows to the week, shaded by how many sets that day
+carried, with today outlined and frozen days hatched. It scrolls inside its own panel on a
+narrow screen.
+
+**Your data is yours.** *Copy my ledger* puts the whole thing on the clipboard as JSON —
+sessions with their entries and preliminaries, movements, routines and settings. The artifact
+sandbox makes page-initiated downloads inert, so the clipboard is the honest route out.
+
 ## Three things that make the ledger usable during a session
 
 **Striking a set is undoable.** It is the only destructive thing a user can do, it is one
@@ -209,7 +234,7 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-364 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+418 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted

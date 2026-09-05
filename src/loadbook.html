@@ -81,6 +81,13 @@
   .theme-btn{background:none; border:2px solid var(--line-strong); width:30px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft);}
   .theme-btn:hover{color:var(--bronze-hi); border-color:var(--bronze);}
   @media (max-width:700px){ .today, .brand-sub{display:none;} }
+  /* the masthead gained a settings button; below this it simply wraps, which fits
+     whatever ends up in it rather than depending on every piece staying small */
+  @media (max-width:400px){
+    .masthead-inner{height:auto; padding-top:10px; padding-bottom:10px; flex-wrap:wrap; gap:8px;}
+    .mast-right{width:100%; justify-content:flex-end; gap:7px;}
+    .brand-name{font-size:0.92rem;}
+  }
   @media (max-width:560px){
     .masthead-inner{gap:10px;}
     .brand{gap:9px;} .brand-mark{width:26px; height:26px;}
@@ -396,6 +403,48 @@
   .routine-meta{font-family:var(--font-caps); font-size:0.54rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute); margin-top:4px;}
   .routine-acts{display:flex; gap:8px; flex-wrap:wrap;}
 
+  /* ---- attendance ---- */
+  .cal-wrap{overflow-x:auto; padding-bottom:4px;}
+  .cal-months{display:grid; grid-auto-flow:column; grid-auto-columns:14px; gap:3px; margin-bottom:5px; min-width:min-content;}
+  .cal-months span{font-family:var(--font-caps); font-size:0.48rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-mute); white-space:nowrap;}
+  .cal-grid{display:grid; grid-auto-flow:column; grid-template-rows:repeat(7,14px); grid-auto-columns:14px; gap:3px; min-width:min-content;}
+  .cal-d{width:14px; height:14px; border:1px solid var(--line); background:var(--surface-2);}
+  .cal-d.l1{background:color-mix(in srgb, var(--bronze) 35%, var(--surface-2)); border-color:var(--line-strong);}
+  .cal-d.l2{background:color-mix(in srgb, var(--bronze) 65%, var(--surface-2)); border-color:var(--bronze-deep);}
+  .cal-d.l3{background:var(--bronze); border-color:var(--bronze);}
+  .cal-d.frozen{background:repeating-linear-gradient(45deg,var(--surface-3),var(--surface-3) 2px,var(--surface-2) 2px,var(--surface-2) 4px);}
+  .cal-d.future{opacity:0.25;}
+  .cal-d.today{outline:2px solid var(--bronze-hi); outline-offset:1px;}
+  .cal-key{display:flex; align-items:center; gap:5px; margin-top:12px; font-family:var(--font-caps); font-size:0.48rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-mute);}
+  .cal-key .cal-d{width:11px; height:11px;}
+
+  /* ---- a movement's record ---- */
+  .lib-row{cursor:pointer;}
+  .lib-row:hover{background:var(--surface-2);}
+  .lib-row:focus-visible{outline:1px solid var(--bronze-hi); outline-offset:2px;}
+  .mv-list{margin-top:20px; max-height:44vh; overflow-y:auto;}
+  .mv-row{display:flex; align-items:baseline; gap:12px; padding:8px 0; border-bottom:1px solid var(--line);}
+  .mv-d{font-family:var(--font-caps); font-size:0.56rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-mute); min-width:76px;}
+  .mv-e{font-family:var(--font-mono); font-size:0.82rem; color:var(--ink);}
+  .mv-row .pr-badge{margin-left:auto;}
+
+  /* ---- settings ---- */
+  .set-row{display:grid; grid-template-columns:1fr auto; gap:18px; align-items:center; padding:15px 0; border-bottom:1px solid var(--line);}
+  @media (max-width:600px){ .set-row{grid-template-columns:1fr; gap:10px;} }
+  .set-t{font-family:var(--font-display); font-size:1.08rem; line-height:1.2;}
+  .set-d{font-size:0.84rem; color:var(--ink-soft); margin-top:3px; max-width:46ch;}
+  .set-head{font-family:var(--font-caps); font-size:0.58rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--bronze); margin:26px 0 2px; padding-top:16px; border-top:2px solid var(--line-strong);}
+  .set-in{display:flex; align-items:center; gap:7px;}
+  .set-in input{width:82px; background:var(--surface-2); border:2px solid var(--line); color:var(--ink); padding:8px 9px; font-family:var(--font-mono); font-size:0.86rem; text-align:right; border-radius:0;}
+  .set-in input:focus{border-color:var(--bronze); outline:none;}
+  .set-in span{font-family:var(--font-caps); font-size:0.54rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute);}
+  .set-ins{display:flex; gap:10px; flex-wrap:wrap;}
+  .seg{display:flex; border:2px solid var(--line-strong);}
+  .seg-b{background:none; border:none; padding:9px 15px; cursor:pointer; font-family:var(--font-caps); font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-soft);}
+  .seg-b + .seg-b{border-left:2px solid var(--line-strong);}
+  .seg-b.on{background:var(--bronze); color:var(--ground);}
+  .btn-secondary.danger{color:var(--ground); background:var(--warn); border-color:var(--warn);}
+
   /* ---- preliminaries ---- */
   .prelude{display:none; grid-template-columns:1fr 1fr; gap:22px; padding:16px 18px 18px; margin:0 0 4px; background:var(--surface-2); border:2px solid var(--line);}
   .prelude.show{display:grid;}
@@ -496,6 +545,7 @@
       <span class="sync-flag" id="syncFlag">Preview · unsaved</span>
       <div class="stipend" id="tokenPill"></div>
       <span class="today" id="todayLabel">—</span>
+      <button type="button" class="theme-btn" id="settingsBtn" title="Settings" aria-label="Settings"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.4" stroke="currentColor" stroke-width="1.2"/><path d="M8 1.4v1.8M8 12.8v1.8M14.6 8h-1.8M3.2 8H1.4M12.7 3.3l-1.3 1.3M4.6 11.4l-1.3 1.3M12.7 12.7l-1.3-1.3M4.6 4.6L3.3 3.3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></button>
       <button type="button" class="theme-btn" id="themeBtn" title="Toggle gallery lighting" aria-label="Toggle theme"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M8 3V13" stroke="currentColor" stroke-width="1.2"/><path d="M8 3a5 5 0 0 1 0 10z" fill="currentColor"/></svg></button>
     </div>
   </div>
@@ -504,6 +554,8 @@
 <div class="toast" id="toast"></div>
 <div class="sheet-backdrop" id="dinoSheet" role="dialog" aria-modal="true"><div class="sheet" id="sheetInner"></div></div>
 <div class="sheet-backdrop" id="runnerSheet" role="dialog" aria-modal="true" aria-label="Workout in progress"><div class="sheet runner" id="runnerInner"></div></div>
+<div class="sheet-backdrop" id="settingsSheet" role="dialog" aria-modal="true" aria-label="Settings"><div class="sheet runner" id="settingsInner"></div></div>
+<div class="sheet-backdrop" id="movementSheet" role="dialog" aria-modal="true" aria-label="Movement record"><div class="sheet runner" id="movementInner"></div></div>
 
 <div class="wrap">
   <section class="frontis">
@@ -529,7 +581,7 @@
           <div class="dl-row b"><span class="sw"></span><span class="k">Sessions</span><span class="v" id="statSessions">—</span></div>
           <div class="dl-row c"><span class="sw"></span><span class="k">Volume</span><span class="v" id="statVolume">—</span></div>
           <div class="dl-row d"><span class="k">Bodyweight</span><span class="v" id="statBodyweight">—</span></div>
-          <button type="button" class="edit-btn" id="goalsEditBtn">Edit targets</button>
+          <button type="button" class="edit-btn" id="goalsEditBtn">Edit targets &amp; units</button>
         </div>
       </div>
       <div>
@@ -557,6 +609,11 @@
     <div class="panel" style="margin-bottom:22px;">
       <div class="panel-head"><h2><span class="no">ERAS</span>Unlocked by consistency</h2><span class="hint" id="eraHint"></span></div>
       <div class="era-track" id="eraTrack"></div>
+    </div>
+    <div class="panel" style="margin-bottom:22px;">
+      <div class="panel-head"><h2><span class="no">ATTENDANCE</span>Days at the bench</h2><span class="hint" id="calHint"></span></div>
+      <div class="cal-wrap"><div class="cal-months" id="calMonths"></div><div class="cal-grid" id="calGrid"></div></div>
+      <div class="cal-key"><span>Quiet</span><span class="cal-d l0"></span><span class="cal-d l1"></span><span class="cal-d l2"></span><span class="cal-d l3"></span><span>Busy</span></div>
     </div>
     <div class="panel" style="margin-bottom:22px;">
       <div class="panel-head"><h2><span class="no">ROUTINES</span>Workouts of your own devising</h2><span class="hint" id="routineHint"></span></div>
@@ -587,11 +644,11 @@
               <div class="field"><label for="dateInput">Date</label><input type="date" id="dateInput"></div>
             </div>
             <div class="form-grid" id="strengthFields">
-              <div class="field"><label for="weightInput">Weight (lb)</label><input type="number" id="weightInput" min="0" step="any" placeholder="135"></div>
+              <div class="field"><label for="weightInput" id="labWeight">Weight (lb)</label><input type="number" id="weightInput" min="0" step="any" placeholder="135"></div>
               <div class="field"><label for="repsInput">Reps</label><input type="number" id="repsInput" min="1" step="1" placeholder="5"></div>
             </div>
             <div class="form-grid" id="bodyweightFields" style="display:none;">
-              <div class="field"><label for="addedInput">Added (lb)</label><input type="number" id="addedInput" step="any" placeholder="— for none"></div>
+              <div class="field"><label for="addedInput" id="labAdded">Added (lb)</label><input type="number" id="addedInput" step="any" placeholder="— for none"></div>
               <div class="field"><label for="bwRepsInput">Reps</label><input type="number" id="bwRepsInput" min="1" step="1" placeholder="10"></div>
             </div>
             <div class="form-grid" id="holdFields" style="display:none;">
@@ -600,7 +657,7 @@
             </div>
             <div class="form-grid" id="cardioFields" style="display:none;">
               <div class="field"><label for="durationInput">Duration (min)</label><input type="number" id="durationInput" min="0" step="1" placeholder="30"></div>
-              <div class="field"><label for="distanceInput">Distance (km)</label><input type="number" id="distanceInput" min="0" step="any" placeholder="4.2"></div>
+              <div class="field"><label for="distanceInput" id="labDistance">Distance (km)</label><input type="number" id="distanceInput" min="0" step="any" placeholder="4.2"></div>
             </div>
             <div style="margin-top:16px;"><button type="submit" class="btn-primary">Enter into ledger</button></div>
           </form>
@@ -2208,7 +2265,7 @@ var FINISHES = [
   function isBronze(id){ return BRONZE.indexOf(id) !== -1; }
   function specNo(id){ var i = DINOS.findIndex(function(d){ return d.id === id; }); return "No. " + String(i + 1).padStart(3, "0"); }
 
-  var DEFAULT_GOALS = { streak: 7, sessions: 5, volume: 8000, bodyweight: 0 };
+  var DEFAULT_GOALS = { streak: 7, sessions: 5, volume: 8000, bodyweight: 0, units: "lb" };
   var CATEGORY_VAR = {Push:"--dial-a", Pull:"--g-select", Legs:"--g-archival", Core:"--warn", Cardio:"--good"};
   function catColorVar(cat){ return "var(" + (CATEGORY_VAR[cat] || "--bronze") + ")"; }
 
@@ -2218,7 +2275,7 @@ var FINISHES = [
      carries minutes and an optional distance. Entries logged before bodyweight
      and hold existed are strength/cardio and still render through those branches. */
   var KINDS = {
-    strength:   {label:"Weight × reps",  unit:"lb",   best:"heaviest set"},
+    strength:   {label:"Weight × reps",  unit:"",     best:"heaviest set"},
     bodyweight: {label:"Bodyweight reps", unit:"reps", best:"most reps"},
     hold:       {label:"Timed hold",      unit:"sec",  best:"longest hold"},
     cardio:     {label:"Duration",        unit:"min",  best:"time-based"}
@@ -2230,12 +2287,12 @@ var FINISHES = [
     }).join("");
   }
   function fmtSecs(n){ n=Math.max(0,Math.round(Number(n)||0)); return n>=60 ? (Math.floor(n/60)+":"+String(n%60).padStart(2,"0")) : (n+" sec"); }
-  function fmtAdded(a){ a=Number(a)||0; return a>0 ? " +"+a+" lb" : a<0 ? " \u2212"+Math.abs(a)+" lb" : ""; }
+  function fmtAdded(a){ a=Number(a)||0; if(!a) return ""; var v=wOut(Math.abs(a)); return (a>0?" +":" \u2212")+v+" "+unitW(); }
   function entryDetail(e){
     if(e.type==="bodyweight") return "BW"+fmtAdded(e.added)+" \u00d7 "+e.reps;
     if(e.type==="hold") return fmtSecs(e.secs)+" hold";
-    if(e.type==="cardio") return (e.duration||0)+" min"+(e.distance?" \u00b7 "+e.distance+" km":"");
-    return (e.weight?e.weight+" lb \u00d7 ":"BW \u00d7 ")+e.reps;
+    if(e.type==="cardio") return (e.duration||0)+" min"+(e.distance?" \u00b7 "+dOut(e.distance)+" "+unitD():"");
+    return (e.weight?fmtW(e.weight)+" \u00d7 ":"BW \u00d7 ")+e.reps;
   }
   /* pounds moved, for the weekly volume dial. A bodyweight set only counts once
      the user has told us what they weigh; holds and cardio carry no load. */
@@ -2269,7 +2326,7 @@ var FINISHES = [
   function prText(e){
     if(e.type==="bodyweight") return e.exerciseName+" \u2014 "+e.reps+" reps"+fmtAdded(e.added);
     if(e.type==="hold") return e.exerciseName+" \u2014 "+fmtSecs(e.secs);
-    return e.exerciseName+" \u2014 "+e.weight+" lb \u00d7 "+e.reps;
+    return e.exerciseName+" \u2014 "+fmtW(e.weight)+" \u00d7 "+e.reps;
   }
   var GRADE = {common:"Standard", uncommon:"Select", rare:"Reserve", legendary:"Archival"};
   var GRADE_CLS = {common:"grade-standard", uncommon:"grade-select", rare:"grade-reserve", legendary:"grade-archival"};
@@ -2314,7 +2371,7 @@ var FINISHES = [
     sessions: JSON.parse(JSON.stringify(FALLBACK_SESSIONS)),
     goals: Object.assign({}, DEFAULT_GOALS),
     rewards: {tokens:0, lastClaimedDate:null, owned:[], variants:{}, finish:{}, freezes:0, frozenDates:[], bonusClaimed:false, shelf:[], erasUnlocked:[]},
-    chartDefaultSet:false, editingGoals:false, shopGroup:"All", shopQuery:"",
+    chartDefaultSet:false, shopGroup:"All", shopQuery:"",
     routines:[], routineDraft:null, runner:null, preludeOpen:null
   };
 
@@ -2423,16 +2480,11 @@ var FINISHES = [
     var streak = computeCurrentStreak();
     document.getElementById("ringsCenterValue").textContent = streak;
     var g = state.goals;
-    if (state.editingGoals){
-      document.getElementById("statStreak").innerHTML = '<input type="number" class="goal-input" id="goalStreakInput" min="1" value="'+g.streak+'"> <small>days</small>';
-      document.getElementById("statSessions").innerHTML = '<input type="number" class="goal-input" id="goalSessionsInput" min="1" value="'+g.sessions+'"> <small>/ wk</small>';
-      document.getElementById("statVolume").innerHTML = '<input type="number" class="goal-input" id="goalVolumeInput" min="100" step="any" value="'+g.volume+'"> <small>lb</small>';
-      document.getElementById("statBodyweight").innerHTML = '<input type="number" class="goal-input" id="goalBwInput" min="0" step="any" placeholder="—" value="'+(g.bodyweight||"")+'"> <small>lb</small>';
-    } else {
+    {
       document.getElementById("statStreak").innerHTML = streak + ' <small>/ ' + g.streak + ' d</small>';
       document.getElementById("statSessions").innerHTML = wk.length + ' <small>/ ' + g.sessions + '</small>';
-      document.getElementById("statVolume").innerHTML = Math.round(vol).toLocaleString() + ' <small>/ ' + g.volume.toLocaleString() + ' lb</small>';
-      document.getElementById("statBodyweight").innerHTML = g.bodyweight ? (g.bodyweight + ' <small>lb</small>') : '<small>set it to count bodyweight sets</small>';
+      document.getElementById("statVolume").innerHTML = Math.round(wOut(vol)).toLocaleString() + ' <small>/ ' + Math.round(wOut(g.volume)).toLocaleString() + ' ' + unitW() + '</small>';
+      document.getElementById("statBodyweight").innerHTML = g.bodyweight ? (wOut(g.bodyweight) + ' <small>' + unitW() + '</small>') : '<small>set it in settings to count bodyweight sets</small>';
     }
     document.getElementById("libCount").innerHTML = state.exercises.length + ' <small>exercises</small>';
     setRing(document.getElementById("ringA"), streak/g.streak, 68);
@@ -2571,6 +2623,9 @@ var FINISHES = [
   }
   function syncLogFields(){
     var k=kindOf(document.getElementById("logType").value);
+    document.getElementById("labWeight").textContent="Weight ("+unitW()+")";
+    document.getElementById("labAdded").textContent="Added ("+unitW()+")";
+    document.getElementById("labDistance").textContent="Distance ("+unitD()+")";
     Object.keys(KINDS).forEach(function(t){
       document.getElementById(t+"Fields").style.display = t===k ? "grid" : "none";
     });
@@ -2602,8 +2657,10 @@ var FINISHES = [
     var list=document.getElementById("libraryList"); list.innerHTML="";
     state.exercises.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).forEach(function(ex){
       var k=kindOf(ex.type), best=k==="cardio"?null:bestFor(ex.id,k,0);
-      var r=document.createElement("div"); r.className="lib-row";
-      r.innerHTML='<span class="entry-cat" style="background:'+catColorVar(ex.category)+';"></span><div><div class="lib-name">'+ex.name+'</div><div class="lib-cat">'+ex.category+'</div></div><div class="lib-best">'+(best!==null?'<b>'+(k==="hold"?fmtSecs(best):best+" "+KINDS[k].unit)+'</b> best':(k==="cardio"?"time-based":"no record"))+'</div>';
+      var r=document.createElement("div"); r.className="lib-row"; r.tabIndex=0; r.setAttribute("role","button"); r.dataset.id=ex.id;
+      r.innerHTML='<span class="entry-cat" style="background:'+catColorVar(ex.category)+';"></span><div><div class="lib-name">'+ex.name+'</div><div class="lib-cat">'+ex.category+'</div></div><div class="lib-best">'+(best!==null?'<b>'+(k==="hold"?fmtSecs(best):k==="strength"?fmtW(best):best+" "+KINDS[k].unit)+'</b> best':(k==="cardio"?"time-based":"no record"))+'</div>';
+      r.addEventListener("click",function(){ openMovement(ex.id); });
+      r.addEventListener("keydown",function(ev){ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openMovement(ex.id); } });
       list.appendChild(r);
     });
   }
@@ -2614,7 +2671,10 @@ var FINISHES = [
     var ex=state.exercises.find(function(e){return e.id===id;}); svg.innerHTML=""; if(!ex) return;
     var pts=[]; sessionsSorted().slice().reverse().forEach(function(s){ var top=null; s.entries.forEach(function(e){ if(e.exerciseId!==id) return; var v=entryMetric(e); if(v!==null&&(top===null||v>top)) top=v; }); if(top!==null) pts.push({date:s.date,value:top}); });
     var k=kindOf(ex.type);
-    var unit = k==="cardio" ? (state.sessions.some(function(s){return s.entries.some(function(e){return e.exerciseId===id&&e.distance;});})?"km":"min") : KINDS[k].unit;
+    var byDist = k==="cardio" && state.sessions.some(function(s){ return s.entries.some(function(e){ return e.exerciseId===id&&e.distance; }); });
+    var unit = k==="cardio" ? (byDist?unitD():"min") : k==="strength" ? unitW() : KINDS[k].unit;
+    var conv = k==="strength" ? wOut : byDist ? dOut : function(v){ return v; };
+    pts = pts.map(function(pt){ return {date:pt.date, value:conv(pt.value)}; });
     var ns="http://www.w3.org/2000/svg";
     if (pts.length<2){ var m=document.createElementNS(ns,"text"); m.setAttribute("x","20"); m.setAttribute("y","110"); m.setAttribute("class","chart-axis-label"); m.textContent=pts.length===0?"Enter a few sessions to draw the line.":"One entry — a second draws the line."; svg.appendChild(m); return; }
     var W=520,H=220,pL=34,pR=18,pT=20,pB=30; var vals=pts.map(function(p){return p.value;}); var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals); if(mn===mx){mn-=1;mx+=1;} var rg=mx-mn; mn-=rg*0.15; mx+=rg*0.15;
@@ -2637,7 +2697,7 @@ var FINISHES = [
 
   function renderClearSample(){ var w=document.getElementById("clearSampleWrap"); if(!state.sessions.some(function(s){return s.sample;})){ w.innerHTML=""; return; } w.innerHTML='<button type="button" class="btn-secondary" id="clearSampleBtn">Clear specimen entries</button>'; document.getElementById("clearSampleBtn").addEventListener("click",clearSampleData); }
 
-  function renderAll(){ syncProfile(); renderTopbar(); renderStats(); renderRewards(); renderShelf(); renderFreeze(); renderEras(); renderShop(); renderExerciseSelects(); renderRoutines(); renderRecent(); renderLibrary(); renderChart(); renderClearSample(); }
+  function renderAll(){ syncProfile(); renderTopbar(); renderStats(); renderRewards(); renderShelf(); renderFreeze(); renderEras(); renderShop(); renderExerciseSelects(); renderRoutines(); renderCalendar(); renderRecent(); renderLibrary(); renderChart(); renderClearSample(); }
 
   /* ---------- specimen label ---------- */
   function openDinoSheet(id){
@@ -2718,7 +2778,6 @@ var FINISHES = [
   }
   function addExercise(ex){ state.exercises.push(ex); if(state.dbAvailable) state.db.doc("exercises/"+ex.id).set(ex)["catch"](function(err){console.error("Loadbook: exercise",err);}); }
   function clearSampleData(){ state.sessions=state.sessions.filter(function(s){return !s.sample;}); if(state.dbAvailable){ state.db.collection("sessions").where("sample","==",true).get().then(function(snap){ snap.docs.forEach(function(d){ state.db.doc("sessions/"+d.id).delete()["catch"](function(){}); }); })["catch"](function(err){console.error("Loadbook: clear",err);}); } renderAll(); }
-  function saveGoals(){ var ns=Number(document.getElementById("goalStreakInput").value), nse=Number(document.getElementById("goalSessionsInput").value), nv=Number(document.getElementById("goalVolumeInput").value), nb=Number(document.getElementById("goalBwInput").value); state.goals={streak:ns>0?ns:state.goals.streak,sessions:nse>0?nse:state.goals.sessions,volume:nv>0?nv:state.goals.volume,bodyweight:nb>0?nb:0}; if(state.dbAvailable) state.db.doc("settings/goals").set(state.goals)["catch"](function(err){console.error("Loadbook: goals",err);}); }
   function persistRewards(){ if(!state.dbAvailable) return; state.db.doc("settings/rewards").set({tokens:state.rewards.tokens,lastClaimedDate:state.rewards.lastClaimedDate,owned:state.rewards.owned,variants:state.rewards.variants||{},finish:state.rewards.finish||{},freezes:state.rewards.freezes||0,frozenDates:state.rewards.frozenDates||[],bonusClaimed:!!state.rewards.bonusClaimed,shelf:state.rewards.shelf||[],erasUnlocked:state.rewards.erasUnlocked||[]})["catch"](function(err){console.error("Loadbook: rewards",err);}); }
   function claimDaily(){ if(state.rewards.lastClaimedDate===todayISO()||!todaysSessionLogged()) return; var s=computeCurrentStreak(), r=rewardAmountForStreak(s); state.rewards.tokens+=r; state.rewards.lastClaimedDate=todayISO(); persistRewards(); renderRewards(); renderShop(); renderFreeze(); showToast(COIN_SVG,"+"+r+" stipend drawn",s+"-day streak bonus"); }
   function buyDino(id){ var d=DINOS.find(function(x){return x.id===id;}); if(!d||state.rewards.owned.indexOf(id)!==-1||state.rewards.tokens<d.cost||!eraUnlocked(eraOf(id))) return; state.rewards.tokens-=d.cost; state.rewards.owned.push(id); persistRewards(); renderAll(); showToast(vitrine(id,true),"Acquired",d.name+" · "+specNo(id)); checkCompletionBonus(); }
@@ -2864,6 +2923,246 @@ var FINISHES = [
   function removeFellow(fid){ if(!me||!state.dbAvailable) return; state.db.doc("friends/"+me.id+"/list/"+fid).delete()["catch"](function(){}); state.db.doc("friends/"+fid+"/list/"+me.id).delete()["catch"](function(){}); }
   function renderSociety(){ renderMeCard(); if(!me){ renderInvites([]); renderFellows([]); } }
 
+  /* ---------- attendance ---------- */
+  var CAL_WEEKS=52;   /* a year reads better than a quarter, and fills the panel */
+  function calendarCells(){
+    var byDate={}, frozen={};
+    state.sessions.forEach(function(s){ if(s.entries.length) byDate[s.date]=s.entries.length; });
+    (state.rewards.frozenDates||[]).forEach(function(d){ frozen[d]=1; });
+    var today=todayISO(), end=new Date(today+"T00:00:00");
+    end.setDate(end.getDate()+(6-end.getDay()));   /* finish on a whole week */
+    var out=[], n=CAL_WEEKS*7;
+    for(var i=n-1;i>=0;i--){
+      var d=new Date(end); d.setDate(d.getDate()-i);
+      var iso=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+      out.push({iso:iso, sets:byDate[iso]||0, frozen:!!frozen[iso], future:iso>today, month:d.getMonth(), day:d.getDate()});
+    }
+    return out;
+  }
+  function calLevel(sets){ return sets===0?0:sets<4?1:sets<9?2:3; }
+  function renderCalendar(){
+    var host=document.getElementById("calGrid"); if(!host) return;
+    var cells=calendarCells(), trained=cells.filter(function(c){ return c.sets>0; }).length;
+    host.innerHTML=cells.map(function(c){
+      var cls="cal-d l"+calLevel(c.sets)+(c.future?" future":"")+(c.frozen&&!c.sets?" frozen":"")+(c.iso===todayISO()?" today":"");
+      var title=fmtDate(c.iso)+(c.future?"":c.sets?" — "+c.sets+" set"+(c.sets===1?"":"s"):c.frozen?" — frozen":" — nothing");
+      return '<span class="'+cls+'" title="'+escapeHtml(title)+'"></span>';
+    }).join("");
+    var hint=document.getElementById("calHint");
+    if(hint) hint.textContent=trained+" day"+(trained===1?"":"s")+" in the last year";
+    var lab=document.getElementById("calMonths");
+    if(lab){
+      var seen={}, out=[];
+      cells.forEach(function(c,i){
+        if(i%7!==0) return;
+        var key=c.month;
+        if(seen[key]){ out.push(""); return; }
+        seen[key]=1;
+        out.push(new Date(c.iso+"T00:00:00").toLocaleDateString(undefined,{month:"short"}));
+      });
+      lab.innerHTML=out.map(function(m){ return '<span>'+m+'</span>'; }).join("");
+    }
+  }
+
+  /* ---------- a movement's own record ---------- */
+  function movementEntries(id){
+    var out=[];
+    sessionsSorted().forEach(function(s){
+      s.entries.forEach(function(e){ if(e.exerciseId===id) out.push({date:s.date, e:e}); });
+    });
+    return out;
+  }
+  function openMovement(id){
+    var ex=exerciseById(id); if(!ex) return;
+    var k=kindOf(ex.type), rows=movementEntries(id);
+    var best=k==="cardio"?null:bestFor(id,k,0);
+    var days={}; rows.forEach(function(r){ days[r.date]=1; });
+    var bestText = best===null ? (k==="cardio"?"time-based":"no record")
+      : k==="hold" ? fmtSecs(best) : k==="strength" ? fmtW(best) : (best+" "+KINDS[k].unit);
+    var recent=rows.slice(0,40);
+    document.getElementById("movementInner").innerHTML=
+      '<div class="runner-head"><div><div class="runner-sub">'+escapeHtml(KINDS[k].label)+' · '+escapeHtml(ex.category||"Other")+'</div>'+
+      '<div class="runner-title">'+escapeHtml(ex.name)+'</div></div>'+
+      '<button type="button" class="sheet-close" id="movementClose" aria-label="Close">×</button></div>'+
+      '<div class="runner-body">'+
+        '<div class="sheet-stats">'+
+          '<div><div class="k">Best</div><div class="v">'+escapeHtml(bestText)+'</div></div>'+
+          '<div><div class="k">Sets</div><div class="v">'+rows.length+'</div></div>'+
+          '<div><div class="k">Days</div><div class="v">'+Object.keys(days).length+'</div></div>'+
+          '<div><div class="k">Last</div><div class="v">'+(rows.length?relDate(rows[0].date):"—")+'</div></div>'+
+        '</div>'+
+        (rows.length
+          ? '<div class="mv-list">'+recent.map(function(r){
+              return '<div class="mv-row"><span class="mv-d">'+escapeHtml(fmtDate(r.date))+'</span>'+
+                '<span class="mv-e">'+escapeHtml(entryDetail(r.e))+'</span>'+
+                (r.e.isPR?'<span class="pr-badge">PR</span>':'')+'</div>';
+            }).join("")+'</div>'+
+            (rows.length>recent.length?'<p class="sheet-src">Showing the last '+recent.length+' of '+rows.length+' sets.</p>':'')
+          : '<p class="empty-note">Nothing entered for this movement yet.</p>')+
+        '<div class="routine-actions"><button type="button" class="btn-secondary" id="mvChart">Show in the progression chart</button></div>'+
+      '</div>';
+    document.getElementById("movementClose").addEventListener("click",closeMovement);
+    document.getElementById("mvChart").addEventListener("click",function(){
+      var sel=document.getElementById("chartExercise");
+      if([].slice.call(sel.options).some(function(o){ return o.value===id; })){ sel.value=id; renderChart(); }
+      closeMovement();
+      scrollToEl(document.getElementById("chartSvg"));
+    });
+    document.getElementById("movementSheet").classList.add("show");
+  }
+  function closeMovement(){ document.getElementById("movementSheet").classList.remove("show"); }
+
+  /* ---------- units ----------
+     Everything is stored canonically — weight in pounds, distance in kilometres —
+     and converted only at the edges, so switching units never rewrites the ledger. */
+  var LB_PER_KG=0.45359237;
+  function unitsPref(){ return state.goals.units==="kg"?"kg":"lb"; }
+  function unitW(){ return unitsPref()==="kg"?"kg":"lb"; }
+  /* Weight only. Distance stays in kilometres whichever weight unit is chosen —
+     the ledger has always held km, and flipping it with the weight unit would
+     quietly restate every run you have already entered. */
+  function unitD(){ return "km"; }
+  function round1(n){ return Math.round(n*10)/10; }
+  function wOut(lb){ if(lb===null||lb===undefined||lb==="") return null; return round1(unitsPref()==="kg"?Number(lb)*LB_PER_KG:Number(lb)); }
+  function wIn(v){ if(v===null||v===undefined||v==="") return null; return unitsPref()==="kg"?Number(v)/LB_PER_KG:Number(v); }
+  function dOut(km){ if(km===null||km===undefined||km==="") return null; return round1(Number(km)); }
+  function dIn(v){ if(v===null||v===undefined||v==="") return null; return Number(v); }
+  function fmtW(lb){ return wOut(lb)+" "+unitW(); }
+  function wField(lb){ var v=wOut(lb); return v===null?"":v; }
+  function dField(km){ var v=dOut(km); return v===null?"":v; }
+
+  /* ---------- settings ---------- */
+  function ledgerTotals(){
+    var sets=0, days=0, first=null;
+    state.sessions.forEach(function(s){
+      if(!s.entries.length) return;
+      days++; sets+=s.entries.length;
+      if(!first||s.date<first) first=s.date;
+    });
+    return {sets:sets, days:days, first:first};
+  }
+  function exportLedger(){
+    return JSON.stringify({
+      exported:new Date().toISOString(),
+      units:unitsPref(),
+      goals:state.goals,
+      exercises:state.exercises,
+      routines:state.routines,
+      sessions:sessionsSorted().map(function(s){
+        return {date:s.date, prep:s.prep||null, entries:s.entries};
+      })
+    },null,2);
+  }
+  function openSettings(){
+    var t=ledgerTotals(), g=state.goals;
+    var dark=document.documentElement.getAttribute("data-theme");
+    var isDark = dark ? dark==="dark" : !prefersLight();
+    document.getElementById("settingsInner").innerHTML=
+      '<div class="runner-head"><div><div class="runner-sub">Settings</div>'+
+      '<div class="runner-title">How the ledger is kept</div></div>'+
+      '<button type="button" class="sheet-close" id="settingsClose" aria-label="Close">×</button></div>'+
+      '<div class="runner-body">'+
+        '<div class="set-row"><div><div class="set-t">Units</div><div class="set-d">Weights only; distance stays in km. Nothing is rewritten — the ledger is stored in pounds and converted for you.</div></div>'+
+          '<div class="seg" role="group" aria-label="Units">'+
+            '<button type="button" class="seg-b'+(unitsPref()==="lb"?" on":"")+'" data-units="lb">lb</button>'+
+            '<button type="button" class="seg-b'+(unitsPref()==="kg"?" on":"")+'" data-units="kg">kg</button>'+
+          '</div></div>'+
+        '<div class="set-row"><div><div class="set-t">Bodyweight</div><div class="set-d">Counted into the weekly volume for bodyweight sets.</div></div>'+
+          '<label class="set-in"><input type="number" id="setBw" min="0" step="any" placeholder="—" value="'+(g.bodyweight?wField(g.bodyweight):"")+'"><span>'+unitW()+'</span></label></div>'+
+        '<div class="set-row"><div><div class="set-t">Weekly targets</div><div class="set-d">The three dials on the frontispiece.</div></div>'+
+          '<div class="set-ins">'+
+            '<label class="set-in"><input type="number" id="setStreak" min="1" step="1" value="'+g.streak+'"><span>day streak</span></label>'+
+            '<label class="set-in"><input type="number" id="setSessions" min="1" step="1" value="'+g.sessions+'"><span>/ week</span></label>'+
+            '<label class="set-in"><input type="number" id="setVolume" min="1" step="any" value="'+wField(g.volume)+'"><span>'+unitW()+'</span></label>'+
+          '</div></div>'+
+        '<div class="set-row"><div><div class="set-t">Default rest</div><div class="set-d">Used when you log a set outside a routine. Zero for no clock.</div></div>'+
+          '<label class="set-in"><input type="number" id="setRest" min="0" max="900" step="1" value="'+restSecs()+'"><span>sec</span></label></div>'+
+        '<div class="set-row"><div><div class="set-t">Gallery lighting</div><div class="set-d">Remembered on this device.</div></div>'+
+          '<div class="seg" role="group" aria-label="Theme">'+
+            '<button type="button" class="seg-b'+(isDark?" on":"")+'" data-theme="dark">Dark</button>'+
+            '<button type="button" class="seg-b'+(isDark?"":" on")+'" data-theme="light">Light</button>'+
+          '</div></div>'+
+        '<div class="set-head">Your record</div>'+
+        '<div class="set-row"><div><div class="set-t">'+t.sets+' set'+(t.sets===1?"":"s")+' over '+t.days+' day'+(t.days===1?"":"s")+'</div>'+
+          '<div class="set-d">'+(t.first?"Since "+fmtDate(t.first)+".":"Nothing entered yet.")+' '+
+          state.routines.length+' routine'+(state.routines.length===1?"":"s")+' in the programme.</div></div>'+
+          '<button type="button" class="btn-secondary" id="setExport">Copy my ledger</button></div>'+
+        '<div class="set-row"><div><div class="set-t">Clear the training record</div>'+
+          '<div class="set-d">Strikes every session and routine. Your collection, tokens and eras are untouched.</div></div>'+
+          '<button type="button" class="btn-secondary" id="setClear">Clear…</button></div>'+
+      '</div>';
+    document.getElementById("settingsClose").addEventListener("click",closeSettings);
+    document.querySelectorAll("#settingsInner .seg-b[data-units]").forEach(function(b){
+      b.addEventListener("click",function(){ setUnits(b.dataset.units); });
+    });
+    document.querySelectorAll("#settingsInner .seg-b[data-theme]").forEach(function(b){
+      b.addEventListener("click",function(){ setTheme(b.dataset.theme); openSettings(); });
+    });
+    ["setBw","setStreak","setSessions","setVolume","setRest"].forEach(function(id){
+      document.getElementById(id).addEventListener("change",saveSettings);
+    });
+    document.getElementById("setExport").addEventListener("click",function(){
+      copyText(exportLedger());
+      showToast(STAR_SVG,"Ledger copied",ledgerTotals().sets+" sets as JSON, on your clipboard");
+    });
+    var clearBtn=document.getElementById("setClear"), armed=false;
+    clearBtn.addEventListener("click",function(){
+      if(!armed){ armed=true; clearBtn.textContent="Really clear?"; clearBtn.classList.add("danger");
+        setTimeout(function(){ if(armed){ armed=false; clearBtn.textContent="Clear…"; clearBtn.classList.remove("danger"); } },5000);
+        return; }
+      clearTrainingRecord(); closeSettings();
+    });
+    document.getElementById("settingsSheet").classList.add("show");
+  }
+  function closeSettings(){ document.getElementById("settingsSheet").classList.remove("show"); }
+  /* not every context has matchMedia; a missing one must not take the sheet down */
+  function prefersLight(){
+    try{ return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches); }
+    catch(e){ return false; }
+  }
+  function setTheme(mode){
+    document.documentElement.setAttribute("data-theme",mode);
+    try{ localStorage.setItem("lb-theme",mode); }catch(e){}
+  }
+  function setUnits(u){
+    if(unitsPref()===u) return;
+    state.goals.units=(u==="kg")?"kg":"lb";
+    persistGoals(); renderAll(); openSettings();
+    showToast(COIN_SVG,"Units changed","Every weight now reads in "+unitW());
+  }
+  function saveSettings(){
+    var bw=document.getElementById("setBw").value;
+    var st=Number(document.getElementById("setStreak").value);
+    var se=Number(document.getElementById("setSessions").value);
+    var vo=document.getElementById("setVolume").value;
+    var rs=Number(document.getElementById("setRest").value);
+    state.goals={
+      streak: st>0?Math.round(st):state.goals.streak,
+      sessions: se>0?Math.round(se):state.goals.sessions,
+      volume: (vo!==""&&Number(vo)>0)?wIn(vo):state.goals.volume,
+      bodyweight: (bw!==""&&Number(bw)>0)?wIn(bw):0,
+      units: unitsPref()
+    };
+    persistGoals();
+    var restEl=document.getElementById("restLen");
+    if(restEl&&isFinite(rs)&&rs>=0){ restEl.value=Math.min(900,Math.round(rs)); try{ localStorage.setItem("lb-rest",restEl.value); }catch(e){} }
+    renderAll();
+  }
+  function persistGoals(){
+    if(state.dbAvailable) state.db.doc("settings/goals").set(state.goals)["catch"](function(err){ console.error("Loadbook: goals",err); });
+  }
+  function clearTrainingRecord(){
+    var dates=state.sessions.map(function(s){ return s.date; }), ids=state.routines.map(function(r){ return r.id; });
+    state.sessions=[]; state.routines=[];
+    clearRunProgress();
+    if(state.dbAvailable){
+      dates.forEach(function(d){ state.db.doc("sessions/"+d).delete()["catch"](function(){}); });
+      ids.forEach(function(i){ state.db.doc("routines/"+i).delete()["catch"](function(){}); });
+    }
+    renderAll();
+    showToast(COIN_SVG,"Training record cleared",dates.length+" day"+(dates.length===1?"":"s")+" struck · your collection is untouched");
+  }
+
   /* ---------- routines ----------
      Movement names are typed, never picked from a list: a step carries its own
      name and type, so it describes itself without consulting the repertoire, and
@@ -2913,7 +3212,7 @@ var FINISHES = [
       var a=(st.added===null||st.added===undefined||st.added==="")?0:Number(st.added);
       return n+" \u00d7 "+(st.reps||1)+" \u00b7 "+(a?("bodyweight"+fmtAdded(a)):"bodyweight")+rest;
     }
-    var w=(st.weight===null||st.weight===undefined||st.weight==="")?"bodyweight":(st.weight+" lb");
+    var w=(st.weight===null||st.weight===undefined||st.weight==="")?"bodyweight":fmtW(st.weight);
     return n+" \u00d7 "+(st.reps||1)+" \u00b7 "+w+rest;
   }
   function clampNum(el,lo,hi,dflt){ var n=Number(el&&el.value); if(!el||el.value===""||!isFinite(n)) n=dflt; return Math.max(lo,Math.min(hi,Math.round(n))); }
@@ -2935,8 +3234,8 @@ var FINISHES = [
       var fields =
         k==="cardio"     ? '<label><span class="k">Minutes</span><input type="number" class="s-dur" min="1" max="600" step="1" value="'+(st.duration||20)+'"></label><span></span><span></span>'
       : k==="hold"       ? setsCell+'<label><span class="k">Seconds</span><input type="number" class="s-secs" min="1" max="3600" step="1" value="'+(st.secs||45)+'"></label><span></span>'
-      : k==="bodyweight" ? setsCell+repsCell+'<label><span class="k">Added lb</span><input type="number" class="s-add" step="any" placeholder="—" value="'+(st.added===null||st.added===undefined?"":st.added)+'"></label>'
-      :                    setsCell+repsCell+'<label><span class="k">Weight lb</span><input type="number" class="s-wt" min="0" step="any" placeholder="—" value="'+(st.weight===null||st.weight===undefined?"":st.weight)+'"></label>';
+      : k==="bodyweight" ? setsCell+repsCell+'<label><span class="k">Added '+unitW()+'</span><input type="number" class="s-add" step="any" placeholder="—" value="'+wField(st.added)+'"></label>'
+      :                    setsCell+repsCell+'<label><span class="k">Weight '+unitW()+'</span><input type="number" class="s-wt" min="0" step="any" placeholder="—" value="'+wField(st.weight)+'"></label>';
       var row=document.createElement("div"); row.className="step-row";
       row.innerHTML='<label><span class="k">Movement</span><input type="text" class="s-name" maxlength="40" autocomplete="off" placeholder="Push-up" value="'+escapeHtml(st.name||"")+'"></label>'+
         '<label><span class="k">Kind</span><select class="s-type">'+kindOptions(k)+'</select></label>'+ fields +
@@ -2976,8 +3275,8 @@ var FINISHES = [
         st.sets=clampNum(row.querySelector(".s-sets"),1,20,3);
         st.reps=clampNum(row.querySelector(".s-reps"),1,100,type==="bodyweight"?8:5);
         /* mid-switch the row is still drawn for the old kind, so these may not be here yet */
-        if(type==="bodyweight"){ var aEl=row.querySelector(".s-add"), a=aEl?aEl.value:""; st.added=a===""?null:(Number(a)||0); }
-        else { var wEl=row.querySelector(".s-wt"), w=wEl?wEl.value:""; st.weight=w===""?null:Math.max(0,Number(w)||0); }
+        if(type==="bodyweight"){ var aEl=row.querySelector(".s-add"), a=aEl?aEl.value:""; st.added=a===""?null:(wIn(a)||0); }
+        else { var wEl=row.querySelector(".s-wt"), w=wEl?wEl.value:""; st.weight=w===""?null:Math.max(0,wIn(w)||0); }
       }
       out.push(st);
     });
@@ -3479,13 +3778,13 @@ var FINISHES = [
         '<div class="run-right"><div class="pips">'+pips+'</div><div class="run-inputs">'+
         (k==="cardio"
           ? '<input type="number" class="r-dur" min="1" step="1" aria-label="Minutes" value="'+(st.duration||"")+'">'+
-            '<input type="number" class="r-dist" min="0" step="any" placeholder="km" aria-label="Distance" value="'+(st.distance===null||st.distance===undefined?"":st.distance)+'">'
+            '<input type="number" class="r-dist" min="0" step="any" placeholder="'+unitD()+'" aria-label="Distance" value="'+dField(st.distance)+'">'
         : k==="hold"
           ? '<input type="number" class="r-secs" min="1" step="1" aria-label="Seconds" value="'+(st.secs||"")+'">'
         : k==="bodyweight"
-          ? '<input type="number" class="r-add" step="any" placeholder="+lb" aria-label="Added weight" value="'+(st.added===null||st.added===undefined?"":st.added)+'">'+
+          ? '<input type="number" class="r-add" step="any" placeholder="+'+unitW()+'" aria-label="Added weight" value="'+wField(st.added)+'">'+
             '<input type="number" class="r-reps" min="1" step="1" aria-label="Reps" value="'+(st.reps||"")+'">'
-          : '<input type="number" class="r-wt" min="0" step="any" placeholder="lb" aria-label="Weight" value="'+(st.weight===null||st.weight===undefined?"":st.weight)+'">'+
+          : '<input type="number" class="r-wt" min="0" step="any" placeholder="'+unitW()+'" aria-label="Weight" value="'+wField(st.weight)+'">'+
             '<input type="number" class="r-reps" min="1" step="1" aria-label="Reps" value="'+(st.reps||"")+'">')+
         '</div><button type="button" class="btn-secondary r-log">Log</button></div>';
       row.querySelector(".r-log").addEventListener("click",function(){ logRunnerSet(i,row); });
@@ -3521,7 +3820,7 @@ var FINISHES = [
       if(!isFinite(du)||du<=0) du=Number(st.duration)||0;
       if(!du){ if(dEl) dEl.focus(); return; }
       entry.duration=du; st.duration=du;
-      var xEl=row.querySelector(".r-dist"), dist=(xEl&&xEl.value!=="")?Number(xEl.value):null;
+      var xEl=row.querySelector(".r-dist"), dist=(xEl&&xEl.value!=="")?dIn(xEl.value):null;
       entry.distance=(dist!==null&&isFinite(dist)&&dist>=0)?dist:null;
       if(entry.distance!==null) st.distance=entry.distance;
     } else if(k==="hold"){
@@ -3536,12 +3835,12 @@ var FINISHES = [
       if(!reps){ if(rEl) rEl.focus(); return; }
       entry.reps=reps; st.reps=reps;
       if(k==="bodyweight"){
-        var aEl=row.querySelector(".r-add"), av=(aEl&&aEl.value!=="")?Number(aEl.value):(st.added===null||st.added===undefined?null:st.added);
+        var aEl=row.querySelector(".r-add"), av=(aEl&&aEl.value!=="")?wIn(aEl.value):(st.added===null||st.added===undefined?null:st.added);
         entry.added=(av!==null&&isFinite(av))?av:null;
         if(aEl&&aEl.value!=="") st.added=entry.added;
       } else {
         var wEl=row.querySelector(".r-wt");
-        var wv=(wEl&&wEl.value!=="")?Number(wEl.value):(st.weight===null||st.weight===undefined?0:st.weight);
+        var wv=(wEl&&wEl.value!=="")?wIn(wEl.value):(st.weight===null||st.weight===undefined?0:st.weight);
         entry.weight=isFinite(wv)?wv:0;
         if(wEl&&wEl.value!=="") st.weight=entry.weight;
       }
@@ -3589,9 +3888,14 @@ var FINISHES = [
   document.getElementById("redeemInput").addEventListener("keydown",function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); redeemInvite(this.value); } });
   document.getElementById("dinoSheet").addEventListener("click",function(ev){ if(ev.target===this) closeDinoSheet(); });
   document.addEventListener("keydown",function(ev){ if(ev.key==="Escape") closeDinoSheet(); });
-  document.getElementById("goalsEditBtn").addEventListener("click",function(){ if(state.editingGoals){ saveGoals(); state.editingGoals=false; this.textContent="Edit targets"; } else { state.editingGoals=true; this.textContent="Save targets"; } renderStats(); });
+  document.getElementById("goalsEditBtn").addEventListener("click",openSettings);
   document.querySelectorAll(".vol-tab").forEach(function(t){ t.addEventListener("click",function(){ document.querySelectorAll(".vol-tab").forEach(function(x){x.classList.remove("active");}); document.querySelectorAll(".volume").forEach(function(x){x.classList.remove("active");}); t.classList.add("active"); document.getElementById("vol-"+t.dataset.vol).classList.add("active"); }); });
-  document.getElementById("themeBtn").addEventListener("click",function(){ var r=document.documentElement; var cur=r.getAttribute("data-theme"); var dark = cur ? cur==="dark" : !window.matchMedia("(prefers-color-scheme: light)").matches; r.setAttribute("data-theme", dark?"light":"dark"); try{ localStorage.setItem("lb-theme", dark?"light":"dark"); }catch(e){} });
+  document.getElementById("settingsBtn").addEventListener("click",openSettings);
+  document.getElementById("settingsSheet").addEventListener("click",function(ev){ if(ev.target===this) closeSettings(); });
+  document.getElementById("movementSheet").addEventListener("click",function(ev){ if(ev.target===this) closeMovement(); });
+  document.addEventListener("keydown",function(ev){ if(ev.key==="Escape") closeMovement(); });
+  document.addEventListener("keydown",function(ev){ if(ev.key==="Escape") closeSettings(); });
+  document.getElementById("themeBtn").addEventListener("click",function(){ var r=document.documentElement; var cur=r.getAttribute("data-theme"); var dark = cur ? cur==="dark" : !prefersLight(); r.setAttribute("data-theme", dark?"light":"dark"); try{ localStorage.setItem("lb-theme", dark?"light":"dark"); }catch(e){} });
   try{ var saved=localStorage.getItem("lb-theme"); if(saved) document.documentElement.setAttribute("data-theme",saved); }catch(e){}
 
   var logFlashTimer=null;
@@ -3614,11 +3918,11 @@ var FINISHES = [
     if(type==="strength"){
       var w=document.getElementById("weightInput"), r=document.getElementById("repsInput");
       if(!r.value){ r.focus(); return; }
-      entry.weight=w.value===""?0:Number(w.value); entry.reps=Number(r.value);
+      entry.weight=w.value===""?0:wIn(w.value); entry.reps=Number(r.value);
     } else if(type==="bodyweight"){
       var a=document.getElementById("addedInput"), br=document.getElementById("bwRepsInput");
       if(!br.value){ br.focus(); return; }
-      entry.reps=Number(br.value); entry.added=a.value===""?null:Number(a.value);
+      entry.reps=Number(br.value); entry.added=a.value===""?null:wIn(a.value);
     } else if(type==="hold"){
       var sc=document.getElementById("secsInput");
       if(!sc.value||Number(sc.value)<=0){ sc.focus(); return; }
@@ -3626,7 +3930,7 @@ var FINISHES = [
     } else {
       var du=document.getElementById("durationInput"), di=document.getElementById("distanceInput");
       if(!du.value){ du.focus(); return; }
-      entry.duration=Number(du.value); entry.distance=di.value===""?null:Number(di.value);
+      entry.duration=Number(du.value); entry.distance=di.value===""?null:dIn(di.value);
     }
     addEntry(date,entry);
     flashLogged(entry);
@@ -3649,7 +3953,7 @@ var FINISHES = [
     state.db.collection("exercises").onSnapshot(function(snap){ if(!snap.empty) state.exercises=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}); got.ex=true; ready(); },function(err){console.error("Loadbook: exercises",err);});
     state.db.collection("routines").onSnapshot(function(snap){ state.routines=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}).filter(function(r){return r.steps&&r.steps.length;}); renderRoutines(); },function(err){console.error("Loadbook: routines",err);});
     state.db.collection("sessions").orderBy("date","desc").limit(400).onSnapshot(function(snap){ state.sessions=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}).filter(function(s){return s.entries&&s.entries.length;}); got.se=true; ready(); },function(err){console.error("Loadbook: sessions",err);});
-    state.db.doc("settings/goals").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.goals={streak:d.streak||DEFAULT_GOALS.streak,sessions:d.sessions||DEFAULT_GOALS.sessions,volume:d.volume||DEFAULT_GOALS.volume,bodyweight:d.bodyweight||0}; renderStats(); } })["catch"](function(err){console.error("Loadbook: goals",err);});
+    state.db.doc("settings/goals").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.goals={streak:d.streak||DEFAULT_GOALS.streak,sessions:d.sessions||DEFAULT_GOALS.sessions,volume:d.volume||DEFAULT_GOALS.volume,bodyweight:d.bodyweight||0,units:d.units==="kg"?"kg":"lb"}; renderAll(); } })["catch"](function(err){console.error("Loadbook: goals",err);});
     state.db.doc("settings/rewards").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.rewards={tokens:d.tokens||0,lastClaimedDate:d.lastClaimedDate||null,owned:d.owned||[],variants:d.variants||{},finish:d.finish||{},freezes:d.freezes||0,frozenDates:d.frozenDates||[],bonusClaimed:!!d.bonusClaimed,shelf:d.shelf||[],erasUnlocked:d.erasUnlocked||[]}; renderAll(); checkCompletionBonus(); checkEras(); } })["catch"](function(err){console.error("Loadbook: rewards",err);});
   }
   if (window.claude && typeof window.claude.use==="function"){ window.claude.use("db").then(function(db){ if(db){ state.db=db; state.dbAvailable=true; renderTopbar(); hydrateFromDb(); renderSociety(); subscribeSociety(); syncProfile(true); } else renderTopbar(); })["catch"](function(){ renderTopbar(); }); }

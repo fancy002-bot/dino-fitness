@@ -59,7 +59,7 @@ check("bodyweight is shown on the frontispiece", /175/.test(d.getElementById("st
 lb.state.goals.bodyweight = 0;
 lb.renderAll();
 check("and prompts for it when unset",
-  /set it to count bodyweight sets/.test(d.getElementById("statBodyweight").textContent));
+  /set it in settings to count bodyweight sets/.test(d.getElementById("statBodyweight").textContent));
 lb.state.goals.bodyweight = 175;
 lb.renderAll();
 
