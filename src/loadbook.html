@@ -400,6 +400,30 @@
   .routine-meta{font-family:var(--font-caps); font-size:0.54rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute); margin-top:4px;}
   .routine-acts{display:flex; gap:8px; flex-wrap:wrap;}
 
+  /* ---- commission ---- */
+  .cm-form{display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:12px; margin-bottom:14px;}
+  .cm-hrow{display:flex; align-items:center; gap:7px;}
+  .cm-hrow input{background:var(--surface-2); border:2px solid var(--line); border-bottom-color:var(--line-strong); color:var(--ink); padding:9px 10px; font-family:var(--font-mono); font-size:0.86rem; width:100%; min-width:0; text-align:right; border-radius:0;}
+  .cm-hrow input:focus{border-color:var(--bronze); outline:none;}
+  .cm-hrow .k{font-family:var(--font-caps); font-size:0.52rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute); flex-shrink:0;}
+  .cm-verdict{border-left:4px solid var(--line-strong); padding:14px 16px; background:var(--surface-2); margin-top:18px;}
+  .cm-verdict.good{border-left-color:var(--good);} .cm-verdict.warn{border-left-color:var(--warn);} .cm-verdict.bad{border-left-color:var(--bronze);}
+  .cm-vt{font-family:var(--font-display); font-size:1.2rem; margin-bottom:6px;}
+  .cm-verdict p{margin:5px 0; font-size:0.9rem; line-height:1.55; color:var(--ink-soft);}
+  .cm-bmi{font-family:var(--font-mono); font-size:0.72rem !important; color:var(--ink-mute) !important;}
+  .cm-oh{font-family:var(--font-caps); font-size:0.56rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--bronze); margin:20px 0 10px;}
+  .cm-opt{display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%; text-align:left; background:var(--surface-2); border:2px solid var(--line-strong); padding:12px 14px; cursor:pointer; margin-bottom:8px;}
+  .cm-opt:hover{border-color:var(--bronze);}
+  .cm-opt.lean{border-color:var(--bronze);}
+  .cm-ol{font-family:var(--font-display); font-size:1.05rem; color:var(--ink);}
+  .cm-ow{font-family:var(--font-caps); font-size:0.52rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute);}
+  .cm-day{padding:11px 0; border-bottom:1px solid var(--line);}
+  .cm-dn{font-family:var(--font-caps); font-size:0.58rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--bronze);}
+  .cm-ds{display:flex; flex-wrap:wrap; gap:8px 16px; margin-top:6px;}
+  .cm-mv{font-family:var(--font-display); font-size:0.98rem;}
+  .cm-mv em{font-family:var(--font-mono); font-style:normal; font-size:0.72rem; color:var(--ink-soft); margin-left:5px;}
+  .cm-note{font-size:0.82rem; color:var(--ink-mute); margin:14px 0 0;}
+
   /* ---- attendance ---- */
   .cal-wrap{overflow-x:auto; padding-bottom:4px;}
   .cal-months{display:grid; grid-auto-flow:column; grid-auto-columns:14px; gap:3px; margin-bottom:5px; min-width:min-content;}
@@ -607,6 +631,24 @@
       <div class="panel-head"><h2><span class="no">ATTENDANCE</span>Days at the bench</h2><span class="hint" id="calHint"></span></div>
       <div class="cal-wrap"><div class="cal-months" id="calMonths"></div><div class="cal-grid" id="calGrid"></div></div>
       <div class="cal-key"><span>Quiet</span><span class="cal-d l0"></span><span class="cal-d l1"></span><span class="cal-d l2"></span><span class="cal-d l3"></span><span>Busy</span></div>
+    </div>
+    <div class="panel" style="margin-bottom:22px;">
+      <div class="panel-head"><h2><span class="no">COMMISSION</span>A programme drawn up for you</h2><span class="hint">From your build and what you are after</span></div>
+      <div class="cm-form">
+        <div class="field"><label for="cmGoal">Goal</label><select id="cmGoal"></select></div>
+        <div class="field"><label for="cmBw">Bodyweight</label><div class="cm-hrow"><input type="number" id="cmBw" min="0" step="any" placeholder="—"><span class="k" id="cmBwUnit">lb</span></div></div>
+        <div class="field" id="cmHImp"><label for="cmFt">Height</label><div class="cm-hrow"><input type="number" id="cmFt" min="3" max="8" step="1" placeholder="5"><span class="k">ft</span><input type="number" id="cmIn" min="0" max="11" step="1" placeholder="10"><span class="k">in</span></div></div>
+        <div class="field" id="cmHMet" style="display:none;"><label for="cmCm">Height</label><div class="cm-hrow"><input type="number" id="cmCm" min="100" max="250" step="1" placeholder="178"><span class="k">cm</span></div></div>
+        <div class="field"><label for="cmExp">Training age</label><select id="cmExp"><option value="0">First year</option><option value="1">A few years</option><option value="2">Long-trained</option></select></div>
+        <div class="field"><label for="cmDays">Days a week</label><select id="cmDays"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+        <div class="field"><label for="cmKit">What you have</label><select id="cmKit"><option value="full">A full gym</option><option value="minimal">Dumbbells and a bar</option><option value="bodyweight">Bodyweight only</option></select></div>
+      </div>
+      <div class="cm-form" id="cmTarget">
+        <div class="field"><label for="cmAmount" id="cmAmountLabel">Amount</label><div class="cm-hrow"><input type="number" id="cmAmount" min="0" step="any" placeholder="10"><span class="k" id="cmAmountUnit">lb</span></div></div>
+        <div class="field"><label for="cmWeeks">In how many weeks</label><div class="cm-hrow"><input type="number" id="cmWeeks" min="1" max="260" step="1" placeholder="12"><span class="k">weeks</span></div></div>
+      </div>
+      <div class="routine-actions"><button type="button" class="btn-primary" style="width:auto;" id="cmDraw">Draw it up</button></div>
+      <div id="cmOut"></div>
     </div>
     <div class="panel" style="margin-bottom:22px;">
       <div class="panel-head"><h2><span class="no">ROUTINES</span>Workouts of your own devising</h2><span class="hint" id="routineHint"></span></div>
@@ -2254,7 +2296,7 @@ var FINISHES = [
   function isBronze(id){ return BRONZE.indexOf(id) !== -1; }
   function specNo(id){ var i = DINOS.findIndex(function(d){ return d.id === id; }); return "No. " + String(i + 1).padStart(3, "0"); }
 
-  var DEFAULT_GOALS = { streak: 7, sessions: 5, volume: 8000, bodyweight: 0, units: "lb" };
+  var DEFAULT_GOALS = { streak: 7, sessions: 5, volume: 8000, bodyweight: 0, units: "lb", height: 0 };
   var CATEGORY_VAR = {Push:"--dial-a", Pull:"--g-select", Legs:"--g-archival", Core:"--warn", Cardio:"--good"};
   function catColorVar(cat){ return "var(" + (CATEGORY_VAR[cat] || "--bronze") + ")"; }
 
@@ -2361,7 +2403,7 @@ var FINISHES = [
     goals: Object.assign({}, DEFAULT_GOALS),
     rewards: {tokens:0, lastClaimedDate:null, owned:[], variants:{}, finish:{}, freezes:0, frozenDates:[], bonusClaimed:false, shelf:[], erasUnlocked:[]},
     chartDefaultSet:false, shopGroup:"All", shopQuery:"",
-    routines:[], routineDraft:null, runner:null, preludeOpen:null
+    routines:[], routineDraft:null, runner:null, preludeOpen:null, commission:null
   };
 
   function todayISO(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -2675,7 +2717,7 @@ var FINISHES = [
 
   function renderClearSample(){ var w=document.getElementById("clearSampleWrap"); if(!state.sessions.some(function(s){return s.sample;})){ w.innerHTML=""; return; } w.innerHTML='<button type="button" class="btn-secondary" id="clearSampleBtn">Clear specimen entries</button>'; document.getElementById("clearSampleBtn").addEventListener("click",clearSampleData); }
 
-  function renderAll(){ syncProfile(); renderTopbar(); renderStats(); renderRewards(); renderShelf(); renderFreeze(); renderEras(); renderShop(); renderExerciseSelects(); renderRoutines(); renderCalendar(); renderRecent(); renderChart(); renderClearSample(); }
+  function renderAll(){ syncProfile(); renderTopbar(); renderStats(); renderRewards(); renderShelf(); renderFreeze(); renderEras(); renderShop(); renderExerciseSelects(); renderRoutines(); renderCalendar(); renderRecent(); renderChart(); renderCommission(); renderClearSample(); }
 
   /* ---------- specimen label ---------- */
   function openDinoSheet(id){
@@ -2901,6 +2943,270 @@ var FINISHES = [
   function removeFellow(fid){ if(!me||!state.dbAvailable) return; state.db.doc("friends/"+me.id+"/list/"+fid).delete()["catch"](function(){}); state.db.doc("friends/"+fid+"/list/"+me.id).delete()["catch"](function(){}); }
   function renderSociety(){ renderMeCard(); if(!me){ renderInvites([]); renderFellows([]); } }
 
+  /* ---------- commissioning a programme ----------
+     Weight and height set what is achievable; the goal sets how the work is shaped.
+     Rates below are the ordinary ranges used in strength training, not medical
+     advice, and the app says which it is using rather than hiding the arithmetic. */
+  var GOAL_KINDS = {
+    fat:       {label:"Lose fat",        numeric:true,  verb:"to lose"},
+    muscle:    {label:"Build muscle",    numeric:true,  verb:"to gain"},
+    strength:  {label:"Get stronger",    numeric:false},
+    endurance: {label:"Build endurance", numeric:false},
+    general:   {label:"General fitness", numeric:false}
+  };
+  var EXPERIENCE = ["First year", "A few years", "Long-trained"];
+  var EXP_PHRASE = ["In a first year of training", "A few years in", "After years of training"];
+  /* pounds per week that can be held to */
+  function fatRateMax(bwLb){ return bwLb*0.01; }        /* 1% of bodyweight a week */
+  function fatRateEasy(bwLb){ return bwLb*0.0065; }
+  function muscleRateMax(exp){ return [0.5,0.3,0.15][exp]||0.15; }
+  function bmiOf(lb,inches){ return inches>0 ? (lb*703)/(inches*inches) : 0; }
+  function lbForBmi(b,inches){ return (b*inches*inches)/703; }
+  function fmtWeeks(w){ return w+" week"+(w===1?"":"s"); }
+
+  /* Returns a verdict and, when the ask cannot be met, the two honest ways to
+     rescue it — keeping the number the user cares about first. */
+  function assessGoal(req){
+    var bw=Number(req.bw)||0, h=Number(req.height)||0, weeks=Math.max(1,Math.round(Number(req.weeks)||0));
+    var amount=Math.max(0,Number(req.amount)||0), kind=req.goal, exp=Number(req.experience)||0;
+    var out={verdict:"ok", says:[], options:[], bmi:bmiOf(bw,h)};
+    if(!bw){ out.verdict="blocked"; out.says.push("Enter your bodyweight first — every rate below is worked out from it."); return out; }
+    if(!GOAL_KINDS[kind].numeric){
+      out.says.push("No number to check. The programme is shaped for "+GOAL_KINDS[kind].label.toLowerCase()+".");
+      return out;
+    }
+    if(!amount||!weeks){ out.verdict="blocked"; out.says.push("Give a figure and a timeframe and the plan can be checked against them."); return out; }
+    var perWeek=amount/weeks, max, easy;
+
+    if(kind==="fat"){
+      max=fatRateMax(bw); easy=fatRateEasy(bw);
+      var floorLb = h ? lbForBmi(18.5,h) : 0;
+      if(h && bw-amount < floorLb){
+        var room=Math.max(0,Math.floor(bw-floorLb));
+        out.verdict="unrealistic";
+        out.says.push("At "+fmtHeight(h)+", losing "+fmtW(amount)+" would take you to a BMI under 18.5.");
+        out.says.push("There is about "+fmtW(room)+" of room before that line.");
+        if(room>0) out.options.push({label:"Aim for "+fmtW(room)+" over "+fmtWeeks(Math.max(weeks,Math.ceil(room/max))), amount:room, weeks:Math.max(weeks,Math.ceil(room/max)), why:"keeps you above the line"});
+        return out;
+      }
+      if(perWeek>max){
+        out.verdict="unrealistic";
+        out.says.push("That is "+round1(perWeek)+" "+unitW()+" a week. Above about "+round1(max)+" "+unitW()+" a week \u2014 1% of your bodyweight \u2014 the loss stops being mostly fat.");
+        out.options.push({label:"Keep "+fmtW(amount)+", take "+fmtWeeks(Math.ceil(amount/max)), amount:amount, weeks:Math.ceil(amount/max), why:"you still get the figure you asked for", lean:true});
+        out.options.push({label:"Keep "+fmtWeeks(weeks)+", aim for "+fmtW(Math.floor(max*weeks)), amount:Math.floor(max*weeks), weeks:weeks, why:"if the date is the part that matters"});
+        return out;
+      }
+      if(perWeek>easy){ out.verdict="stretch"; out.says.push("At "+round1(perWeek)+" "+unitW()+" a week this is at the aggressive end, but it is inside what can be held to."); }
+      else out.says.push(round1(perWeek)+" "+unitW()+" a week is a comfortable rate.");
+      return out;
+    }
+
+    /* muscle */
+    max=muscleRateMax(exp);
+    if(perWeek>max){
+      out.verdict="unrealistic";
+      out.says.push("That is "+round1(perWeek)+" "+unitW()+" a week. "+EXP_PHRASE[exp]+
+        ", about "+round1(max)+" "+unitW()+" a week is the ceiling for muscle rather than fat.");
+      out.options.push({label:"Keep "+fmtW(amount)+", take "+fmtWeeks(Math.ceil(amount/max)), amount:amount, weeks:Math.ceil(amount/max), why:"you still get the figure you asked for", lean:true});
+      var inTime=Math.round(max*weeks*10)/10;
+      if(inTime>=0.5) out.options.push({label:"Keep "+fmtWeeks(weeks)+", aim for "+fmtW(inTime), amount:inTime, weeks:weeks, why:"if the date is the part that matters"});
+      return out;
+    }
+    if(perWeek>max*0.7){ out.verdict="stretch"; out.says.push("At "+round1(perWeek)+" "+unitW()+" a week you are near the ceiling for your training age — it will need the eating to match."); }
+    else out.says.push(round1(perWeek)+" "+unitW()+" a week is a sensible rate to build at.");
+    return out;
+  }
+  function fmtHeight(inches){
+    if(unitsPref()==="kg") return Math.round(inches*2.54)+" cm";
+    return Math.floor(inches/12)+"′ "+Math.round(inches%12)+"″";
+  }
+
+  /* ---------- drawing the programme up ---------- */
+  var KIT = {
+    full: {
+      push:  [{n:"Bench Press",k:"strength"},{n:"Overhead Press",k:"strength"},{n:"Incline Dumbbell Press",k:"strength"},{n:"Dip",k:"bodyweight"}],
+      pull:  [{n:"Barbell Row",k:"strength"},{n:"Pull-up",k:"bodyweight"},{n:"Lat Pulldown",k:"strength"},{n:"Face Pull",k:"strength"}],
+      squat: [{n:"Back Squat",k:"strength"},{n:"Front Squat",k:"strength"},{n:"Walking Lunge",k:"strength"},{n:"Leg Press",k:"strength"}],
+      hinge: [{n:"Deadlift",k:"strength"},{n:"Romanian Deadlift",k:"strength"},{n:"Hip Thrust",k:"strength"}],
+      core:  [{n:"Plank",k:"hold"},{n:"Hanging Leg Raise",k:"bodyweight"},{n:"Hollow Hold",k:"hold"}],
+      cardio:[{n:"Rowing",k:"cardio"},{n:"Running",k:"cardio"},{n:"Cycling",k:"cardio"}]
+    },
+    minimal: {
+      push:  [{n:"Dumbbell Bench Press",k:"strength"},{n:"Dumbbell Overhead Press",k:"strength"},{n:"Push-up",k:"bodyweight"}],
+      pull:  [{n:"Dumbbell Row",k:"strength"},{n:"Inverted Row",k:"bodyweight"},{n:"Band Pulldown",k:"strength"}],
+      squat: [{n:"Goblet Squat",k:"strength"},{n:"Bulgarian Split Squat",k:"strength"},{n:"Air Squat",k:"bodyweight"}],
+      hinge: [{n:"Dumbbell Romanian Deadlift",k:"strength"},{n:"Glute Bridge",k:"bodyweight"},{n:"Single-leg RDL",k:"strength"}],
+      core:  [{n:"Plank",k:"hold"},{n:"Dead Bug",k:"bodyweight"},{n:"Hollow Hold",k:"hold"}],
+      cardio:[{n:"Running",k:"cardio"},{n:"Skipping",k:"cardio"},{n:"Cycling",k:"cardio"}]
+    },
+    bodyweight: {
+      push:  [{n:"Push-up",k:"bodyweight"},{n:"Dip",k:"bodyweight"},{n:"Pike Push-up",k:"bodyweight"},{n:"Diamond Push-up",k:"bodyweight"}],
+      pull:  [{n:"Pull-up",k:"bodyweight"},{n:"Inverted Row",k:"bodyweight"},{n:"Chin-up",k:"bodyweight"}],
+      squat: [{n:"Air Squat",k:"bodyweight"},{n:"Bulgarian Split Squat",k:"bodyweight"},{n:"Walking Lunge",k:"bodyweight"}],
+      hinge: [{n:"Glute Bridge",k:"bodyweight"},{n:"Single-leg RDL",k:"bodyweight"},{n:"Nordic Curl",k:"bodyweight"}],
+      core:  [{n:"Plank",k:"hold"},{n:"Hollow Hold",k:"hold"},{n:"Hanging Leg Raise",k:"bodyweight"}],
+      cardio:[{n:"Running",k:"cardio"},{n:"Skipping",k:"cardio"},{n:"Burpee",k:"bodyweight"}]
+    }
+  };
+  var SPLITS = {
+    2:[["Full body A",["squat","push","pull","core"]],["Full body B",["hinge","push","pull","core"]]],
+    3:[["Push",["push","push","core"]],["Pull",["pull","pull","core"]],["Legs",["squat","hinge","core"]]],
+    4:[["Upper A",["push","pull","push","core"]],["Lower A",["squat","hinge","core"]],["Upper B",["pull","push","pull","core"]],["Lower B",["hinge","squat","core"]]],
+    5:[["Push",["push","push","core"]],["Pull",["pull","pull","core"]],["Legs",["squat","hinge","core"]],["Upper",["push","pull","core"]],["Conditioning",["cardio","core","cardio"]]],
+    6:[["Push A",["push","push","core"]],["Pull A",["pull","pull","core"]],["Legs A",["squat","hinge","core"]],["Push B",["push","push","core"]],["Pull B",["pull","pull","core"]],["Legs B",["hinge","squat","core"]]]
+  };
+  var RX = {
+    fat:       {sets:3, reps:12, rest:50,  bwReps:15, hold:45, cardioMin:22, cardioDays:2},
+    muscle:    {sets:4, reps:9,  rest:85,  bwReps:12, hold:45, cardioMin:12, cardioDays:1},
+    strength:  {sets:5, reps:4,  rest:170, bwReps:8,  hold:50, cardioMin:10, cardioDays:0},
+    endurance: {sets:3, reps:15, rest:45,  bwReps:20, hold:60, cardioMin:30, cardioDays:3},
+    general:   {sets:3, reps:10, rest:70,  bwReps:12, hold:45, cardioMin:15, cardioDays:1}
+  };
+  /* a starting load only, as a fraction of bodyweight, by training age */
+  var LOAD_RATIO = {
+    "Back Squat":[0.5,0.9,1.3], "Front Squat":[0.4,0.7,1.0], "Leg Press":[0.9,1.5,2.2],
+    "Deadlift":[0.6,1.1,1.6], "Romanian Deadlift":[0.45,0.8,1.15], "Hip Thrust":[0.6,1.0,1.5],
+    "Bench Press":[0.4,0.7,1.0], "Overhead Press":[0.25,0.45,0.65], "Incline Dumbbell Press":[0.2,0.35,0.5],
+    "Barbell Row":[0.35,0.6,0.85], "Lat Pulldown":[0.4,0.6,0.85], "Face Pull":[0.1,0.18,0.25],
+    "Walking Lunge":[0.2,0.4,0.6], "Goblet Squat":[0.2,0.32,0.45], "Bulgarian Split Squat":[0.15,0.3,0.45],
+    "Dumbbell Bench Press":[0.2,0.35,0.5], "Dumbbell Overhead Press":[0.12,0.22,0.32],
+    "Dumbbell Row":[0.18,0.32,0.45], "Dumbbell Romanian Deadlift":[0.25,0.45,0.65],
+    "Single-leg RDL":[0.12,0.22,0.32], "Band Pulldown":[0.1,0.15,0.2]
+  };
+  function startingLoad(name,bwLb,exp){
+    var r=LOAD_RATIO[name]; if(!r||!bwLb) return null;
+    return Math.max(5, Math.round((bwLb*r[exp||0])/5)*5);
+  }
+  function buildProgramme(req){
+    var days=Math.min(6,Math.max(2,Math.round(Number(req.days)||3)));
+    var kit=KIT[req.kit]||KIT.full, rx=RX[req.goal]||RX.general;
+    var bw=Number(req.bw)||0, exp=Number(req.experience)||0;
+    var plan=SPLITS[days], cursor={}, out=[];
+    function pick(pattern){
+      var pool=kit[pattern]||kit.core;
+      var i=(cursor[pattern]||0)%pool.length; cursor[pattern]=i+1;
+      return pool[i];
+    }
+    plan.forEach(function(day,di){
+      var steps=day[1].map(function(pattern){
+        var m=pick(pattern), st=defaultStep(m.n,m.k);
+        st.restSec=rx.rest;
+        if(m.k==="strength"){ st.sets=rx.sets; st.reps=rx.reps; st.weight=startingLoad(m.n,bw,exp); }
+        else if(m.k==="bodyweight"){ st.sets=rx.sets; st.reps=rx.bwReps; st.added=null; }
+        else if(m.k==="hold"){ st.sets=3; st.secs=rx.hold; st.restSec=Math.min(rx.rest,60); }
+        else { st.sets=1; st.duration=rx.cardioMin; st.restSec=60; }
+        return st;
+      });
+      /* conditioning where the goal asks for it, on the earliest days */
+      if(rx.cardioDays>di && day[0]!=="Conditioning" && !steps.some(function(x){ return x.type==="cardio"; })){
+        var c=pick("cardio"), cs=defaultStep(c.n,"cardio");
+        cs.duration=rx.cardioMin; cs.restSec=60; steps.push(cs);
+      }
+      out.push({name:day[0], steps:steps});
+    });
+    return out;
+  }
+
+  /* ---------- the commission panel ---------- */
+  function heightIn(){
+    if(unitsPref()==="kg"){ return (Number(document.getElementById("cmCm").value)||0)/2.54; }
+    return (Number(document.getElementById("cmFt").value)||0)*12 + (Number(document.getElementById("cmIn").value)||0);
+  }
+  function commissionRequest(){
+    var bwField=document.getElementById("cmBw").value;
+    return {
+      goal: document.getElementById("cmGoal").value,
+      bw: bwField!=="" ? wIn(bwField) : (state.goals.bodyweight||0),
+      height: heightIn(),
+      amount: document.getElementById("cmAmount").value!=="" ? wIn(document.getElementById("cmAmount").value) : 0,
+      weeks: Number(document.getElementById("cmWeeks").value)||0,
+      days: Number(document.getElementById("cmDays").value)||3,
+      kit: document.getElementById("cmKit").value,
+      experience: Number(document.getElementById("cmExp").value)||0
+    };
+  }
+  function syncCommission(){
+    var numeric=GOAL_KINDS[document.getElementById("cmGoal").value].numeric;
+    document.getElementById("cmTarget").style.display=numeric?"grid":"none";
+    document.getElementById("cmAmountUnit").textContent=unitW();
+    document.getElementById("cmBwUnit").textContent=unitW();
+    document.getElementById("cmHImp").style.display=unitsPref()==="kg"?"none":"block";
+    document.getElementById("cmHMet").style.display=unitsPref()==="kg"?"block":"none";
+    var verb=GOAL_KINDS[document.getElementById("cmGoal").value].verb;
+    document.getElementById("cmAmountLabel").textContent=verb?("Amount "+verb):"Amount";
+  }
+  function drawUpProgramme(){
+    var req=commissionRequest(), assess=assessGoal(req);
+    if(req.height>0){ state.goals.height=req.height; }
+    if(req.bw>0){ state.goals.bodyweight=req.bw; }
+    if(req.height>0||req.bw>0) persistGoals();
+    state.commission={req:req, assess:assess,
+      plan:(assess.verdict==="ok"||assess.verdict==="stretch")?buildProgramme(req):null};
+    renderCommission(); renderStats();
+  }
+  function acceptCounter(i){
+    var c=state.commission; if(!c) return;
+    var opt=c.assess.options[i]; if(!opt) return;
+    document.getElementById("cmAmount").value=wOut(opt.amount);
+    document.getElementById("cmWeeks").value=opt.weeks;
+    drawUpProgramme();
+  }
+  function adoptProgramme(){
+    var c=state.commission, plan=c&&c.plan; if(!plan||!plan.length) return;
+    var now=new Date().toISOString(), names=[];
+    plan.forEach(function(day){
+      day.steps.forEach(function(st){ st.exerciseId=ensureExercise(st.name, st.type); });
+      var r={id:routineId(), name:day.name, steps:day.steps, warmup:false, cooldown:false, createdAt:now, updatedAt:now};
+      state.routines.push(r); persistRoutine(r); names.push(day.name);
+    });
+    renderExerciseSelects();
+    state.commission=null;
+    renderAll();
+    showToast(STAR_SVG,"Programme entered",names.length+" routines · "+names.join(", "));
+    scrollToEl(document.getElementById("routineList"));
+  }
+  function renderCommission(){
+    var host=document.getElementById("cmOut"); if(!host) return;
+    var c=state.commission;
+    if(!c){ host.innerHTML=""; return; }
+    var a=c.assess, cls=a.verdict==="unrealistic"?"bad":a.verdict==="stretch"?"warn":a.verdict==="blocked"?"bad":"good";
+    var head = a.verdict==="unrealistic" ? "That one cannot be met honestly"
+             : a.verdict==="blocked" ? "Something is missing"
+             : a.verdict==="stretch" ? "Ambitious, but it holds up"
+             : "That is a reasonable ask";
+    var html='<div class="cm-verdict '+cls+'"><div class="cm-vt">'+head+'</div>'+
+      a.says.map(function(t){ return '<p>'+escapeHtml(t)+'</p>'; }).join("")+
+      (a.bmi?'<p class="cm-bmi">Working from '+fmtW(c.req.bw)+(c.req.height?" at "+fmtHeight(c.req.height)+" · BMI "+round1(a.bmi):"")+'.</p>':'')+
+      '</div>';
+    if(a.options.length){
+      html+='<div class="cm-opts"><div class="cm-oh">Pick one and it will be drawn up</div>'+
+        a.options.map(function(o,i){
+          return '<button type="button" class="cm-opt'+(o.lean?" lean":"")+'" data-opt="'+i+'">'+
+            '<span class="cm-ol">'+escapeHtml(o.label)+'</span>'+
+            '<span class="cm-ow">'+escapeHtml(o.why)+(o.lean?" · closest to what you asked":"")+'</span></button>';
+        }).join("")+'</div>';
+    }
+    if(c.plan){
+      html+='<div class="cm-plan"><div class="cm-oh">'+c.plan.length+' days a week · '+
+        escapeHtml(GOAL_KINDS[c.req.goal].label)+' · '+escapeHtml(({full:"full gym",minimal:"dumbbells and a bar",bodyweight:"bodyweight only"})[c.req.kit])+'</div>'+
+        c.plan.map(function(day,i){
+          return '<div class="cm-day"><div class="cm-dn">'+String(i+1).padStart(2,"0")+' · '+escapeHtml(day.name)+'</div>'+
+            '<div class="cm-ds">'+day.steps.map(function(st){
+              return '<span class="cm-mv">'+escapeHtml(st.name)+' <em>'+escapeHtml(stepTargetText(st).split(" · rest")[0])+'</em></span>';
+            }).join("")+'</div></div>';
+        }).join("")+
+        '<p class="cm-note">Loads are a starting point worked out from your bodyweight and training age — adjust them on the first session.</p>'+
+        '<div class="routine-actions"><button type="button" class="btn-primary" style="width:auto;" id="cmAdopt">Enter these in the programme</button>'+
+        '<button type="button" class="btn-secondary" id="cmDiscard">Discard</button></div></div>';
+    }
+    host.innerHTML=html;
+    host.querySelectorAll(".cm-opt").forEach(function(b){
+      b.addEventListener("click",function(){ acceptCounter(Number(b.dataset.opt)); });
+    });
+    var ad=document.getElementById("cmAdopt"); if(ad) ad.addEventListener("click",adoptProgramme);
+    var ds=document.getElementById("cmDiscard"); if(ds) ds.addEventListener("click",function(){ state.commission=null; renderCommission(); });
+  }
+
   /* ---------- attendance ---------- */
   var CAL_WEEKS=52;   /* a year reads better than a quarter, and fills the panel */
   function calendarCells(){
@@ -3105,7 +3411,7 @@ var FINISHES = [
   function setUnits(u){
     if(unitsPref()===u) return;
     state.goals.units=(u==="kg")?"kg":"lb";
-    persistGoals(); renderAll(); openSettings();
+    persistGoals(); renderAll(); fillCommission(); openSettings();
     showToast(COIN_SVG,"Units changed","Every weight now reads in "+unitW());
   }
   function saveSettings(){
@@ -3119,7 +3425,8 @@ var FINISHES = [
       sessions: se>0?Math.round(se):state.goals.sessions,
       volume: (vo!==""&&Number(vo)>0)?wIn(vo):state.goals.volume,
       bodyweight: (bw!==""&&Number(bw)>0)?wIn(bw):0,
-      units: unitsPref()
+      units: unitsPref(),
+      height: state.goals.height||0
     };
     persistGoals();
     var restEl=document.getElementById("restLen");
@@ -3868,6 +4175,22 @@ var FINISHES = [
   document.addEventListener("keydown",function(ev){ if(ev.key==="Escape") closeDinoSheet(); });
   document.getElementById("goalsEditBtn").addEventListener("click",openSettings);
   document.querySelectorAll(".vol-tab").forEach(function(t){ t.addEventListener("click",function(){ document.querySelectorAll(".vol-tab").forEach(function(x){x.classList.remove("active");}); document.querySelectorAll(".volume").forEach(function(x){x.classList.remove("active");}); t.classList.add("active"); document.getElementById("vol-"+t.dataset.vol).classList.add("active"); }); });
+  document.getElementById("cmGoal").innerHTML=Object.keys(GOAL_KINDS).map(function(k){
+    return '<option value="'+k+'">'+GOAL_KINDS[k].label+'</option>';
+  }).join("");
+  document.getElementById("cmGoal").addEventListener("change",syncCommission);
+  document.getElementById("cmDraw").addEventListener("click",drawUpProgramme);
+  function fillCommission(){
+    var g=state.goals;
+    if(g.bodyweight) document.getElementById("cmBw").value=wOut(g.bodyweight);
+    if(g.height){
+      if(unitsPref()==="kg") document.getElementById("cmCm").value=Math.round(g.height*2.54);
+      else { document.getElementById("cmFt").value=Math.floor(g.height/12); document.getElementById("cmIn").value=Math.round(g.height%12); }
+    }
+    syncCommission();
+  }
+  document.getElementById("cmDays").value="3";
+  fillCommission();
   document.getElementById("settingsBtn").addEventListener("click",openSettings);
   document.getElementById("settingsSheet").addEventListener("click",function(ev){ if(ev.target===this) closeSettings(); });
   document.getElementById("movementSheet").addEventListener("click",function(ev){ if(ev.target===this) closeMovement(); });
@@ -3931,7 +4254,7 @@ var FINISHES = [
     state.db.collection("exercises").onSnapshot(function(snap){ if(!snap.empty) state.exercises=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}); got.ex=true; ready(); },function(err){console.error("Loadbook: exercises",err);});
     state.db.collection("routines").onSnapshot(function(snap){ state.routines=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}).filter(function(r){return r.steps&&r.steps.length;}); renderRoutines(); },function(err){console.error("Loadbook: routines",err);});
     state.db.collection("sessions").orderBy("date","desc").limit(400).onSnapshot(function(snap){ state.sessions=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}).filter(function(s){return s.entries&&s.entries.length;}); got.se=true; ready(); },function(err){console.error("Loadbook: sessions",err);});
-    state.db.doc("settings/goals").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.goals={streak:d.streak||DEFAULT_GOALS.streak,sessions:d.sessions||DEFAULT_GOALS.sessions,volume:d.volume||DEFAULT_GOALS.volume,bodyweight:d.bodyweight||0,units:d.units==="kg"?"kg":"lb"}; renderAll(); } })["catch"](function(err){console.error("Loadbook: goals",err);});
+    state.db.doc("settings/goals").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.goals={streak:d.streak||DEFAULT_GOALS.streak,sessions:d.sessions||DEFAULT_GOALS.sessions,volume:d.volume||DEFAULT_GOALS.volume,bodyweight:d.bodyweight||0,units:d.units==="kg"?"kg":"lb",height:d.height||0}; renderAll(); fillCommission(); } })["catch"](function(err){console.error("Loadbook: goals",err);});
     state.db.doc("settings/rewards").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.rewards={tokens:d.tokens||0,lastClaimedDate:d.lastClaimedDate||null,owned:d.owned||[],variants:d.variants||{},finish:d.finish||{},freezes:d.freezes||0,frozenDates:d.frozenDates||[],bonusClaimed:!!d.bonusClaimed,shelf:d.shelf||[],erasUnlocked:d.erasUnlocked||[]}; renderAll(); checkCompletionBonus(); checkEras(); } })["catch"](function(err){console.error("Loadbook: rewards",err);});
   }
   if (window.claude && typeof window.claude.use==="function"){ window.claude.use("db").then(function(db){ if(db){ state.db=db; state.dbAvailable=true; renderTopbar(); hydrateFromDb(); renderSociety(); subscribeSociety(); syncProfile(true); } else renderTopbar(); })["catch"](function(){ renderTopbar(); }); }

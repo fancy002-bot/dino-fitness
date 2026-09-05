@@ -34,6 +34,7 @@ is refused.
 | warm-up and cool-down drills | `settings/goals.bodyweight` |
 | (derived from a routine's movements) | `routines/*.warmup`, `routines/*.cooldown` |
 | | `sessions/*.prep` (what the drills came to) |
+| commission rates and movement pools | `settings/goals.height`, `.units` |
 | | `profiles/*`, `invites/*`, `friends/*/list/*` |
 
 Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
@@ -69,6 +70,34 @@ Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
   `settings/goals.bodyweight`, edited beside the goal targets. Until it is set, bodyweight
   sets contribute nothing and the frontispiece says so rather than guessing what you weigh.
   Holds and cardio carry no pounds and are excluded by design.
+
+  **Commission — a programme drawn up from your build and your goal.** You give bodyweight,
+  height, training age, days a week and what equipment you have; it draws a split and enters it
+  as ordinary routines, which then run, get preliminaries and log like any other.
+
+  **The goal is checked before anything is drawn.** `assessGoal()` works from the rates
+  ordinarily used in strength training and shows its arithmetic rather than hiding it:
+
+  - Fat loss above **1% of bodyweight a week** stops being mostly fat. Between 0.65% and 1% is
+    called a stretch and allowed through with a word.
+  - Muscle gain is capped by training age — about **0.5 / 0.3 / 0.15 lb a week** for a first
+    year, a few years, and long-trained.
+  - Height sets a floor: a target that would take you under **BMI 18.5** is refused on that
+    ground and the room that does exist is offered instead.
+  - Goals without a number (strength, endurance, general) have nothing to check and only shape
+    the work.
+
+  **When it cannot be met, it says so and answers.** Two ways out are offered and *the one that
+  keeps the number you asked for comes first*: "Keep 30 lb, take 15 weeks" before "Keep 4 weeks,
+  aim for 8 lb". Nothing is drawn until one is chosen — the refusal never quietly substitutes a
+  smaller goal, and never quietly proceeds with an impossible one.
+
+  **What the plan is made of.** `SPLITS` gives 2–6 day shapes; `KIT` holds movement pools for a
+  full gym, dumbbells and a bar, or bodyweight only; `RX` sets sets/reps/rest per goal — 5×4 at
+  170s rest for strength, 3×12 at 50s with conditioning for fat loss. Starting loads come from
+  `LOAD_RATIO` as a fraction of bodyweight by training age (a 200 lb novice squats 100 to start)
+  and are labelled as a starting point, not a prescription. Bodyweight-only plans contain no
+  loaded lift at all.
 
   **Preliminaries — a warm-up and a cool-down, optional per routine.** Switched on from
   the routine's *Preliminaries* panel, which opens by itself the moment a routine is created.
@@ -237,7 +266,7 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-419 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+497 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted
