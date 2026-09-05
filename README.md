@@ -31,7 +31,8 @@ is refused.
 |---|---|
 | species catalogue, biographies, cast images | `settings/goals`, `settings/rewards` |
 | | `sessions/*`, `exercises/*`, `routines/*` |
-| | `settings/goals.bodyweight` |
+| warm-up and cool-down drills | `settings/goals.bodyweight` |
+| (derived from a routine's movements) | `routines/*.warmup`, `routines/*.cooldown` |
 | | `profiles/*`, `invites/*`, `friends/*/list/*` |
 
 Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
@@ -67,6 +68,27 @@ Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
   `settings/goals.bodyweight`, edited beside the goal targets. Until it is set, bodyweight
   sets contribute nothing and the frontispiece says so rather than guessing what you weigh.
   Holds and cardio carry no pounds and are excluded by design.
+
+  **Preliminaries — a warm-up and a cool-down, optional per routine.** Switched on from
+  the routine's *Preliminaries* panel, which opens by itself the moment a routine is created.
+  Both default to off; only the two flags `warmup` and `cooldown` are stored on the routine.
+
+  **The drills are derived, never stored**, so revising a routine revises them. Movement
+  names are typed freely, so the pattern is read off the name and the kind rather than any
+  fixed exercise list: `PATTERN_TESTS` matches a name to one of squat, hinge, pushH, pushV,
+  pullV, pullH, core, arms or cardio, a `cardio` kind implies cardio and a `hold` implies
+  core, and a name that matches nothing falls back to `other` — whose warm-up is two ramp-up
+  sets, which is the right answer for a lift the app has never heard of.
+
+  `collectDrills()` then goes **round-robin** across the routine's patterns rather than
+  draining one before starting the next, so under the cap (six warm-up, five cool-down) every
+  movement in the routine is still represented. A general drill bookends: easy cardio opens a
+  warm-up, slow breathing closes a cool-down. A leg day gets ankle rocks and hip hinges; a
+  pull day gets dead hangs and face pulls; neither gets the other's.
+
+  In the runner the drills sit either side of the movements as ticked-off rows with a
+  *Time it* button that borrows the clock for that drill's length. They are preparation, not
+  training: ticking one writes nothing to the ledger and the set tally ignores them.
 
   **Every movement is typed, never picked.** There is no exercise list to choose from —
   not in the composer, not in the log form. A step carries its own `name` and `type`, so
@@ -142,12 +164,14 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-226 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+282 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted
 and assisted variants, and timed holds through the composer, the runner, the log form,
-the weekly volume, personal records and the repertoire. `test/harness.mjs` injects a `window.__lb` bridge to reach
+the weekly volume, personal records and the repertoire; and `boot-prelude.mjs`, which proves
+the derivation does its job — a leg routine and a pull routine get demonstrably different
+drills, every pattern survives the cap, and the drills never reach the ledger. `test/harness.mjs` injects a `window.__lb` bridge to reach
 inside the IIFE; the published file is never modified.
 
 ## Layout

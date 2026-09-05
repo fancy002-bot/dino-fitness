@@ -378,6 +378,36 @@
   .routine-meta{font-family:var(--font-caps); font-size:0.54rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute); margin-top:4px;}
   .routine-acts{display:flex; gap:8px; flex-wrap:wrap;}
 
+  /* ---- preliminaries ---- */
+  .prelude{display:none; grid-template-columns:1fr 1fr; gap:22px; padding:16px 18px 18px; margin:0 0 4px; background:var(--surface-2); border:2px solid var(--line);}
+  .prelude.show{display:grid;}
+  @media (max-width:760px){ .prelude{grid-template-columns:1fr; gap:16px;} }
+  .prelude-why{grid-column:1/-1; margin:0 0 2px; font-family:var(--font-caps); font-size:0.54rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute);}
+  .prelude-head{display:flex; align-items:center; gap:9px; cursor:pointer; padding-bottom:8px; border-bottom:1px solid var(--line);}
+  .prelude-head span:not(.prelude-n){font-family:var(--font-caps); font-size:0.62rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--ink);}
+  .prelude-head input{accent-color:var(--bronze); width:15px; height:15px; cursor:pointer; flex-shrink:0;}
+  .prelude-n{margin-left:auto; font-family:var(--font-mono); font-size:0.58rem; letter-spacing:0.08em; color:var(--ink-mute);}
+  .prelude-list{list-style:none; margin:10px 0 0; padding:0; counter-reset:drill;}
+  .prelude-list li{display:flex; align-items:baseline; gap:10px; padding:5px 0;}
+  .prelude-list li::before{counter-increment:drill; content:counter(drill,decimal-leading-zero); font-family:var(--font-mono); font-size:0.56rem; color:var(--ink-mute); flex-shrink:0;}
+  .pd-n{font-family:var(--font-display); font-size:0.98rem; line-height:1.2;}
+  .pd-t{margin-left:auto; font-family:var(--font-mono); font-size:0.68rem; color:var(--ink-soft); text-align:right; white-space:nowrap;}
+  @media (max-width:520px){ .pd-t{white-space:normal;} }
+
+  /* ---- warm-up and cool-down inside the runner ---- */
+  .run-aside{margin-top:18px; padding:14px 16px; border:2px solid var(--line); background:var(--surface-2);}
+  .aside-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding-bottom:9px; border-bottom:1px solid var(--line);}
+  .aside-t{font-family:var(--font-caps); font-size:0.6rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--bronze);}
+  .aside-n{font-family:var(--font-mono); font-size:0.58rem; letter-spacing:0.08em; color:var(--ink-mute);}
+  .aside-row{display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; padding:9px 0; border-bottom:1px solid var(--line);}
+  .aside-row:last-child{border-bottom:none;}
+  .aside-row.done .aside-name{color:var(--ink-mute); text-decoration:line-through;}
+  .tick{width:22px; height:22px; flex-shrink:0; background:none; border:2px solid var(--line-strong); color:var(--bronze-hi); cursor:pointer; font-size:0.72rem; line-height:1; display:flex; align-items:center; justify-content:center; padding:0;}
+  .tick[aria-pressed="true"]{border-color:var(--bronze);}
+  .aside-name{font-family:var(--font-display); font-size:1rem; line-height:1.2;}
+  .aside-detail{font-family:var(--font-mono); font-size:0.68rem; color:var(--ink-soft); margin-top:2px;}
+  @media (max-width:600px){ .aside-row{grid-template-columns:auto 1fr; row-gap:8px;} .aside-row .aside-time{grid-column:2; justify-self:start;} }
+
   /* ---- workout runner ---- */
   .runner{max-width:660px;}
   .runner-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:26px 28px 0;}
@@ -2255,7 +2285,7 @@ var FINISHES = [
     goals: Object.assign({}, DEFAULT_GOALS),
     rewards: {tokens:0, lastClaimedDate:null, owned:[], variants:{}, finish:{}, freezes:0, frozenDates:[], bonusClaimed:false, shelf:[], erasUnlocked:[]},
     chartDefaultSet:false, editingGoals:false, shopGroup:"All", shopQuery:"",
-    routines:[], routineDraft:null, runner:null
+    routines:[], routineDraft:null, runner:null, preludeOpen:null
   };
 
   function todayISO(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -2914,9 +2944,11 @@ var FINISHES = [
     steps.forEach(function(st){ st.exerciseId=ensureExercise(st.name, st.type); });
     renderExerciseSelects();
     var now=new Date().toISOString();
-    var r={id:d.id||routineId(), name:name.slice(0,48), steps:steps, updatedAt:now};
+    var r={id:d.id||routineId(), name:name.slice(0,48), steps:steps, warmup:false, cooldown:false, updatedAt:now};
     var i=state.routines.findIndex(function(x){ return x.id===r.id; });
-    if(i===-1){ r.createdAt=now; state.routines.push(r); } else { r.createdAt=state.routines[i].createdAt||now; state.routines[i]=r; }
+    if(i===-1){ r.createdAt=now; state.routines.push(r); }
+    else { var was=state.routines[i]; r.createdAt=was.createdAt||now; r.warmup=!!was.warmup; r.cooldown=!!was.cooldown; state.routines[i]=r; }
+    state.preludeOpen=r.id;   /* a fresh routine shows the offer without being asked */
     persistRoutine(r); closeEditor(); renderRoutines();
     showToast(STAR_SVG, i===-1?"Routine entered":"Routine revised", r.name+" · "+steps.length+(steps.length===1?" movement":" movements"));
   }
@@ -2925,6 +2957,7 @@ var FINISHES = [
     if(state.dbAvailable) state.db.doc("routines/"+id).delete()["catch"](function(){});
     if(state.runner&&state.runner.routineId===id) closeRunner();
     if(state.routineDraft&&state.routineDraft.id===id) closeEditor();
+    if(state.preludeOpen===id) state.preludeOpen=null;
     renderRoutines();
   }
   function renderRoutines(){
@@ -2941,15 +2974,137 @@ var FINISHES = [
     state.routines.forEach(function(r,i){
       var row=document.createElement("div"); row.className="routine-row";
       row.innerHTML='<div class="routine-no">'+String(i+1).padStart(2,"0")+'</div>'+
-        '<div><div class="routine-name">'+escapeHtml(r.name)+'</div><div class="routine-meta">'+r.steps.length+(r.steps.length===1?" movement":" movements")+' · about '+routineMinutes(r)+' min</div></div>'+
+        '<div><div class="routine-name">'+escapeHtml(r.name)+'</div><div class="routine-meta">'+r.steps.length+(r.steps.length===1?" movement":" movements")+' · about '+routineMinutes(r)+' min'+
+        (preludeMinutes(r)?' · +'+preludeMinutes(r)+' min preliminaries':'')+'</div></div>'+
         '<div class="routine-acts"><button type="button" class="btn-primary r-begin" style="width:auto; padding:10px 17px;">Begin</button>'+
+        '<button type="button" class="btn-secondary r-pre">Preliminaries</button>'+
         '<button type="button" class="btn-secondary r-edit">Revise</button>'+
         '<button type="button" class="btn-secondary r-del">Strike</button></div>';
       row.querySelector(".r-begin").addEventListener("click",function(){ openRunner(r.id); });
       row.querySelector(".r-edit").addEventListener("click",function(){ editRoutine(r.id); });
       row.querySelector(".r-del").addEventListener("click",function(){ deleteRoutine(r.id); });
       list.appendChild(row);
+      var pre=document.createElement("div"); pre.innerHTML=renderPrelude(r);
+      var panel=pre.firstChild;
+      if(state.preludeOpen===r.id) panel.classList.add("show");
+      row.querySelector(".r-pre").addEventListener("click",function(){
+        var on=panel.classList.toggle("show");
+        state.preludeOpen = on ? r.id : null;
+      });
+      panel.querySelector(".p-warm").addEventListener("change",function(){ setPrelude(r.id,"warmup",this.checked); });
+      panel.querySelector(".p-cool").addEventListener("change",function(){ setPrelude(r.id,"cooldown",this.checked); });
+      list.appendChild(panel);
     });
+  }
+
+  /* ---------- preliminaries ----------
+     A warm-up and a cool-down are optional per routine, and their content is not
+     stored: it is derived from the routine's own movements every time it is read,
+     so revising the routine revises them. Movement names are typed freely, so the
+     pattern is read off the name and the kind rather than any fixed exercise list. */
+  var PATTERN_TESTS = [
+    ["cardio", /\b(run|running|jog|sprint|rowing|rower|erg|bike|biking|cycl|swim|skip|jump ?rope|treadmill|elliptic|stair)/i],
+    ["pushV",  /\b(overhead|shoulder|military|pike|handstand|arnold|landmine)/i],
+    ["pullV",  /\b(pull.?up|chin.?up|pulldown|muscle.?up|lat ?pull)/i],
+    ["pullH",  /\b(row|face.?pull|inverted|seal|pendlay)/i],
+    ["pushH",  /\b(bench|push.?up|dip|chest|fly|floor ?press)/i],
+    ["hinge",  /\b(deadlift|rdl|hinge|good.?morning|swing|hip ?thrust|glute|hamstring|nordic|pull.?through)/i],
+    ["squat",  /\b(squat|lunge|split|step.?up|pistol|leg ?press|wall ?sit|calf|leg ?extension)/i],
+    ["core",   /\b(plank|hollow|crunch|sit.?up|l.?sit|\bab\b|dead ?bug|bird ?dog|russian|leg ?raise|dragon|windshield)/i],
+    ["arms",   /\b(curl|tricep|bicep|pressdown|skull|kickback|preacher)/i]
+  ];
+  var DRILLS = {
+    general: {warm:[{n:"Easy cardio",s:180,note:"until you are warm"}],
+              cool:[{n:"Slow nasal breathing",s:120,note:"five in, five out"}]},
+    squat:   {warm:[{n:"Bodyweight squat",r:15},{n:"Ankle rock",s:45,note:"each side"},{n:"Cossack squat",r:8,note:"each side"}],
+              cool:[{n:"Couch stretch",s:60,note:"each side"},{n:"Quad stretch",s:45,note:"each side"}]},
+    hinge:   {warm:[{n:"Glute bridge",r:15},{n:"Hip hinge with a dowel",r:12},{n:"90/90 hip switch",s:60}],
+              cool:[{n:"Seated hamstring stretch",s:60,note:"each side"},{n:"Figure-four stretch",s:60,note:"each side"}]},
+    pushH:   {warm:[{n:"Band pull-apart",r:20},{n:"Scapular push-up",r:12},{n:"Wall slide",r:12}],
+              cool:[{n:"Doorway pec stretch",s:45,note:"each side"}]},
+    pushV:   {warm:[{n:"Shoulder circles",s:45,note:"both directions"},{n:"Wall slide",r:12},{n:"Overhead dowel pass",r:12}],
+              cool:[{n:"Overhead triceps stretch",s:40,note:"each side"},{n:"Lat stretch",s:45,note:"each side"}]},
+    pullV:   {warm:[{n:"Dead hang",s:30},{n:"Scapular pull-up",r:8},{n:"Band pulldown",r:15}],
+              cool:[{n:"Dead hang",s:45},{n:"Lat stretch",s:45,note:"each side"}]},
+    pullH:   {warm:[{n:"Band row",r:15},{n:"Face pull",r:15},{n:"Thoracic extension",s:45}],
+              cool:[{n:"Child's pose with a reach",s:60,note:"each side"}]},
+    core:    {warm:[{n:"Dead bug",r:10,note:"each side"},{n:"Bird dog",r:10,note:"each side"}],
+              cool:[{n:"Cat-cow",r:10},{n:"Supine twist",s:45,note:"each side"}]},
+    arms:    {warm:[{n:"Elbow circles",s:30},{n:"One light set of the movement",r:20}],
+              cool:[{n:"Biceps wall stretch",s:40,note:"each side"}]},
+    cardio:  {warm:[{n:"Leg swings",r:12,note:"each side, both planes"},{n:"Easy pace",s:300,note:"build gradually"}],
+              cool:[{n:"Walk it down",s:180},{n:"Calf stretch",s:45,note:"each side"}]},
+    other:   {warm:[{n:"Two ramp-up sets",r:8,note:"about half your working load"}],
+              cool:[{n:"Easy walk",s:120}]}
+  };
+  var WARM_CAP=6, COOL_CAP=5;
+  function patternsFor(st){
+    var out={};
+    if(st.type==="cardio") out.cardio=1;
+    if(st.type==="hold") out.core=1;
+    PATTERN_TESTS.forEach(function(t){ if(t[1].test(st.name||"")) out[t[0]]=1; });
+    if(!Object.keys(out).length) out.other=1;
+    return Object.keys(out);
+  }
+  function routinePatterns(r){
+    var seen={}, order=[];
+    (r.steps||[]).forEach(function(st){ patternsFor(st).forEach(function(p){ if(!seen[p]){ seen[p]=1; order.push(p); } }); });
+    return order;
+  }
+  /* Round-robin across the patterns rather than draining one before starting the
+     next, so that under the cap every movement in the routine is still represented.
+     The general drill bookends: it opens a warm-up and closes a cool-down. */
+  function collectDrills(r,which){
+    var pats=routinePatterns(r).filter(function(p){ return p!=="general"; });
+    var lists=pats.map(function(p){ return (DRILLS[p]&&DRILLS[p][which])||[]; });
+    var deepest=lists.reduce(function(m,l){ return Math.max(m,l.length); },0);
+    var gen=(DRILLS.general[which]||[]).slice(0,1);
+    var cap=(which==="warm"?WARM_CAP:COOL_CAP)-gen.length;
+    var seen={}, out=[];
+    for(var depth=0; depth<deepest && out.length<cap; depth++){
+      for(var i=0;i<lists.length && out.length<cap;i++){
+        var dr=lists[i][depth];
+        if(!dr||seen[dr.n]) continue;
+        seen[dr.n]=1; out.push(dr);
+      }
+    }
+    return which==="warm" ? gen.concat(out) : out.concat(gen);
+  }
+  function warmupFor(r){ return collectDrills(r,"warm"); }
+  function cooldownFor(r){ return collectDrills(r,"cool"); }
+  function drillText(dr){
+    var base = dr.s ? fmtSecs(dr.s) : ("× "+dr.r);
+    return dr.note ? base+" · "+dr.note : base;
+  }
+  function drillSeconds(dr){ return dr.s ? dr.s : Math.max(20, (dr.r||10)*3); }
+  function preludeMinutes(r){
+    var t=0;
+    if(r.warmup) warmupFor(r).forEach(function(dr){ t+=drillSeconds(dr); });
+    if(r.cooldown) cooldownFor(r).forEach(function(dr){ t+=drillSeconds(dr); });
+    return Math.round(t/60);
+  }
+  function setPrelude(id,which,on){
+    var r=state.routines.find(function(x){ return x.id===id; }); if(!r) return;
+    r[which]=!!on; r.updatedAt=new Date().toISOString();
+    persistRoutine(r); renderRoutines();
+    var open=document.querySelector('.prelude[data-id="'+id+'"]');
+    if(open) open.classList.add("show");
+  }
+  function renderPrelude(r){
+    var warm=warmupFor(r), cool=cooldownFor(r);
+    function list(items,which,on){
+      return '<div class="prelude-col">'+
+        '<label class="prelude-head"><input type="checkbox" class="p-'+which+'"'+(on?" checked":"")+'>'+
+        '<span>'+(which==="warm"?"Warm-up":"Cool-down")+'</span>'+
+        '<span class="prelude-n">'+items.length+(items.length===1?" drill":" drills")+'</span></label>'+
+        '<ol class="prelude-list">'+items.map(function(dr){
+          return '<li><span class="pd-n">'+escapeHtml(dr.n)+'</span><span class="pd-t">'+escapeHtml(drillText(dr))+'</span></li>';
+        }).join("")+'</ol></div>';
+    }
+    return '<div class="prelude" data-id="'+r.id+'">'+
+      '<p class="prelude-why">Drawn from this routine’s own movements — '+
+      routinePatterns(r).length+' pattern'+(routinePatterns(r).length===1?"":"s")+' to prepare.</p>'+
+      list(warm,"warm",r.warmup)+list(cool,"cool",r.cooldown)+'</div>';
   }
 
   /* ---------- the workout runner and its timer ---------- */
@@ -3021,7 +3176,9 @@ var FINISHES = [
   }
   function openRunner(id){
     var r=routineById(id); if(!r||!r.steps.length) return;
+    function drills(list){ return list.map(function(dr){ return {n:dr.n, s:dr.s, r:dr.r, note:dr.note, done:false}; }); }
     state.runner={routineId:id, name:r.name, startedAt:Date.now(), logged:0,
+      warm: r.warmup ? drills(warmupFor(r)) : [], cool: r.cooldown ? drills(cooldownFor(r)) : [],
       steps:r.steps.map(function(s){ return {exerciseId:s.exerciseId, name:s.name, type:kindOf(s.type), sets:s.sets, reps:s.reps, weight:s.weight, added:s.added, secs:s.secs, duration:s.duration, distance:null, restSec:s.restSec, done:0}; })};
     renderRunner();
     timerArm((Number(r.steps[0].restSec)||DEFAULT_REST)*1000);
@@ -3056,7 +3213,7 @@ var FINISHES = [
             '<div class="timer-hint">Logging a set starts the clock · space toggles</div>'+
           '</div>'+
         '</div>'+
-        '<div class="run-steps" id="runSteps"></div>'+
+        '<div id="runWarm"></div><div class="run-steps" id="runSteps"></div><div id="runCool"></div>'+
         '<div class="runner-foot"><span class="runner-tally" id="runTally"></span>'+
         '<button type="button" class="btn-secondary" id="runnerDone">Finish workout</button></div>'+
       '</div>';
@@ -3066,7 +3223,40 @@ var FINISHES = [
     document.getElementById("timerResetBtn").addEventListener("click",function(){ timerArm(timer.targetMs); });
     document.getElementById("timerMinus").addEventListener("click",function(){ timerNudge(-30); });
     document.getElementById("timerPlus").addEventListener("click",function(){ timerNudge(30); });
-    renderRunSteps();
+    renderRunSteps(); renderAsides();
+  }
+  function renderAside(which){
+    var run=state.runner, items=which==="warm"?run.warm:run.cool;
+    if(!items||!items.length) return "";
+    var done=items.filter(function(x){ return x.done; }).length;
+    return '<div class="run-aside"><div class="aside-head"><span class="aside-t">'+(which==="warm"?"Warm-up":"Cool-down")+
+      '</span><span class="aside-n">'+done+' of '+items.length+' done</span></div>'+
+      items.map(function(dr,i){
+        return '<div class="aside-row'+(dr.done?" done":"")+'">'+
+          '<button type="button" class="tick" data-which="'+which+'" data-i="'+i+'" aria-pressed="'+(dr.done?"true":"false")+'" aria-label="Mark done">'+(dr.done?"\u2713":"")+'</button>'+
+          '<div><div class="aside-name">'+escapeHtml(dr.n)+'</div><div class="aside-detail">'+escapeHtml(drillText(dr))+'</div></div>'+
+          '<button type="button" class="btn-secondary aside-time" data-which="'+which+'" data-i="'+i+'">Time it</button></div>';
+      }).join("")+'</div>';
+  }
+  function renderAsides(){
+    var run=state.runner; if(!run) return;
+    var w=document.getElementById("runWarm"), c=document.getElementById("runCool");
+    if(!w||!c) return;
+    w.innerHTML=renderAside("warm"); c.innerHTML=renderAside("cool");
+    [w,c].forEach(function(host){
+      host.querySelectorAll(".tick").forEach(function(b){
+        b.addEventListener("click",function(){
+          var list=b.dataset.which==="warm"?run.warm:run.cool, dr=list[Number(b.dataset.i)];
+          dr.done=!dr.done; renderAsides();
+        });
+      });
+      host.querySelectorAll(".aside-time").forEach(function(b){
+        b.addEventListener("click",function(){
+          var list=b.dataset.which==="warm"?run.warm:run.cool, dr=list[Number(b.dataset.i)];
+          timerStart(drillSeconds(dr)*1000,"work");
+        });
+      });
+    });
   }
   function renderRunSteps(){
     var run=state.runner; if(!run) return;
