@@ -190,6 +190,17 @@
   .template-pill:hover{color:var(--ink); border-color:var(--line-strong);}
 
   /* ---- ledger rows ---- */
+  .rest-bar{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-top:16px; padding-top:16px; border-top:2px solid var(--line);}
+  .rest-read{font-family:var(--font-caps); font-weight:600; font-size:1.5rem; line-height:1; color:var(--ink); font-variant-numeric:tabular-nums; min-width:62px;}
+  .rest-mode{font-family:var(--font-caps); font-size:0.5rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-soft); margin-right:4px;}
+  .rest-bar.elapsed .rest-read{color:var(--bronze-hi);}
+  .rest-bar.elapsed .rest-mode{color:var(--bronze);}
+  .rest-len{display:flex; align-items:center; gap:6px; margin-left:auto;}
+  .rest-len .k{font-family:var(--font-caps); font-size:0.5rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-mute);}
+  .rest-len input{width:54px; background:var(--surface-2); border:2px solid var(--line); color:var(--ink); padding:5px 7px; font-family:var(--font-mono); font-size:0.78rem; text-align:right; border-radius:0;}
+  .rest-len input:focus{border-color:var(--bronze); outline:none;}
+  @media (max-width:520px){ .rest-len{margin-left:0; width:100%;} }
+
   .day-group{margin-bottom:22px;}
   .day-head{display:flex; align-items:baseline; gap:12px; margin-bottom:4px;}
   .day-head .d{font-family:var(--font-display); font-weight:400; font-size:1.1rem;}
@@ -353,6 +364,9 @@
   .toast.show{transform:translateX(0);}
   .toast-icon{width:44px; height:44px; border:2px solid var(--line-strong); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden;}
   .toast-icon img{width:100%; height:100%; object-fit:contain;}
+  .toast-body{min-width:0;}
+  .toast-act{font-family:var(--font-caps); font-size:0.6rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--bronze-hi); background:none; border:2px solid var(--bronze); padding:7px 11px; cursor:pointer; flex-shrink:0; margin-left:auto;}
+  .toast-act:hover{background:var(--bronze); color:var(--ground);}
   .toast-title{font-family:var(--font-display); font-weight:400; font-size:1.05rem;}
   .toast-sub{font-size:0.78rem; color:var(--ink-soft);}
   @media (max-width:480px){ .toast{left:16px; right:16px; max-width:none;} }
@@ -590,6 +604,14 @@
             </div>
             <div style="margin-top:16px;"><button type="submit" class="btn-primary">Enter into ledger</button></div>
           </form>
+          <div class="rest-bar" id="restBar">
+            <span class="rest-read" id="restRead">0:00</span>
+            <span class="rest-mode" id="restMode">standing by</span>
+            <button type="button" class="btn-secondary" id="restToggle">Start rest</button>
+            <button type="button" class="btn-secondary" id="restMinus">−30</button>
+            <button type="button" class="btn-secondary" id="restPlus">+30</button>
+            <label class="rest-len"><span class="k">Rest</span><input type="number" id="restLen" min="0" max="900" step="1" value="90"><span class="k">sec</span></label>
+          </div>
         </div>
 
         <div class="panel">
@@ -2652,7 +2674,16 @@ var FINISHES = [
 
   /* ---------- toast ---------- */
   var toastTimer=null;
-  function showToast(iconHTML,title,sub){ var t=document.getElementById("toast"); t.innerHTML='<div class="toast-icon">'+iconHTML+'</div><div><div class="toast-title">'+title+'</div><div class="toast-sub">'+sub+'</div></div>'; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(function(){t.classList.remove("show");},4200); }
+  function hideToast(){ document.getElementById("toast").classList.remove("show"); clearTimeout(toastTimer); }
+  function showToast(iconHTML,title,sub,action){
+    var t=document.getElementById("toast");
+    t.innerHTML='<div class="toast-icon">'+iconHTML+'</div><div class="toast-body"><div class="toast-title">'+title+'</div>'+
+      '<div class="toast-sub">'+sub+'</div></div>'+
+      (action?'<button type="button" class="toast-act" id="toastAct">'+escapeHtml(action.label)+'</button>':'');
+    if(action) document.getElementById("toastAct").addEventListener("click",function(){ hideToast(); action.fn(); });
+    t.classList.add("show"); clearTimeout(toastTimer);
+    toastTimer=setTimeout(function(){ t.classList.remove("show"); }, action?9000:4200);
+  }
 
   /* ---------- mutations ---------- */
   function upsertSessionLocal(date,fn){ var s=state.sessions.find(function(x){return x.date===date;}); if(!s){ s={date:date,sample:false,entries:[]}; state.sessions.push(s);} fn(s); if(!s.entries.length) state.sessions=state.sessions.filter(function(x){return x!==s;}); return s; }
@@ -2663,7 +2694,28 @@ var FINISHES = [
     if(state.dbAvailable){ var ref=state.db.doc("sessions/"+date); ref.get().then(function(snap){ var ex=snap.exists?snap.data():{date:date,sample:false,entries:[],createdAt:new Date().toISOString()}; var en=(ex.entries||[]).slice(); en.push(entry); return ref.set({date:date,sample:ex.sample||false,entries:en,createdAt:ex.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()}); })["catch"](function(err){console.error("Loadbook: save set",err);}); }
     renderAll(); if(entry.isPR) showToast(STAR_SVG,"Personal record",prText(entry)); checkEras();
   }
-  function deleteEntry(date,id){ upsertSessionLocal(date,function(s){ s.entries=s.entries.filter(function(e){return e.id!==id;}); }); if(state.dbAvailable){ var ref=state.db.doc("sessions/"+date); ref.get().then(function(snap){ if(!snap.exists) return; var en=(snap.data().entries||[]).filter(function(e){return e.id!==id;}); if(en.length) return ref.set(Object.assign({},snap.data(),{entries:en,updatedAt:new Date().toISOString()})); return ref.delete(); })["catch"](function(err){console.error("Loadbook: delete",err);}); } renderAll(); }
+  /* put a struck entry back exactly as it was, id and all */
+  function restoreEntry(date,entry){
+    upsertSessionLocal(date,function(s){ if(!s.entries.some(function(e){return e.id===entry.id;})) s.entries.push(entry); });
+    if(state.dbAvailable){
+      var ref=state.db.doc("sessions/"+date);
+      ref.get().then(function(snap){
+        var ex=snap.exists?snap.data():{date:date,sample:false,entries:[],createdAt:new Date().toISOString()};
+        var en=(ex.entries||[]).slice();
+        if(!en.some(function(e){ return e.id===entry.id; })) en.push(entry);
+        return ref.set({date:date,sample:ex.sample||false,entries:en,prep:ex.prep||null,createdAt:ex.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()});
+      })["catch"](function(err){ console.error("Loadbook: restore",err); });
+    }
+    renderAll(); checkEras();
+  }
+  function deleteEntry(date,id){
+    var sess=state.sessions.find(function(x){ return x.date===date; });
+    var struck=sess?sess.entries.find(function(e){ return e.id===id; }):null;
+    upsertSessionLocal(date,function(s){ s.entries=s.entries.filter(function(e){return e.id!==id;}); }); if(state.dbAvailable){ var ref=state.db.doc("sessions/"+date); ref.get().then(function(snap){ if(!snap.exists) return; var en=(snap.data().entries||[]).filter(function(e){return e.id!==id;}); if(en.length) return ref.set(Object.assign({},snap.data(),{entries:en,updatedAt:new Date().toISOString()})); return ref.delete(); })["catch"](function(err){console.error("Loadbook: delete",err);}); }
+    renderAll();
+    if(struck) showToast(COIN_SVG,"Entry struck",escapeHtml(struck.exerciseName)+" \u00b7 "+entryDetail(struck),
+      {label:"Undo", fn:function(){ restoreEntry(date,struck); }});
+  }
   function addExercise(ex){ state.exercises.push(ex); if(state.dbAvailable) state.db.doc("exercises/"+ex.id).set(ex)["catch"](function(err){console.error("Loadbook: exercise",err);}); }
   function clearSampleData(){ state.sessions=state.sessions.filter(function(s){return !s.sample;}); if(state.dbAvailable){ state.db.collection("sessions").where("sample","==",true).get().then(function(snap){ snap.docs.forEach(function(d){ state.db.doc("sessions/"+d.id).delete()["catch"](function(){}); }); })["catch"](function(err){console.error("Loadbook: clear",err);}); } renderAll(); }
   function saveGoals(){ var ns=Number(document.getElementById("goalStreakInput").value), nse=Number(document.getElementById("goalSessionsInput").value), nv=Number(document.getElementById("goalVolumeInput").value), nb=Number(document.getElementById("goalBwInput").value); state.goals={streak:ns>0?ns:state.goals.streak,sessions:nse>0?nse:state.goals.sessions,volume:nv>0?nv:state.goals.volume,bodyweight:nb>0?nb:0}; if(state.dbAvailable) state.db.doc("settings/goals").set(state.goals)["catch"](function(err){console.error("Loadbook: goals",err);}); }
@@ -2971,6 +3023,7 @@ var FINISHES = [
     if(state.runner&&state.runner.routineId===id) closeRunner();
     if(state.routineDraft&&state.routineDraft.id===id) closeEditor();
     if(state.preludeOpen===id) state.preludeOpen=null;
+    if(runProgressRoutine()===id) clearRunProgress();
     renderRoutines();
   }
   function renderRoutines(){
@@ -3178,26 +3231,82 @@ var FINISHES = [
     if(timer.drill){ var dl=timer.drill; timer.drill=null; completeDrill(dl.which, dl.i, true); return; }
     showToast(STAR_SVG,"Rest complete",state.runner?state.runner.name+" · next set":"Back to work");
   }
+  /* one description of what the clock reads, so the runner's dial and the log
+     form's rest bar can never disagree about it */
+  function timerModeText(){
+    return timer.elapsed?"rest complete":timer.running?(timer.mode==="rest"?"resting":"working"):
+           timer.armed?"ready":(timer.leftMs>0?"paused":"standing by");
+  }
+  function timerToggleText(){
+    return timer.running?"Pause":(timer.leftMs>0&&!timer.elapsed&&!timer.armed?"Resume":"Start rest");
+  }
+  function restSecs(){
+    var el=document.getElementById("restLen"), n=Number(el&&el.value);
+    if(!el||el.value===""||!isFinite(n)||n<0) n=90;
+    return Math.min(900,Math.round(n));
+  }
   function paintTimer(){
+    var txt=fmtClock(timer.leftMs), mode=timerModeText(), tog=timerToggleText();
+    var rr=document.getElementById("restRead");
+    if(rr){
+      rr.textContent=txt;
+      document.getElementById("restMode").textContent=mode;
+      document.getElementById("restToggle").textContent=tog;
+      document.getElementById("restBar").classList.toggle("elapsed",!!timer.elapsed);
+    }
     var read=document.getElementById("timerRead"); if(!read) return;
-    read.textContent=fmtClock(timer.leftMs);
+    read.textContent=txt;
     var m=document.getElementById("timerMode");
-    if(m) m.textContent=timer.elapsed?"rest complete":timer.running?(timer.mode==="rest"?"resting":"working"):timer.armed?"ready":(timer.leftMs>0?"paused":"standing by");
+    if(m) m.textContent=mode;
     var ring=document.getElementById("timerRing");
     if(ring){ var c=2*Math.PI*74, p=timer.targetMs>0?timer.leftMs/timer.targetMs:0;
       ring.style.strokeDasharray=c; ring.style.strokeDashoffset=c*(1-Math.max(0,Math.min(1,p))); }
     var dial=document.getElementById("timerDial"); if(dial) dial.classList.toggle("elapsed",!!timer.elapsed);
-    var tg=document.getElementById("timerToggle"); if(tg) tg.textContent=timer.running?"Pause":(timer.leftMs>0&&!timer.elapsed&&!timer.armed?"Resume":"Start rest");
+    var tg=document.getElementById("timerToggle"); if(tg) tg.textContent=tog;
+  }
+  /* A workout in progress survives a closed tab. Only the pip count was ever
+     runner-local — the sets themselves are already in the ledger — so losing it
+     meant re-logging work that was recorded, and doubling it up.
+
+     This is kept per routine and per day rather than counted back out of the
+     ledger: counting the ledger would let three squats logged in the morning
+     arrive pre-ticked on an unrelated leg routine that evening. */
+  function saveRunProgress(){
+    var run=state.runner; if(!run) return;
+    try{ localStorage.setItem("lb-run", JSON.stringify({routineId:run.routineId, date:todayISO(),
+      done:run.steps.map(function(x){ return x.done; })})); }catch(e){}
+  }
+  function loadRunProgress(id,count){
+    try{
+      var raw=localStorage.getItem("lb-run"); if(!raw) return null;
+      var p=JSON.parse(raw);
+      if(!p||p.routineId!==id||p.date!==todayISO()) return null;
+      if(!Array.isArray(p.done)||p.done.length!==count) return null;   /* the routine was revised */
+      return p.done;
+    }catch(e){ return null; }
+  }
+  function clearRunProgress(){ try{ localStorage.removeItem("lb-run"); }catch(e){} }
+  function runProgressRoutine(){
+    try{ var p=JSON.parse(localStorage.getItem("lb-run")||"null"); return p&&p.routineId||null; }catch(e){ return null; }
   }
   function openRunner(id){
     var r=routineById(id); if(!r||!r.steps.length) return;
     function drills(list){ return list.map(function(dr){ return {n:dr.n, s:dr.s, r:dr.r, note:dr.note, done:false, spent:0}; }); }
+    var saved=loadRunProgress(id,r.steps.length), resumed=0;
     state.runner={routineId:id, name:r.name, startedAt:Date.now(), logged:0,
       warm: r.warmup ? drills(warmupFor(r)) : [], cool: r.cooldown ? drills(cooldownFor(r)) : [],
-      steps:r.steps.map(function(s){ return {exerciseId:s.exerciseId, name:s.name, type:kindOf(s.type), sets:s.sets, reps:s.reps, weight:s.weight, added:s.added, secs:s.secs, duration:s.duration, distance:null, restSec:s.restSec, done:0}; })};
+      steps:r.steps.map(function(s,i){
+        var have=saved?Math.max(0,Number(saved[i])||0):0;
+        resumed+=have;
+        return {exerciseId:s.exerciseId, name:s.name, type:kindOf(s.type), sets:s.sets, reps:s.reps, weight:s.weight, added:s.added, secs:s.secs, duration:s.duration, distance:null, restSec:s.restSec, done:have};
+      })};
     renderRunner();
-    timerArm((Number(r.steps[0].restSec)||DEFAULT_REST)*1000);
+    var act=activeStepIdx();
+    var armStep = act===-1 ? r.steps[r.steps.length-1] : r.steps[act];
+    timerArm((Number(armStep.restSec)||DEFAULT_REST)*1000);
     document.getElementById("runnerSheet").classList.add("show");
+    if(resumed) showToast(STAR_SVG,"Picked up where you left off",
+      resumed+(resumed===1?" set was":" sets were")+" already entered for this routine today");
   }
   /* Preliminaries are preparation, not training: they are kept with the day only when
      the day has actual sets in it, so a warm-up alone never counts as a session. */
@@ -3232,7 +3341,13 @@ var FINISHES = [
   function closeRunner(){
     timerStop(); timer.drill=null;
     document.getElementById("runnerSheet").classList.remove("show");
-    var run=state.runner; state.runner=null;
+    var run=state.runner;
+    if(run){
+      /* a finished workout starts over next time; an unfinished one is kept */
+      if(run.steps.some(function(x){ return x.done<Math.max(1,Number(x.sets)||1); })) saveRunProgress();
+      else clearRunProgress();
+    }
+    state.runner=null;
     var tally=recordPrep(run);
     if(run&&run.logged){
       var sub=run.name+" \u00b7 "+run.logged+(run.logged===1?" set entered":" sets entered");
@@ -3431,7 +3546,7 @@ var FINISHES = [
         if(wEl&&wEl.value!=="") st.weight=entry.weight;
       }
     }
-    st.done+=1; run.logged+=1;
+    st.done+=1; run.logged+=1; saveRunProgress();
     addEntry(todayISO(),entry);
     renderRunSteps();
     var rest=Number(st.restSec)||0;
@@ -3441,6 +3556,18 @@ var FINISHES = [
 
   /* ---------- events ---------- */
   document.getElementById("logType").addEventListener("change",syncLogFields);
+  document.getElementById("restToggle").addEventListener("click",function(){
+    if(!timer.running && timer.leftMs<=0) timerArm(Math.max(1,restSecs())*1000);
+    timerToggle();
+  });
+  document.getElementById("restMinus").addEventListener("click",function(){ timerNudge(-30); });
+  document.getElementById("restPlus").addEventListener("click",function(){ timerNudge(30); });
+  document.getElementById("restLen").addEventListener("change",function(){
+    try{ localStorage.setItem("lb-rest",String(restSecs())); }catch(e){}
+    if(!timer.running) timerArm(Math.max(1,restSecs())*1000);
+  });
+  try{ var savedRest=localStorage.getItem("lb-rest"); if(savedRest) document.getElementById("restLen").value=savedRest; }catch(e){}
+  paintTimer();
   document.getElementById("chartExercise").addEventListener("change",renderChart);
   document.getElementById("claimBtn").addEventListener("click",claimDaily);
   document.getElementById("buyFreezeBtn").addEventListener("click",buyFreeze);
@@ -3503,6 +3630,10 @@ var FINISHES = [
     }
     addEntry(date,entry);
     flashLogged(entry);
+    /* the runner owns the clock while a routine is running; otherwise a logged
+       set starts the rest here too, so freeform training has a timer as well */
+    var rs=restSecs();
+    if(rs>0 && !state.runner) timerStart(rs*1000,"rest",null);
   });
 
   /* ---------- boot ---------- */

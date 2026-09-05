@@ -211,10 +211,38 @@ lb.timerToggle();
 lb.closeRunner();
 check("runner closed", d.getElementById("runnerSheet").classList.contains("show"), "false");
 check("closing stopped the clock", lb.timer.running, "false");
+/* Reopening picks the workout back up rather than starting it over. The sets were
+   already in the ledger; only the pip count was runner-local, so losing it to a closed
+   tab used to mean re-logging work that was already recorded. */
 click(d.querySelector("#routineList .r-begin"));
-check("reopening clears the pips", q("#runSteps .pip.on").length, 0);
-check("reopening re-arms movement 1's rest", d.getElementById("timerRead").textContent, "1:30");
+check("a finished workout starts over", q("#runSteps .pip.on").length, 0);
+check("re-arming movement 1's rest", d.getElementById("timerRead").textContent, "1:30");
 check("reopening does not start it", lb.timer.running, "false");
+lb.closeRunner();
+
+/* a half-finished workout comes back half-finished */
+click(d.querySelector("#routineList .r-del"));
+d.getElementById("composeBtn").click();
+row(1).querySelector(".s-name").value = "Zercher Squat";
+row(1).querySelector(".s-sets").value = "3";
+click(d.getElementById("addStepBtn"));
+row(2).querySelector(".s-name").value = "Overhead Press";
+row(2).querySelector(".s-sets").value = "3";
+d.getElementById("routineName").value = "Half done";
+submitEditor();
+click(d.querySelector("#routineList .r-begin"));
+check("a fresh routine starts empty", q("#runSteps .pip.on").length, 0);
+click(runStep(1).querySelector(".r-log"));
+click(runStep(1).querySelector(".r-log"));
+click(runStep(2).querySelector(".r-log"));
+check("three sets in", d.getElementById("runTally").textContent, "3 of 6 sets entered");
+lb.closeRunner();
+click(d.querySelector("#routineList .r-begin"));
+check("it comes back exactly as it was", d.getElementById("runTally").textContent, "3 of 6 sets entered");
+check("movement 1 keeps its two", q("#runSteps .run-step:nth-child(1) .pip.on").length, 2);
+check("movement 2 keeps its one", q("#runSteps .run-step:nth-child(2) .pip.on").length, 1);
+check("and movement 1 is active again, not movement 2",
+  runStep(1).classList.contains("active"));
 lb.closeRunner();
 
 /* --- the log form logs a typed movement --- */

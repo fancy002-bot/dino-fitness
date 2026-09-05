@@ -149,6 +149,29 @@ Why the other 528 have no figure, and what it would take:
   (Google AI Studio, OpenAI, Replicate/fal), roughly $2–21 for 528. GitHub is not an
   option — GitHub Models is retired (`github_models_retirement_brownout`).
 
+## Three things that make the ledger usable during a session
+
+**Striking a set is undoable.** It is the only destructive thing a user can do, it is one
+tap, and it had no confirmation and no way back. The toast now carries an Undo for nine
+seconds and `restoreEntry()` puts the entry back with its original id, so undoing twice
+cannot duplicate it.
+
+**The rest clock is not locked inside the runner.** It used to exist only while a routine was
+running, which left freeform training — the commonest way a log gets used — with no timer at
+all. The log panel has a rest bar sharing the same `timer`: one clock, two faces, with
+`timerModeText()`/`timerToggleText()` as the single description so the runner's dial and the
+bar can never disagree. A logged set starts the rest unless the runner is open, since the
+runner owns the clock during a routine. The length is remembered in `lb-rest`, and a rest of
+zero starts nothing, for anyone who does not want one.
+
+**A workout in progress survives a closed tab.** Only the pip count was ever runner-local —
+the sets are already in the ledger — so losing it meant re-logging recorded work and doubling
+it up. `lb-run` keeps `{routineId, date, done[]}` and the runner picks up where it left off.
+It is kept per routine and per day rather than counted back out of the ledger, because
+counting the ledger would let three squats logged in the morning arrive pre-ticked on an
+unrelated leg routine that evening. A finished workout clears it and starts over next time;
+revising the routine invalidates it by length.
+
 ## The log form keeps what you typed
 
 A set logger is used by repeating the same set. The form used to empty its fields on every
@@ -186,7 +209,7 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-326 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+364 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted
