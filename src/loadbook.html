@@ -175,13 +175,8 @@
   .field input[type="number"], .field input[type="date"]{font-family:var(--font-mono);}
   .field select:focus, .field input:focus{border-color:var(--bronze); outline:none;}
   .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
-  .form-row1{display:grid; grid-template-columns:2fr 1fr auto; gap:10px; align-items:end; margin-bottom:14px;}
+  .form-row1{display:grid; grid-template-columns:2fr 1.3fr 1fr; gap:10px; align-items:end; margin-bottom:14px;}
   @media (max-width:560px){ .form-row1{grid-template-columns:1fr;} }
-  .icon-btn{background:var(--surface-2); border:2px solid var(--line-strong); width:42px; height:42px; display:flex; align-items:center; justify-content:center; color:var(--bronze); cursor:pointer; flex-shrink:0; font-family:var(--font-display); font-size:1.4rem;}
-  .icon-btn:hover{border-color:var(--bronze);}
-  .new-exercise{display:none; grid-template-columns:2fr 1fr 1fr; gap:10px; padding:14px; background:var(--surface-2); border:1px solid var(--line); margin-bottom:14px;}
-  .new-exercise.show{display:grid;}
-  @media (max-width:560px){ .new-exercise{grid-template-columns:1fr;} }
   .btn-primary{font-family:var(--font-caps); font-size:0.7rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--ground); background:var(--bronze); border:2px solid var(--bronze); padding:14px 22px; cursor:pointer; width:100%; transition:background .2s ease;}
   .btn-primary:hover{background:var(--bronze-hi); border-color:var(--bronze-hi);}
   .btn-primary:disabled{background:var(--surface-3); border-color:var(--surface-3); color:var(--ink-mute); cursor:not-allowed;}
@@ -364,18 +359,16 @@
   .routine-editor.show{display:block;}
   .step-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin:18px 0 4px;}
   .step-head .t{font-family:var(--font-caps); font-size:0.56rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-soft);}
-  .step-row{display:grid; grid-template-columns:1fr 62px 62px 76px 82px 34px; gap:8px; align-items:end; padding:9px 0; border-bottom:1px solid var(--line);}
-  @media (max-width:820px){ .step-row{grid-template-columns:1fr 1fr 1fr; } .step-row .step-del{grid-column:3; justify-self:end;} }
+  .step-row{display:grid; grid-template-columns:minmax(140px,1fr) 124px 58px 58px 74px 78px 34px; gap:8px; align-items:end; padding:9px 0; border-bottom:1px solid var(--line);}
+  @media (max-width:980px){ .step-row{grid-template-columns:1fr 1fr 1fr; } .step-row .s-name{min-width:0;} .step-row .step-del{grid-column:3; justify-self:end;} }
   .step-row .k{font-family:var(--font-caps); font-size:0.52rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-mute); display:block; margin-bottom:4px;}
   .step-row select, .step-row input{background:var(--surface); border:2px solid var(--line); color:var(--ink); padding:7px 8px; font-family:var(--font-body); font-size:0.88rem; width:100%; border-radius:0;}
   .step-row input[type="number"]{font-family:var(--font-mono); font-size:0.82rem; text-align:right;}
+  .step-row input[type="text"]{font-family:var(--font-body); font-size:0.92rem;}
   .step-row select:focus, .step-row input:focus{border-color:var(--bronze); outline:none;}
   .step-del{background:none; border:2px solid var(--line); color:var(--ink-mute); height:35px; cursor:pointer; font-family:var(--font-display); font-size:1.1rem; line-height:1;}
   .step-del:hover{color:var(--warn); border-color:var(--warn);}
   .routine-actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; align-items:center;}
-  .new-movement{display:none; grid-template-columns:2fr 1fr 1fr auto; gap:10px; align-items:end; padding:14px; background:var(--surface); border:2px solid var(--line); margin-top:14px;}
-  .new-movement.show{display:grid;}
-  @media (max-width:760px){ .new-movement{grid-template-columns:1fr;} }
   .routine-row{display:grid; grid-template-columns:auto 1fr auto; gap:16px; align-items:center; padding:14px 0; border-bottom:1px solid var(--line);}
   @media (max-width:640px){ .routine-row{grid-template-columns:auto 1fr; } .routine-row .routine-acts{grid-column:1/-1; justify-content:flex-start;} }
   .routine-no{width:38px; height:38px; border:2px solid var(--bronze); display:flex; align-items:center; justify-content:center; font-family:var(--font-caps); font-weight:600; font-size:0.82rem; color:var(--bronze-hi); flex-shrink:0;}
@@ -520,15 +513,8 @@
         <div class="field"><label for="routineName">Title</label><input type="text" id="routineName" placeholder="Thursday, heavy" maxlength="48" autocomplete="off"></div>
         <div class="step-head"><span class="t">Movements</span><span class="t" id="stepCount"></span></div>
         <div id="stepRows"></div>
-        <div class="new-movement" id="newMovement">
-          <div class="field"><label for="rneName">Name</label><input type="text" id="rneName" placeholder="Incline Press" maxlength="40" autocomplete="off"></div>
-          <div class="field"><label for="rneCat">Category</label><select id="rneCat"><option>Push</option><option>Pull</option><option>Legs</option><option>Core</option><option>Cardio</option></select></div>
-          <div class="field"><label for="rneType">Type</label><select id="rneType"><option value="strength">Weight × reps</option><option value="cardio">Duration / distance</option></select></div>
-          <button type="button" class="btn-secondary" id="rneAdd">Enrol it</button>
-        </div>
         <div class="routine-actions">
           <button type="button" class="btn-secondary" id="addStepBtn">Add a movement</button>
-          <button type="button" class="btn-secondary" id="newMovementToggle">New movement</button>
           <button type="submit" class="btn-primary" style="width:auto;">Enter in the programme</button>
           <button type="button" class="btn-secondary" id="cancelRoutineBtn">Discard</button>
         </div>
@@ -541,14 +527,9 @@
           <div class="panel-head"><h2><span class="no">ENTRY</span>Log a set</h2><span class="hint" id="clearSampleWrap"></span></div>
           <form id="logForm">
             <div class="form-row1">
-              <div class="field"><label for="exerciseSelect">Exercise</label><select id="exerciseSelect"></select></div>
+              <div class="field"><label for="logName">Movement</label><input type="text" id="logName" placeholder="Bench Press" maxlength="40" autocomplete="off"></div>
+              <div class="field"><label for="logType">Kind</label><select id="logType"><option value="strength">Weight × reps</option><option value="cardio">Duration / distance</option></select></div>
               <div class="field"><label for="dateInput">Date</label><input type="date" id="dateInput"></div>
-              <button type="button" class="icon-btn" id="addExerciseToggle" title="Add exercise" aria-label="Add exercise">+</button>
-            </div>
-            <div class="new-exercise" id="newExerciseRow">
-              <div class="field"><label for="neName">Name</label><input type="text" id="neName" placeholder="Incline Press"></div>
-              <div class="field"><label for="neCat">Category</label><select id="neCat"><option>Push</option><option>Pull</option><option>Legs</option><option>Core</option><option>Cardio</option></select></div>
-              <div class="field"><label for="neType">Type</label><select id="neType"><option value="strength">Weight × reps</option><option value="cardio">Duration / distance</option></select></div>
             </div>
             <div class="form-grid" id="strengthFields">
               <div class="field"><label for="weightInput">Weight (lb)</label><input type="number" id="weightInput" min="0" step="any" placeholder="135"></div>
@@ -2442,15 +2423,15 @@ var FINISHES = [
   function mostLoggedExerciseId(){ var c={}; state.sessions.forEach(function(s){ var seen={}; s.entries.forEach(function(e){seen[e.exerciseId]=true;}); Object.keys(seen).forEach(function(id){c[id]=(c[id]||0)+1;}); }); var best=null,bc=0; Object.keys(c).forEach(function(id){ if(c[id]>bc){best=id;bc=c[id];} }); return best; }
   function renderExerciseSelects(){
     var sorted=state.exercises.slice().sort(function(a,b){return a.name.localeCompare(b.name);});
-    ["exerciseSelect","chartExercise"].forEach(function(id){
+    ["chartExercise"].forEach(function(id){
       var sel=document.getElementById(id), prev=sel.value; sel.innerHTML="";
       sorted.forEach(function(ex){ var o=document.createElement("option"); o.value=ex.id; o.textContent=ex.name; sel.appendChild(o); });
       if (prev && sorted.some(function(e){return e.id===prev;})) sel.value=prev;
       else if (id==="chartExercise" && !state.chartDefaultSet){ var b=mostLoggedExerciseId(); if(b) sel.value=b; state.chartDefaultSet=true; }
     });
-    syncFieldsForSelectedExercise();
+    syncLogFields();
   }
-  function syncFieldsForSelectedExercise(){ var id=document.getElementById("exerciseSelect").value; var ex=state.exercises.find(function(e){return e.id===id;}); var c=ex&&ex.type==="cardio"; document.getElementById("strengthFields").style.display=c?"none":"grid"; document.getElementById("cardioFields").style.display=c?"grid":"none"; }
+  function syncLogFields(){ var c=document.getElementById("logType").value==="cardio"; document.getElementById("strengthFields").style.display=c?"none":"grid"; document.getElementById("cardioFields").style.display=c?"grid":"none"; }
   function renderRecent(){
     var list=document.getElementById("recentList"); list.innerHTML="";
     var sorted=sessionsSorted().slice(0,14).filter(function(s){return s.entries.length;});
@@ -2703,43 +2684,62 @@ var FINISHES = [
   function removeFellow(fid){ if(!me||!state.dbAvailable) return; state.db.doc("friends/"+me.id+"/list/"+fid).delete()["catch"](function(){}); state.db.doc("friends/"+fid+"/list/"+me.id).delete()["catch"](function(){}); }
   function renderSociety(){ renderMeCard(); if(!me){ renderInvites([]); renderFellows([]); } }
 
-  /* ---------- routines ---------- */
+  /* ---------- routines ----------
+     Movement names are typed, never picked from a list: a step carries its own
+     name and type, so it describes itself without consulting the repertoire, and
+     the repertoire is only written to when a routine is saved or a set is logged. */
   var DEFAULT_REST=90, CARDIO_REST=60, WORK_SET_SEC=45;
   function exerciseById(id){ return state.exercises.find(function(e){ return e.id===id; })||null; }
-  function isCardio(id){ var ex=exerciseById(id); return !!(ex&&ex.type==="cardio"); }
+  function isCardio(st){ return st && st.type==="cardio"; }
   function routineId(){ return "r_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
   function scrollToEl(el){ if(el&&typeof el.scrollIntoView==="function"){ try{ el.scrollIntoView({behavior:"smooth",block:"center"}); }catch(e){} } }
   function fmtClock(ms){ var t=Math.max(0,Math.round(ms/1000)); return Math.floor(t/60)+":"+String(t%60).padStart(2,"0"); }
-  function defaultStep(exId){ var c=isCardio(exId); return {exerciseId:exId, sets:c?1:3, reps:c?null:5, weight:null, duration:c?20:null, restSec:c?CARDIO_REST:DEFAULT_REST}; }
-  function stdRoutines(){ return TEMPLATES.map(function(t){ return {id:"std-"+t.id, std:true, name:t.name, steps:t.exerciseIds.filter(function(id){return !!exerciseById(id);}).map(defaultStep)}; }).filter(function(r){ return r.steps.length; }); }
+  function defaultStep(name,type){
+    var c=type==="cardio";
+    return {exerciseId:slugify(name||"movement"), name:name||"", type:c?"cardio":"strength",
+            sets:c?1:3, reps:c?null:5, weight:null, duration:c?20:null, restSec:c?CARDIO_REST:DEFAULT_REST};
+  }
+  function stepFromExercise(id){
+    var ex=exerciseById(id); if(!ex) return null;
+    var st=defaultStep(ex.name, ex.type); st.exerciseId=ex.id; return st;
+  }
+  function stdRoutines(){
+    return TEMPLATES.map(function(t){
+      return {id:"std-"+t.id, std:true, name:t.name, steps:t.exerciseIds.map(stepFromExercise).filter(Boolean)};
+    }).filter(function(r){ return r.steps.length; });
+  }
   function allRoutines(){ return state.routines.concat(stdRoutines()); }
   function routineById(id){ return allRoutines().find(function(r){ return r.id===id; })||null; }
   function stepSets(st){ return Math.max(1, Number(st.sets)||1); }
   function routineMinutes(r){
     var s=0; (r.steps||[]).forEach(function(st){ var n=stepSets(st);
-      s += (isCardio(st.exerciseId) ? (Number(st.duration)||0)*60 : n*WORK_SET_SEC) + n*(Number(st.restSec)||0); });
+      s += (isCardio(st) ? (Number(st.duration)||0)*60 : n*WORK_SET_SEC) + n*(Number(st.restSec)||0); });
     return Math.max(1, Math.round(s/60));
   }
   function stepTargetText(st){
-    if(!exerciseById(st.exerciseId)) return "—";
     var rest=" · rest "+fmtClock((Number(st.restSec)||0)*1000);
-    if(isCardio(st.exerciseId)) return (st.duration||0)+" min"+rest;
+    if(isCardio(st)) return (st.duration||0)+" min"+rest;
     var w=(st.weight===null||st.weight===undefined||st.weight==="")?"bodyweight":(st.weight+" lb");
     return stepSets(st)+" × "+(st.reps||1)+" · "+w+rest;
   }
   function clampNum(el,lo,hi,dflt){ var n=Number(el&&el.value); if(!el||el.value===""||!isFinite(n)) n=dflt; return Math.max(lo,Math.min(hi,Math.round(n))); }
   function persistRoutine(r){ if(!state.dbAvailable) return; state.db.doc("routines/"+r.id).set(r)["catch"](function(err){ console.error("Loadbook: routine",err); }); }
+  /* a typed name only reaches the repertoire when it is actually used */
+  function ensureExercise(name,type){
+    var id=slugify(name);
+    if(!exerciseById(id)) addExercise({id:id, name:name, category:type==="cardio"?"Cardio":"Other", type:type});
+    return id;
+  }
 
   function renderStepRows(){
     var wrap=document.getElementById("stepRows"); if(!wrap) return;
     var d=state.routineDraft; wrap.innerHTML="";
     if(!d) return;
-    var sorted=state.exercises.slice().sort(function(a,b){ return a.name.localeCompare(b.name); });
     d.steps.forEach(function(st,i){
-      var cardio=isCardio(st.exerciseId);
-      var opts=sorted.map(function(ex){ return '<option value="'+ex.id+'"'+(ex.id===st.exerciseId?" selected":"")+'>'+escapeHtml(ex.name)+'</option>'; }).join("");
+      var cardio=isCardio(st);
       var row=document.createElement("div"); row.className="step-row";
-      row.innerHTML='<label><span class="k">Movement</span><select class="s-ex">'+opts+'</select></label>'+
+      row.innerHTML='<label><span class="k">Movement</span><input type="text" class="s-name" maxlength="40" autocomplete="off" placeholder="Bench Press" value="'+escapeHtml(st.name||"")+'"></label>'+
+        '<label><span class="k">Kind</span><select class="s-type"><option value="strength"'+(cardio?"":" selected")+'>Weight × reps</option><option value="cardio"'+(cardio?" selected":"")+'>Duration</option></select></label>'+
         (cardio
           ? '<label><span class="k">Minutes</span><input type="number" class="s-dur" min="1" max="600" step="1" value="'+(st.duration||20)+'"></label><span></span><span></span>'
           : '<label><span class="k">Sets</span><input type="number" class="s-sets" min="1" max="20" step="1" value="'+stepSets(st)+'"></label>'+
@@ -2747,11 +2747,11 @@ var FINISHES = [
             '<label><span class="k">Weight lb</span><input type="number" class="s-wt" min="0" step="any" placeholder="—" value="'+(st.weight===null||st.weight===undefined?"":st.weight)+'"></label>')+
         '<label><span class="k">Rest sec</span><input type="number" class="s-rest" min="0" max="900" step="1" value="'+(Number(st.restSec)||0)+'"></label>'+
         '<button type="button" class="step-del" aria-label="Remove movement">×</button>';
-      row.querySelector(".s-ex").addEventListener("change",function(){
-        var wasCardio=isCardio(d.steps[i].exerciseId);
+      row.querySelector(".s-type").addEventListener("change",function(){
+        var wasCardio=isCardio(d.steps[i]);
         syncDraft();
         var now=d.steps[i];
-        if(wasCardio!==isCardio(now.exerciseId)) now.restSec=isCardio(now.exerciseId)?CARDIO_REST:DEFAULT_REST;
+        if(wasCardio!==isCardio(now)) now.restSec=isCardio(now)?CARDIO_REST:DEFAULT_REST;
         renderStepRows();
       });
       row.querySelector(".step-del").addEventListener("click",function(){ syncDraft(); d.steps.splice(i,1); renderStepRows(); });
@@ -2763,14 +2763,18 @@ var FINISHES = [
   function syncDraft(){
     var d=state.routineDraft;
     if(!d||!document.querySelector("#stepRows .step-row")) return;
-    d.steps=readStepRows();
+    d.steps=readStepRows(true);
   }
-  function readStepRows(){
+  /* keepBlank: while editing, a half-typed row must survive a redraw. On save it must not. */
+  function readStepRows(keepBlank){
     var out=[];
     document.querySelectorAll("#stepRows .step-row").forEach(function(row){
-      var exId=row.querySelector(".s-ex").value; if(!exId) return;
-      var st={exerciseId:exId, restSec:clampNum(row.querySelector(".s-rest"),0,900,DEFAULT_REST)};
-      if(isCardio(exId)){ st.sets=1; st.reps=null; st.weight=null; st.duration=clampNum(row.querySelector(".s-dur"),1,600,20); }
+      var name=row.querySelector(".s-name").value.trim();
+      if(!name&&!keepBlank) return;
+      var type=row.querySelector(".s-type").value==="cardio"?"cardio":"strength";
+      var st={name:name, type:type, exerciseId:slugify(name||"movement"),
+              restSec:clampNum(row.querySelector(".s-rest"),0,900,type==="cardio"?CARDIO_REST:DEFAULT_REST)};
+      if(type==="cardio"){ st.sets=1; st.reps=null; st.weight=null; st.duration=clampNum(row.querySelector(".s-dur"),1,600,20); }
       else{
         st.sets=clampNum(row.querySelector(".s-sets"),1,20,3);
         st.reps=clampNum(row.querySelector(".s-reps"),1,100,5);
@@ -2790,40 +2794,23 @@ var FINISHES = [
     document.getElementById("composeBtn").textContent="Close the composer";
     return ed;
   }
-  function toggleNewMovement(){
-    var el=document.getElementById("newMovement");
-    el.classList.toggle("show");
-    if(el.classList.contains("show")) document.getElementById("rneName").focus();
-  }
-  function enrolMovement(){
-    var d=state.routineDraft; if(!d) return;
-    var name=document.getElementById("rneName").value.trim();
-    if(!name){ document.getElementById("rneName").focus(); return; }
-    var id=slugify(name);
-    if(!exerciseById(id)) addExercise({id:id, name:name, category:document.getElementById("rneCat").value, type:document.getElementById("rneType").value});
-    renderExerciseSelects();
-    syncDraft();
-    d.steps.push(defaultStep(id));
-    document.getElementById("rneName").value="";
-    document.getElementById("newMovement").classList.remove("show");
-    renderStepRows();
-  }
   function closeEditor(){
     state.routineDraft=null;
     document.getElementById("routineEditor").classList.remove("show");
     document.getElementById("stepRows").innerHTML="";
-    document.getElementById("newMovement").classList.remove("show");
-    document.getElementById("rneName").value="";
     document.getElementById("composeBtn").textContent="Compose a routine";
   }
-  function composeRoutine(){ var f=state.exercises[0]; openEditor({id:null,name:"",steps:f?[defaultStep(f.id)]:[]}); document.getElementById("routineName").focus(); }
+  function composeRoutine(){ openEditor({id:null,name:"",steps:[defaultStep("","strength")]}); document.getElementById("routineName").focus(); }
   function editRoutine(id){ var r=state.routines.find(function(x){ return x.id===id; }); if(!r) return; scrollToEl(openEditor({id:r.id,name:r.name,steps:JSON.parse(JSON.stringify(r.steps))})); }
   function adoptRoutine(std){ scrollToEl(openEditor({id:null,name:std.name,steps:JSON.parse(JSON.stringify(std.steps))})); }
   function commitRoutine(){
     var d=state.routineDraft; if(!d) return;
     var name=document.getElementById("routineName").value.trim();
     if(!name){ document.getElementById("routineName").focus(); return; }
-    var steps=readStepRows(); if(!steps.length) return;
+    var steps=readStepRows(false);
+    if(!steps.length){ var first=document.querySelector("#stepRows .s-name"); if(first) first.focus(); return; }
+    steps.forEach(function(st){ st.exerciseId=ensureExercise(st.name, st.type); });
+    renderExerciseSelects();
     var now=new Date().toISOString();
     var r={id:d.id||routineId(), name:name.slice(0,48), steps:steps, updatedAt:now};
     var i=state.routines.findIndex(function(x){ return x.id===r.id; });
@@ -2933,7 +2920,7 @@ var FINISHES = [
   function openRunner(id){
     var r=routineById(id); if(!r||!r.steps.length) return;
     state.runner={routineId:id, name:r.name, startedAt:Date.now(), logged:0,
-      steps:r.steps.map(function(s){ return {exerciseId:s.exerciseId, sets:s.sets, reps:s.reps, weight:s.weight, duration:s.duration, distance:null, restSec:s.restSec, done:0}; })};
+      steps:r.steps.map(function(s){ return {exerciseId:s.exerciseId, name:s.name, type:s.type, sets:s.sets, reps:s.reps, weight:s.weight, duration:s.duration, distance:null, restSec:s.restSec, done:0}; })};
     renderRunner();
     timerArm((Number(r.steps[0].restSec)||DEFAULT_REST)*1000);
     document.getElementById("runnerSheet").classList.add("show");
@@ -2984,12 +2971,12 @@ var FINISHES = [
     var wrap=document.getElementById("runSteps"); if(!wrap) return;
     var act=activeStepIdx(); wrap.innerHTML="";
     run.steps.forEach(function(st,i){
-      var ex=exerciseById(st.exerciseId), total=stepSets(st), cardio=isCardio(st.exerciseId);
+      var total=stepSets(st), cardio=isCardio(st);
       var pips=""; for(var k=0;k<total;k++) pips+='<span class="pip'+(k<st.done?" on":"")+'"></span>';
       var row=document.createElement("div");
       row.className="run-step"+(i===act?" active":"")+(st.done>=total?" complete":"");
       row.innerHTML='<div class="run-idx">'+String(i+1).padStart(2,"0")+'</div>'+
-        '<div><div class="run-name">'+escapeHtml(ex?ex.name:st.exerciseId)+'</div>'+
+        '<div><div class="run-name">'+escapeHtml(st.name)+'</div>'+
         '<div class="run-target">'+escapeHtml(stepTargetText(st))+'</div></div>'+
         '<div class="run-right"><div class="pips">'+pips+'</div><div class="run-inputs">'+
         (cardio
@@ -3007,17 +2994,18 @@ var FINISHES = [
     var now=document.getElementById("timerNow");
     if(now){
       if(act===-1) now.innerHTML='<span>Every movement complete.</span>';
-      else{ var s=run.steps[act], e=exerciseById(s.exerciseId);
-        now.innerHTML=escapeHtml(e?e.name:s.exerciseId)+' <span>· set '+(s.done+1)+' of '+stepSets(s)+'</span>'; }
+      else{ var s=run.steps[act];
+        now.innerHTML=escapeHtml(s.name)+' <span>· set '+(s.done+1)+' of '+stepSets(s)+'</span>'; }
     }
   }
   function logRunnerSet(i,row){
     var run=state.runner; if(!run) return;
     var st=run.steps[i], total=stepSets(st); if(st.done>=total) return;
-    var ex=exerciseById(st.exerciseId); if(!ex) return;
-    var entry={id:st.exerciseId+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),
-               exerciseId:st.exerciseId, exerciseName:ex.name, type:ex.type};
-    if(ex.type==="cardio"){
+    if(!st.name) return;
+    var exId=ensureExercise(st.name, st.type);
+    var entry={id:exId+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),
+               exerciseId:exId, exerciseName:st.name, type:st.type};
+    if(isCardio(st)){
       var dEl=row.querySelector(".r-dur"), du=Number(dEl&&dEl.value);
       if(!isFinite(du)||du<=0) du=Number(st.duration)||0;
       if(!du){ if(dEl) dEl.focus(); return; }
@@ -3040,12 +3028,11 @@ var FINISHES = [
     renderRunSteps();
     var rest=Number(st.restSec)||0;
     if(rest>0&&activeStepIdx()!==-1) timerStart(rest*1000,"rest");
-    else { timerStop(); timer.leftMs=0; timer.elapsed=false; paintTimer(); }
+    else { timerStop(); timer.leftMs=0; timer.elapsed=false; timer.armed=false; paintTimer(); }
   }
 
   /* ---------- events ---------- */
-  document.getElementById("addExerciseToggle").addEventListener("click",function(){ document.getElementById("newExerciseRow").classList.toggle("show"); });
-  document.getElementById("exerciseSelect").addEventListener("change",syncFieldsForSelectedExercise);
+  document.getElementById("logType").addEventListener("change",syncLogFields);
   document.getElementById("chartExercise").addEventListener("change",renderChart);
   document.getElementById("claimBtn").addEventListener("click",claimDaily);
   document.getElementById("buyFreezeBtn").addEventListener("click",buyFreeze);
@@ -3054,9 +3041,6 @@ var FINISHES = [
   document.getElementById("shopSearch").addEventListener("input",function(){ var v=this.value; clearTimeout(shopSearchTimer); shopSearchTimer=setTimeout(function(){ state.shopQuery=v; renderShop(); },160); });
   document.getElementById("composeBtn").addEventListener("click",function(){ if(state.routineDraft) closeEditor(); else composeRoutine(); });
   document.getElementById("cancelRoutineBtn").addEventListener("click",closeEditor);
-  document.getElementById("newMovementToggle").addEventListener("click",toggleNewMovement);
-  document.getElementById("rneAdd").addEventListener("click",enrolMovement);
-  document.getElementById("rneName").addEventListener("keydown",function(ev){ if(ev.key==="Enter"){ ev.preventDefault(); enrolMovement(); } });
   document.getElementById("addStepBtn").addEventListener("click",function(){ var d=state.routineDraft; if(!d) return; syncDraft(); var last=d.steps[d.steps.length-1]; var base=last?last.exerciseId:(state.exercises[0]&&state.exercises[0].id); if(!base) return; d.steps.push(defaultStep(base)); renderStepRows(); });
   document.getElementById("routineEditor").addEventListener("submit",function(ev){ ev.preventDefault(); commitRoutine(); });
   document.getElementById("runnerSheet").addEventListener("click",function(ev){ if(ev.target===this) closeRunner(); });
@@ -3076,9 +3060,12 @@ var FINISHES = [
   try{ var saved=localStorage.getItem("lb-theme"); if(saved) document.documentElement.setAttribute("data-theme",saved); }catch(e){}
 
   document.getElementById("logForm").addEventListener("submit",function(ev){
-    ev.preventDefault(); var neName=document.getElementById("neName").value.trim(); var exerciseId,exerciseName,type;
-    if(neName){ var id=slugify(neName); type=document.getElementById("neType").value; addExercise({id:id,name:neName,category:document.getElementById("neCat").value,type:type}); exerciseId=id; exerciseName=neName; document.getElementById("neName").value=""; document.getElementById("newExerciseRow").classList.remove("show"); renderExerciseSelects(); document.getElementById("exerciseSelect").value=id; syncFieldsForSelectedExercise(); }
-    else { exerciseId=document.getElementById("exerciseSelect").value; var eo=state.exercises.find(function(e){return e.id===exerciseId;}); exerciseName=eo?eo.name:exerciseId; type=eo?eo.type:"strength"; }
+    ev.preventDefault();
+    var nameEl=document.getElementById("logName"), exerciseName=nameEl.value.trim();
+    if(!exerciseName){ nameEl.focus(); return; }
+    var type=document.getElementById("logType").value==="cardio"?"cardio":"strength";
+    var exerciseId=ensureExercise(exerciseName,type);
+    renderExerciseSelects();
     var date=document.getElementById("dateInput").value||todayISO();
     var entry={id:exerciseId+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),exerciseId:exerciseId,exerciseName:exerciseName,type:type};
     if(type==="strength"){ var w=document.getElementById("weightInput").value, r=document.getElementById("repsInput").value; if(!r){ document.getElementById("repsInput").focus(); return; } entry.weight=w===""?0:Number(w); entry.reps=Number(r); document.getElementById("weightInput").value=""; document.getElementById("repsInput").value=""; }

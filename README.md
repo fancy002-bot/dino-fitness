@@ -42,10 +42,18 @@ Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
   workouts you compose yourself — a title and an ordered list of movements, each with
   sets, reps, a target weight (or minutes, for cardio) and a rest interval. The four
   built-in standards (Push / Pull / Leg / Cardio & Core) are read-only starters you
-  *adopt* into a routine of your own, and a movement that is not in the repertoire yet
-  can be enrolled from the composer without leaving it. Routines replaced the template
-  pill row and chip tray that used to sit above the log form; `TEMPLATES` survives only
-  as the seed for those four standards.
+  *adopt* into a routine of your own. Routines replaced the template pill row and chip
+  tray that used to sit above the log form; `TEMPLATES` survives only as the seed for
+  those four standards.
+
+  **Every movement is typed, never picked.** There is no exercise list to choose from —
+  not in the composer, not in the log form. A step carries its own `name` and `type`, so
+  it describes itself without consulting the repertoire; the only select is a two-option
+  *Kind* (weight × reps, or duration) that decides which fields the row shows.
+  `ensureExercise()` slugs a typed name into an id and adds it to `exercises/*` the first
+  time it is actually used — saving a routine, or logging a set — so merely typing enrols
+  nothing. `#chartExercise` is the one remaining select, and it is a filter over what you
+  have already logged rather than a suggestion for what to log.
 
   **The runner.** "Begin" opens a runner overlay: a countdown dial, the ordered
   movements with one filled pip per completed set, and per-set weight/rep fields
@@ -106,9 +114,9 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-132 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+142 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, and the routines panel and its workout runner — including a
-block that walks a four-movement routine set by set and asserts the rest clock tracks
+block that walks a three-movement routine set by set and asserts the rest clock tracks
 whichever movement was just logged. `test/harness.mjs` injects a `window.__lb` bridge to reach
 inside the IIFE; the published file is never modified.
 
