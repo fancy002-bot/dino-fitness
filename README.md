@@ -33,6 +33,7 @@ is refused.
 | | `sessions/*`, `exercises/*`, `routines/*` |
 | warm-up and cool-down drills | `settings/goals.bodyweight` |
 | (derived from a routine's movements) | `routines/*.warmup`, `routines/*.cooldown` |
+| | `sessions/*.prep` (what the drills came to) |
 | | `profiles/*`, `invites/*`, `friends/*/list/*` |
 
 Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
@@ -86,9 +87,20 @@ Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
   warm-up, slow breathing closes a cool-down. A leg day gets ankle rocks and hip hinges; a
   pull day gets dead hangs and face pulls; neither gets the other's.
 
-  In the runner the drills sit either side of the movements as ticked-off rows with a
-  *Time it* button that borrows the clock for that drill's length. They are preparation, not
-  training: ticking one writes nothing to the ledger and the set tally ignores them.
+  **In the runner they actually run.** The drills sit either side of the movements. *Run
+  warm-up* starts the first one that is not done and the block plays itself through: each
+  drill counts down on the same clock, chimes at zero, ticks itself off and starts the next,
+  until the block is finished or *Stop* takes the clock back. A single drill can be started
+  on its own, and logging a set always claims the clock back for the rest interval. A
+  rep-counted drill has no natural length, so it is given `max(20, reps × 3)` seconds as a
+  guide — it can still be ticked by hand at any point.
+
+  **What was ticked is added up.** Each block header carries a live tally — *4 of 6 · 5:15* —
+  and every drill shows what it counted. On closing the workout the totals are written to the
+  day as `session.prep`, and the ledger shows a Preliminaries line under that day's sets:
+  "warm-up 6 · 6:15 · cool-down 2 · 2:00". They remain preparation, not training: ticking a
+  drill writes no entry, the set tally ignores them, they carry no volume, and `prep` is only
+  kept on a day that has actual sets in it — so a warm-up alone never counts as a session.
 
   **Every movement is typed, never picked.** There is no exercise list to choose from —
   not in the composer, not in the log form. A step carries its own `name` and `type`, so
@@ -164,14 +176,16 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-282 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+311 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted
 and assisted variants, and timed holds through the composer, the runner, the log form,
 the weekly volume, personal records and the repertoire; and `boot-prelude.mjs`, which proves
 the derivation does its job — a leg routine and a pull routine get demonstrably different
-drills, every pattern survives the cap, and the drills never reach the ledger. `test/harness.mjs` injects a `window.__lb` bridge to reach
+drills, every pattern survives the cap, that the clock chains drill to drill on its own and
+lets go at the end, that a logged set claims it back, and that what was ticked is added up onto
+the day without ever becoming an entry. `test/harness.mjs` injects a `window.__lb` bridge to reach
 inside the IIFE; the published file is never modified.
 
 ## Layout

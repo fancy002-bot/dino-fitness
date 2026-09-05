@@ -201,6 +201,9 @@
   .pr-badge{font-family:var(--font-mono); font-size:0.56rem; letter-spacing:0.14em; color:var(--bronze-hi); border:2px solid var(--bronze); padding:2px 6px;}
   .entry-del{background:none; border:none; color:var(--ink-mute); cursor:pointer; font-family:var(--font-display); font-size:1.1rem; padding:0 4px;}
   .entry-del:hover{color:var(--warn);}
+  .prep-row{display:flex; align-items:baseline; gap:12px; padding:8px 0 2px; border-bottom:1px solid var(--line);}
+  .prep-t{font-family:var(--font-caps); font-size:0.54rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--bronze);}
+  .prep-d{margin-left:auto; font-family:var(--font-mono); font-size:0.68rem; color:var(--ink-soft); text-align:right;}
   .empty-note{font-family:var(--font-display); font-style:italic; font-size:1rem; color:var(--ink-soft); padding:10px 0;}
 
   /* ---- chart on ruled paper ---- */
@@ -404,6 +407,9 @@
   .aside-row.done .aside-name{color:var(--ink-mute); text-decoration:line-through;}
   .tick{width:22px; height:22px; flex-shrink:0; background:none; border:2px solid var(--line-strong); color:var(--bronze-hi); cursor:pointer; font-size:0.72rem; line-height:1; display:flex; align-items:center; justify-content:center; padding:0;}
   .tick[aria-pressed="true"]{border-color:var(--bronze);}
+  .aside-row.running{background:var(--surface-3); box-shadow:inset 3px 0 0 var(--bronze);}
+  .aside-row.running .aside-name{color:var(--bronze-hi);}
+  .aside-head .aside-run{margin-left:12px;}
   .aside-name{font-family:var(--font-display); font-size:1rem; line-height:1.2;}
   .aside-detail{font-family:var(--font-mono); font-size:0.68rem; color:var(--ink-soft); margin-top:2px;}
   @media (max-width:600px){ .aside-row{grid-template-columns:auto 1fr; row-gap:8px;} .aside-row .aside-time{grid-column:2; justify-self:start;} }
@@ -2559,6 +2565,11 @@ var FINISHES = [
         r.innerHTML='<span class="entry-cat" style="background:'+catColorVar(ex?ex.category:"Push")+';"></span><span class="entry-name">'+e.exerciseName+'</span><span class="entry-detail">'+detail+(e.isPR?' <span class="pr-badge">PR</span>':'')+'</span><button class="entry-del" data-date="'+s.date+'" data-entry="'+e.id+'" title="Strike entry" aria-label="Delete">×</button>';
         g.appendChild(r);
       });
+      if(s.prep&&prepText(s.prep)){
+        var pr=document.createElement("div"); pr.className="prep-row";
+        pr.innerHTML='<span class="prep-t">Preliminaries</span><span class="prep-d">'+escapeHtml(prepText(s.prep))+'</span>';
+        g.appendChild(pr);
+      }
       list.appendChild(g);
     });
     list.querySelectorAll(".entry-del").forEach(function(b){ b.addEventListener("click",function(){ deleteEntry(b.dataset.date,b.dataset.entry); }); });
@@ -3108,7 +3119,7 @@ var FINISHES = [
   }
 
   /* ---------- the workout runner and its timer ---------- */
-  var timer={running:false, mode:"rest", targetMs:0, leftMs:0, endsAt:0, iv:null, elapsed:false, armed:false};
+  var timer={running:false, mode:"rest", targetMs:0, leftMs:0, endsAt:0, iv:null, elapsed:false, armed:false, drill:null};
   var audioCtx=null;
   function chime(){
     try{
@@ -3135,11 +3146,12 @@ var FINISHES = [
   function timerStop(){ timer.running=false; if(timer.iv){ clearInterval(timer.iv); timer.iv=null; } }
   function timerRun(){ clearInterval(timer.iv); timer.iv=setInterval(timerTick,200); }
   function timerArm(ms){
-    timerStop();
+    timerStop(); timer.drill=null;
     timer.targetMs=Math.max(1000,ms||0); timer.leftMs=timer.targetMs; timer.elapsed=false; timer.armed=true; paintTimer();
   }
-  function timerStart(ms,mode){
-    timer.mode=mode||"rest"; timer.targetMs=Math.max(1000,ms||0); timer.leftMs=timer.targetMs;
+  function timerStart(ms,mode,drill){
+    timer.mode=mode||"rest"; timer.drill=drill||null;
+    timer.targetMs=Math.max(1000,ms||0); timer.leftMs=timer.targetMs;
     timer.endsAt=Date.now()+timer.leftMs; timer.running=true; timer.elapsed=false; timer.armed=false;
     timerRun(); paintTimer();
   }
@@ -3161,6 +3173,7 @@ var FINISHES = [
     timer.leftMs=Math.max(0,timer.endsAt-Date.now());
     if(timer.leftMs>0){ paintTimer(); return; }
     timerStop(); timer.elapsed=true; paintTimer(); chime();
+    if(timer.drill){ var dl=timer.drill; timer.drill=null; completeDrill(dl.which, dl.i, true); return; }
     showToast(STAR_SVG,"Rest complete",state.runner?state.runner.name+" · next set":"Back to work");
   }
   function paintTimer(){
@@ -3176,7 +3189,7 @@ var FINISHES = [
   }
   function openRunner(id){
     var r=routineById(id); if(!r||!r.steps.length) return;
-    function drills(list){ return list.map(function(dr){ return {n:dr.n, s:dr.s, r:dr.r, note:dr.note, done:false}; }); }
+    function drills(list){ return list.map(function(dr){ return {n:dr.n, s:dr.s, r:dr.r, note:dr.note, done:false, spent:0}; }); }
     state.runner={routineId:id, name:r.name, startedAt:Date.now(), logged:0,
       warm: r.warmup ? drills(warmupFor(r)) : [], cool: r.cooldown ? drills(cooldownFor(r)) : [],
       steps:r.steps.map(function(s){ return {exerciseId:s.exerciseId, name:s.name, type:kindOf(s.type), sets:s.sets, reps:s.reps, weight:s.weight, added:s.added, secs:s.secs, duration:s.duration, distance:null, restSec:s.restSec, done:0}; })};
@@ -3184,11 +3197,48 @@ var FINISHES = [
     timerArm((Number(r.steps[0].restSec)||DEFAULT_REST)*1000);
     document.getElementById("runnerSheet").classList.add("show");
   }
+  /* Preliminaries are preparation, not training: they are kept with the day only when
+     the day has actual sets in it, so a warm-up alone never counts as a session. */
+  function recordPrep(run){
+    if(!run) return null;
+    var w=run.warm.filter(function(x){ return x.done; }), c=run.cool.filter(function(x){ return x.done; });
+    if(!w.length&&!c.length) return null;
+    var tally={warm:{drills:w.length, secs:w.reduce(function(a,x){ return a+(x.spent||0); },0)},
+               cool:{drills:c.length, secs:c.reduce(function(a,x){ return a+(x.spent||0); },0)}};
+    var date=todayISO(), sess=state.sessions.find(function(x){ return x.date===date; });
+    if(!sess||!sess.entries.length) return tally;
+    var p=sess.prep||{warm:{drills:0,secs:0}, cool:{drills:0,secs:0}};
+    p={warm:{drills:p.warm.drills+tally.warm.drills, secs:p.warm.secs+tally.warm.secs},
+       cool:{drills:p.cool.drills+tally.cool.drills, secs:p.cool.secs+tally.cool.secs}};
+    sess.prep=p;
+    if(state.dbAvailable){
+      var ref=state.db.doc("sessions/"+date);
+      ref.get().then(function(snap){
+        if(!snap.exists) return;
+        return ref.set(Object.assign({},snap.data(),{prep:p,updatedAt:new Date().toISOString()}));
+      })["catch"](function(err){ console.error("Loadbook: prep",err); });
+    }
+    renderRecent();
+    return tally;
+  }
+  function prepText(p){
+    var bits=[];
+    if(p.warm&&p.warm.drills) bits.push("warm-up "+p.warm.drills+" \u00b7 "+fmtSecs(p.warm.secs));
+    if(p.cool&&p.cool.drills) bits.push("cool-down "+p.cool.drills+" \u00b7 "+fmtSecs(p.cool.secs));
+    return bits.join(" \u00b7 ");
+  }
   function closeRunner(){
-    timerStop();
+    timerStop(); timer.drill=null;
     document.getElementById("runnerSheet").classList.remove("show");
     var run=state.runner; state.runner=null;
-    if(run&&run.logged) showToast(STAR_SVG,"Workout closed",run.name+" · "+run.logged+(run.logged===1?" set entered":" sets entered"));
+    var tally=recordPrep(run);
+    if(run&&run.logged){
+      var sub=run.name+" \u00b7 "+run.logged+(run.logged===1?" set entered":" sets entered");
+      if(tally) sub+=" \u00b7 "+prepText(tally);
+      showToast(STAR_SVG,"Workout closed",sub);
+    } else if(tally){
+      showToast(STAR_SVG,"Preliminaries done",prepText(tally)+" \u2014 no sets entered, so nothing was added to the ledger");
+    }
   }
   function renderRunner(){
     var run=state.runner; if(!run) return;
@@ -3225,17 +3275,55 @@ var FINISHES = [
     document.getElementById("timerPlus").addEventListener("click",function(){ timerNudge(30); });
     renderRunSteps(); renderAsides();
   }
+  function drillList(which){ var run=state.runner; return !run?[]:(which==="warm"?run.warm:run.cool); }
+  function blockSecs(which){ return drillList(which).reduce(function(a,dr){ return a+(dr.spent||0); },0); }
+  function nextUndone(which,from){
+    var list=drillList(which);
+    for(var i=Math.max(0,from);i<list.length;i++){ if(!list[i].done) return i; }
+    return -1;
+  }
+  function startDrill(which,i){
+    var dr=drillList(which)[i]; if(!dr) return;
+    timerStart(drillSeconds(dr)*1000,"work",{which:which,i:i});
+    renderAsides(); paintNow();
+  }
+  function stopDrill(){ timer.drill=null; timerStop(); paintTimer(); renderAsides(); paintNow(); }
+  /* a drill counts the moment it is ticked, however it got ticked */
+  function tickDrill(which,i,on){
+    var dr=drillList(which)[i]; if(!dr) return;
+    dr.done=(on===undefined)?!dr.done:!!on;
+    dr.spent=dr.done?drillSeconds(dr):0;
+    if(!dr.done && timer.drill && timer.drill.which===which && timer.drill.i===i) stopDrill();
+    renderAsides(); paintNow();
+  }
+  function completeDrill(which,i,chain){
+    tickDrill(which,i,true);
+    var next=chain?nextUndone(which,i+1):-1;
+    if(next!==-1){ startDrill(which,next); return; }
+    timer.leftMs=0; timer.armed=false; paintTimer(); paintNow();
+    if(chain) showToast(STAR_SVG,(which==="warm"?"Warm-up complete":"Cool-down complete"),
+      drillList(which).filter(function(d2){return d2.done;}).length+" drills · "+fmtSecs(blockSecs(which)));
+  }
   function renderAside(which){
-    var run=state.runner, items=which==="warm"?run.warm:run.cool;
-    if(!items||!items.length) return "";
+    var items=drillList(which);
+    if(!items.length) return "";
     var done=items.filter(function(x){ return x.done; }).length;
-    return '<div class="run-aside"><div class="aside-head"><span class="aside-t">'+(which==="warm"?"Warm-up":"Cool-down")+
-      '</span><span class="aside-n">'+done+' of '+items.length+' done</span></div>'+
+    var runningHere = timer.drill && timer.drill.which===which;
+    var head='<div class="aside-head"><span class="aside-t">'+(which==="warm"?"Warm-up":"Cool-down")+'</span>'+
+      '<span class="aside-n">'+done+' of '+items.length+' \u00b7 '+fmtClock(blockSecs(which)*1000)+'</span>'+
+      (runningHere
+        ? '<button type="button" class="btn-secondary aside-run" data-which="'+which+'" data-act="stop">Stop</button>'
+        : (done<items.length
+            ? '<button type="button" class="btn-primary aside-run" style="width:auto; padding:7px 13px;" data-which="'+which+'" data-act="run">Run '+(which==="warm"?"warm-up":"cool-down")+'</button>'
+            : ''))+'</div>';
+    return '<div class="run-aside">'+head+
       items.map(function(dr,i){
-        return '<div class="aside-row'+(dr.done?" done":"")+'">'+
+        var live = runningHere && timer.drill.i===i;
+        return '<div class="aside-row'+(dr.done?" done":"")+(live?" running":"")+'">'+
           '<button type="button" class="tick" data-which="'+which+'" data-i="'+i+'" aria-pressed="'+(dr.done?"true":"false")+'" aria-label="Mark done">'+(dr.done?"\u2713":"")+'</button>'+
-          '<div><div class="aside-name">'+escapeHtml(dr.n)+'</div><div class="aside-detail">'+escapeHtml(drillText(dr))+'</div></div>'+
-          '<button type="button" class="btn-secondary aside-time" data-which="'+which+'" data-i="'+i+'">Time it</button></div>';
+          '<div><div class="aside-name">'+escapeHtml(dr.n)+'</div><div class="aside-detail">'+escapeHtml(drillText(dr))+
+            (dr.spent?' \u00b7 counted '+fmtSecs(dr.spent):'')+'</div></div>'+
+          '<button type="button" class="btn-secondary aside-time" data-which="'+which+'" data-i="'+i+'">'+(live?"Running":"Start")+'</button></div>';
       }).join("")+'</div>';
   }
   function renderAsides(){
@@ -3245,15 +3333,15 @@ var FINISHES = [
     w.innerHTML=renderAside("warm"); c.innerHTML=renderAside("cool");
     [w,c].forEach(function(host){
       host.querySelectorAll(".tick").forEach(function(b){
-        b.addEventListener("click",function(){
-          var list=b.dataset.which==="warm"?run.warm:run.cool, dr=list[Number(b.dataset.i)];
-          dr.done=!dr.done; renderAsides();
-        });
+        b.addEventListener("click",function(){ tickDrill(b.dataset.which, Number(b.dataset.i)); });
       });
       host.querySelectorAll(".aside-time").forEach(function(b){
+        b.addEventListener("click",function(){ startDrill(b.dataset.which, Number(b.dataset.i)); });
+      });
+      host.querySelectorAll(".aside-run").forEach(function(b){
         b.addEventListener("click",function(){
-          var list=b.dataset.which==="warm"?run.warm:run.cool, dr=list[Number(b.dataset.i)];
-          timerStart(drillSeconds(dr)*1000,"work");
+          if(b.dataset.act==="stop"){ stopDrill(); return; }
+          var i=nextUndone(b.dataset.which,0); if(i!==-1) startDrill(b.dataset.which,i);
         });
       });
     });
@@ -3288,12 +3376,19 @@ var FINISHES = [
     var done=run.steps.reduce(function(a,s){ return a+s.done; },0);
     var target=run.steps.reduce(function(a,s){ return a+stepSets(s); },0);
     var tally=document.getElementById("runTally"); if(tally) tally.textContent=done+" of "+target+" sets entered";
-    var now=document.getElementById("timerNow");
-    if(now){
-      if(act===-1) now.innerHTML='<span>Every movement complete.</span>';
-      else{ var s=run.steps[act];
-        now.innerHTML=escapeHtml(s.name)+' <span>· set '+(s.done+1)+' of '+stepSets(s)+'</span>'; }
+    paintNow();
+  }
+  function paintNow(){
+    var run=state.runner, now=document.getElementById("timerNow"); if(!run||!now) return;
+    if(timer.drill){
+      var dlist=timer.drill.which==="warm"?run.warm:run.cool, dr=dlist[timer.drill.i];
+      if(dr){ now.innerHTML=escapeHtml(dr.n)+' <span>\u00b7 '+(timer.drill.which==="warm"?"warm-up":"cool-down")+
+        ' '+(timer.drill.i+1)+' of '+dlist.length+'</span>'; return; }
     }
+    var act=activeStepIdx();
+    if(act===-1) now.innerHTML='<span>Every movement complete.</span>';
+    else{ var s=run.steps[act];
+      now.innerHTML=escapeHtml(s.name)+' <span>\u00b7 set '+(s.done+1)+' of '+stepSets(s)+'</span>'; }
   }
   function logRunnerSet(i,row){
     var run=state.runner; if(!run) return;
@@ -3337,7 +3432,7 @@ var FINISHES = [
     addEntry(todayISO(),entry);
     renderRunSteps();
     var rest=Number(st.restSec)||0;
-    if(rest>0&&activeStepIdx()!==-1) timerStart(rest*1000,"rest");
+    if(rest>0&&activeStepIdx()!==-1) timerStart(rest*1000,"rest",null);
     else { timerStop(); timer.leftMs=0; timer.elapsed=false; timer.armed=false; paintTimer(); }
   }
 

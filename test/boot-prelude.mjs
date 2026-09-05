@@ -9,6 +9,7 @@ const submitEditor = () => d.getElementById("routineEditor")
   .dispatchEvent(new w.Event("submit", { bubbles: true, cancelable: true }));
 const row = n => d.querySelector(`#stepRows .step-row:nth-child(${n})`);
 const names = list => list.map(x => x.n);
+const clock = n => Math.floor(n / 60) + ":" + String(n % 60).padStart(2, "0");
 
 /* build a routine straight through the composer */
 function compose(title, movements) {
@@ -114,24 +115,77 @@ check("runner opens", d.getElementById("runnerSheet").classList.contains("show")
 check("warm-up sits before the movements", q("#runWarm .aside-row").length, lb.warmupFor(legs).length);
 check("cool-down after them", q("#runCool .aside-row").length, lb.cooldownFor(legs).length);
 check("warm-up is headed as such", /Warm-up/.test(d.getElementById("runWarm").textContent));
-check("none done yet", /0 of \d+ done/.test(d.getElementById("runWarm").textContent));
+check("nothing counted yet", /0 of \d+ · 0:00/.test(d.getElementById("runWarm").textContent));
 check("the drills are not sets", d.getElementById("runTally").textContent, "0 of 6 sets entered");
 
+/* --- ticking a drill counts its time --- */
 const before = lb.state.sessions.reduce((a, s2) => a + s2.entries.length, 0);
+const warm = lb.warmupFor(legs);
 click(d.querySelector("#runWarm .tick"));
 check("a drill ticks off", q("#runWarm .aside-row.done").length, 1);
-check("and the count follows", /1 of \d+ done/.test(d.getElementById("runWarm").textContent));
+const warmHead = () => d.querySelector("#runWarm .aside-n").textContent;
+check("and its time is counted", warmHead(), "1 of " + warm.length + " · " + clock(lb.drillSeconds(warm[0])));
+check("the row says what it counted", /counted/.test(d.querySelector("#runWarm .aside-row.done").textContent));
 check("ticking a drill logs nothing", lb.state.sessions.reduce((a, s2) => a + s2.entries.length, 0), before);
 click(d.querySelector("#runWarm .tick"));
-check("and unticks", q("#runWarm .aside-row.done").length, 0);
+check("unticking gives the time back", /0 of \d+ · 0:00/.test(d.getElementById("runWarm").textContent));
 
-/* --- a drill can borrow the clock --- */
-const firstDrill = lb.warmupFor(legs)[0];
+/* --- a drill actually runs the clock --- */
 click(d.querySelector("#runWarm .aside-time"));
-check("timing a drill starts the clock", lb.timer.running);
-check("for that drill's length", lb.timer.targetMs, lb.drillSeconds(firstDrill) * 1000);
-check("and says it is work, not rest", d.getElementById("timerMode").textContent, "working");
+check("starting a drill runs the clock", lb.timer.running);
+check("for that drill's length", lb.timer.targetMs, lb.drillSeconds(warm[0]) * 1000);
+check("counted as work, not rest", d.getElementById("timerMode").textContent, "working");
+check("the clock knows which drill", lb.timer.drill && lb.timer.drill.which, "warm");
+check("the caption names the drill", new RegExp(warm[0].n).test(d.getElementById("timerNow").textContent));
+check("and marks the row running", q("#runWarm .aside-row.running").length, 1);
+check("its button says so", d.querySelector("#runWarm .aside-row.running .aside-time").textContent, "Running");
+
+/* --- and when it elapses it ticks itself off and starts the next --- */
+lb.timer.endsAt = Date.now() - 1; lb.timerTick();
+check("the drill ticked itself off", q("#runWarm .aside-row").item(0).classList.contains("done"));
+check("its time was counted", /1 of \d+ · /.test(d.getElementById("runWarm").textContent));
+check("the next drill started on its own", lb.timer.running);
+check("and it is the second one", lb.timer.drill && lb.timer.drill.i, 1);
+check("for the second drill's length", lb.timer.targetMs, lb.drillSeconds(warm[1]) * 1000);
+check("the caption followed", new RegExp(warm[1].n).test(d.getElementById("timerNow").textContent));
+
+/* --- stop halts the chain --- */
+click(d.querySelector("#runWarm .aside-run"));
+check("stop halts it", lb.timer.running, "false");
+check("and lets go of the drill", lb.timer.drill, "null");
+check("nothing is left running", q("#runWarm .aside-row.running").length, 0);
+
+/* --- Run the block picks up at the first one not done --- */
+click(d.querySelector("#runWarm .aside-run"));
+check("Run starts the next undone", lb.timer.running);
+check("which is the second", lb.timer.drill && lb.timer.drill.i, 1);
+
+/* --- the chain ends after the last drill --- */
+for (let i = 0; i < warm.length + 2 && lb.timer.drill; i++) { lb.timer.endsAt = Date.now() - 1; lb.timerTick(); }
+check("every drill ended up done", q("#runWarm .aside-row.done").length, warm.length);
+check("the chain stopped", lb.timer.running, "false");
+check("the clock let go", lb.timer.drill, "null");
+check("the block counts them all", warmHead(),
+  warm.length + " of " + warm.length + " · " + clock(warm.reduce((a, dr) => a + lb.drillSeconds(dr), 0)));
+
+/* --- logging a set takes the clock back off the drills --- */
+click(d.querySelector("#runCool .aside-time"));
+check("a cool-down drill is running", lb.timer.drill && lb.timer.drill.which, "cool");
+click(d.querySelector("#runSteps .run-step:first-child .r-log"));
+check("logging a set claims the clock", lb.timer.drill, "null");
+check("and it is resting again", d.getElementById("timerMode").textContent, "resting");
+
+/* --- closing adds it all up and keeps it with the day --- */
+const coolDone = q("#runCool .aside-row.done").length;
 lb.closeRunner();
+const today = lb.state.sessions.find(s2 => s2.date === new Date().toISOString().slice(0, 10));
+check("the day carries the preliminaries", !!(today && today.prep));
+check("with every warm-up drill counted", today.prep.warm.drills, warm.length);
+check("and their seconds added up", today.prep.warm.secs,
+  lb.warmupFor(legs).reduce((a, dr) => a + lb.drillSeconds(dr), 0));
+check("cool-down counted separately", today.prep.cool.drills, coolDone);
+check("the ledger shows it", /Preliminaries/.test(d.getElementById("recentList").textContent));
+check("with the time it came to", /warm-up \d+ · \d+:\d\d|warm-up \d+ · \d+ sec/.test(d.getElementById("recentList").textContent));
 
 /* --- off again means gone from the runner --- */
 const warmBoxNow = legPanel().querySelector(".p-warm");
