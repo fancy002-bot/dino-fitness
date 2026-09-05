@@ -42,14 +42,18 @@ Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
   workouts you compose yourself — a title and an ordered list of movements, each with
   sets, reps, a target weight (or minutes, for cardio) and a rest interval. The four
   built-in standards (Push / Pull / Leg / Cardio & Core) are read-only starters you
-  *adopt* into a routine of your own. Saved routines also join the quick-pick pills
-  above the log form.
+  *adopt* into a routine of your own, and a movement that is not in the repertoire yet
+  can be enrolled from the composer without leaving it. Routines replaced the template
+  pill row and chip tray that used to sit above the log form; `TEMPLATES` survives only
+  as the seed for those four standards.
 
   **The runner.** "Begin" opens a runner overlay: a countdown dial, the ordered
   movements with one filled pip per completed set, and per-set weight/rep fields
-  prefilled from the target. Logging a set writes straight into the ledger (PR
-  detection and all) and starts that movement's rest clock, which chimes through
-  WebAudio at zero — so there is no audio asset to ship. Space toggles the clock,
+  prefilled from the target — with minutes and distance, for a cardio movement.
+  Logging a set writes straight into the ledger (PR detection and all) and starts
+  *that movement's* rest clock, which chimes through WebAudio at zero — so there is
+  no audio asset to ship. The last set of the workout leaves the clock stopped rather
+  than resting for nothing. Space toggles the clock,
   esc closes, and ±30 sec adjusts it mid-rest. The clock reads Date.now() deltas
   rather than accumulating ticks, so a throttled background tab does not drift.
 - **II — The Cabinet.** 618 specimens, each with a biography. Grades: Standard /
@@ -81,6 +85,19 @@ Why the other 528 have no figure, and what it would take:
   (Google AI Studio, OpenAI, Replicate/fal), roughly $2–21 for 528. GitHub is not an
   option — GitHub Models is retired (`github_models_retirement_brownout`).
 
+## Two traps in this file
+
+**Number inputs take `step="1"` or `step="any"`, never a grid.** A `step="5"` on the
+rest field makes a browser reject 8 as a step mismatch and silently refuse to submit the
+whole composer — no error, nothing saved. jsdom does no constraint validation, so the
+suite cannot see it; `boot-routines.mjs` guards it structurally instead, by asserting no
+number field anywhere carries a restrictive step.
+
+**`renderStepRows()` redraws from the draft, so read the rows back first.** Anything
+typed into a step row lives only in the DOM until `syncDraft()` copies it into
+`state.routineDraft`. Every handler that adds, removes or retypes a row calls it first;
+skip it and the user's other rows silently revert.
+
 ## Tests
 
 ```
@@ -89,8 +106,10 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-93 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
-the debounced search, and the routines panel and its workout runner. `test/harness.mjs` injects a `window.__lb` bridge to reach
+132 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+the debounced search, and the routines panel and its workout runner — including a
+block that walks a four-movement routine set by set and asserts the rest clock tracks
+whichever movement was just logged. `test/harness.mjs` injects a `window.__lb` bridge to reach
 inside the IIFE; the published file is never modified.
 
 ## Layout
