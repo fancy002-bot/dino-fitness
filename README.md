@@ -149,6 +149,16 @@ Why the other 528 have no figure, and what it would take:
   (Google AI Studio, OpenAI, Replicate/fal), roughly $2–21 for 528. GitHub is not an
   option — GitHub Models is retired (`github_models_retirement_brownout`).
 
+## The log form keeps what you typed
+
+A set logger is used by repeating the same set. The form used to empty its fields on every
+submit, so pressing *Enter into ledger* a second time did nothing at all and read as the app
+refusing the movement — and a 3×5 meant retyping the weight and the reps three times. Nothing
+is cleared now; the button turns green and names the set so you can see it landed. The same
+reasoning applies in the runner, where a finished movement still accepts an extra set rather
+than disabling its Log button: a ledger that will not write down work you actually did is the
+wrong kind of strict. Extra sets are marked `+n` beside the planned pips.
+
 ## Three traps in this file
 
 **Number inputs take `step="1"` or `step="any"`, never a grid.** A `step="5"` on the
@@ -176,7 +186,7 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-311 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+326 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted

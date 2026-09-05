@@ -190,5 +190,40 @@ submitLog();
 check("a hold with no seconds is refused",
   lb.state.sessions.reduce((a, s) => a + s.entries.length, 0), logBefore + 2);
 
+/* --- the reported bug: a second set of the same movement, right after the first.
+       The form used to empty itself on submit, so pressing the button again did
+       nothing at all and read as a refusal. --- */
+const logBtn = d.querySelector('#logForm button[type="submit"]');
+const count = () => lb.state.sessions.reduce((a2, s2) => a2 + s2.entries.length, 0);
+const diamonds = () => lb.state.sessions.flatMap(s2 => s2.entries).filter(e => e.exerciseId === "diamond-pushup");
+set(d.getElementById("logType"), "bodyweight");
+d.getElementById("logName").value = "Diamond Pushup";
+d.getElementById("bwRepsInput").value = "12";
+const beforeTwice = count();
+submitLog();
+check("the first set lands", diamonds().length, 1);
+check("the movement stays in the field", d.getElementById("logName").value, "Diamond Pushup");
+check("and so do the reps", d.getElementById("bwRepsInput").value, "12");
+check("the button says the set landed", /^Entered/.test(logBtn.textContent));
+submitLog();
+check("pressing again logs a second set", diamonds().length, 2);
+submitLog();
+check("and a third", diamonds().length, 3);
+check("all three sat under one movement", lb.state.exercises.filter(e => e.id === "diamond-pushup").length, 1);
+check("three sets reached the ledger", count(), beforeTwice + 3);
+check("each is a bodyweight entry of 12",
+  diamonds().every(e => e.type === "bodyweight" && e.reps === 12), "true");
+
+/* the same held for loaded work, where retyping 185 for every set was the old cost */
+set(d.getElementById("logType"), "strength");
+d.getElementById("logName").value = "Front Squat";
+d.getElementById("weightInput").value = "185";
+d.getElementById("repsInput").value = "5";
+submitLog(); submitLog(); submitLog();
+check("three loaded sets without retyping",
+  lb.state.sessions.flatMap(s2 => s2.entries).filter(e => e.exerciseName === "Front Squat" && e.weight === 185).length, 3);
+check("the weight is still in the field", d.getElementById("weightInput").value, "185");
+check("and the reps", d.getElementById("repsInput").value, "5");
+
 check("no JS errors throughout", errors.length, 0);
 done("boot-kinds");

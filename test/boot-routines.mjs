@@ -177,9 +177,15 @@ check("caption says so", /Every movement complete/.test(d.getElementById("timerN
 /* ===================================================================== */
 
 /* --- timer controls --- */
-click(runStep(1).querySelector(".r-log"));   /* no-op: movement is complete */
-check("a complete movement refuses more sets", q("#runSteps .run-step:first-child .pip.on").length, 3);
-check("its Log button is disabled", runStep(1).querySelector(".r-log").disabled);
+/* a ledger that will not write down work you actually did is the wrong kind of
+   strict, so a finished movement still takes an extra set - marked as extra */
+const beforeExtra = entryCount();
+click(runStep(1).querySelector(".r-log"));
+check("a finished movement still records an extra set", entryCount(), beforeExtra + 1);
+check("the planned pips stay filled", q("#runSteps .run-step:first-child .pip.on").length, 3);
+check("and the extra is marked as extra", runStep(1).querySelector(".pip-extra").textContent, "+1");
+check("the movement still reads complete", runStep(1).classList.contains("complete"));
+check("its Log button stays available", runStep(1).querySelector(".r-log").disabled, "false");
 lb.timerToggle();
 check("the clock can still be started by hand", lb.timer.running);
 click(d.getElementById("timerMinus"));

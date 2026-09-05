@@ -182,6 +182,7 @@
   .btn-primary{font-family:var(--font-caps); font-size:0.7rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--ground); background:var(--bronze); border:2px solid var(--bronze); padding:14px 22px; cursor:pointer; width:100%; transition:background .2s ease;}
   .btn-primary:hover{background:var(--bronze-hi); border-color:var(--bronze-hi);}
   .btn-primary:disabled{background:var(--surface-3); border-color:var(--surface-3); color:var(--ink-mute); cursor:not-allowed;}
+  .btn-primary.flash{background:var(--good); border-color:var(--good); color:var(--ground);}
   .btn-secondary{font-family:var(--font-caps); font-size:0.62rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--bronze); background:none; border:2px solid var(--line-strong); padding:8px 13px; cursor:pointer;}
   .btn-secondary:hover{border-color:var(--bronze); color:var(--bronze-hi);}
   .btn-secondary:disabled{opacity:0.4; cursor:not-allowed;}
@@ -452,6 +453,7 @@
   .pips{display:flex; gap:5px;}
   .pip{width:10px; height:10px; border:2px solid var(--line-strong); border-radius:50%; flex-shrink:0;}
   .pip.on{background:var(--bronze); border-color:var(--bronze);}
+  .pip-extra{font-family:var(--font-mono); font-size:0.58rem; color:var(--bronze); margin-left:2px; align-self:center;}
   .runner-foot{display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-top:22px; padding-top:18px; border-top:2px solid var(--line-strong);}
   .runner-tally{font-family:var(--font-caps); font-size:0.56rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-soft);}
   .run-step > div:nth-child(2){min-width:0;}
@@ -3353,6 +3355,7 @@ var FINISHES = [
     run.steps.forEach(function(st,i){
       var total=stepSets(st), k=kindOf(st.type);
       var pips=""; for(var p=0;p<total;p++) pips+='<span class="pip'+(p<st.done?" on":"")+'"></span>';
+      if(st.done>total) pips+='<span class="pip-extra">+'+(st.done-total)+'</span>';
       var row=document.createElement("div");
       row.className="run-step"+(i===act?" active":"")+(st.done>=total?" complete":"");
       row.innerHTML='<div class="run-idx">'+String(i+1).padStart(2,"0")+'</div>'+
@@ -3369,7 +3372,7 @@ var FINISHES = [
             '<input type="number" class="r-reps" min="1" step="1" aria-label="Reps" value="'+(st.reps||"")+'">'
           : '<input type="number" class="r-wt" min="0" step="any" placeholder="lb" aria-label="Weight" value="'+(st.weight===null||st.weight===undefined?"":st.weight)+'">'+
             '<input type="number" class="r-reps" min="1" step="1" aria-label="Reps" value="'+(st.reps||"")+'">')+
-        '</div><button type="button" class="btn-secondary r-log"'+(st.done>=total?" disabled":"")+'>Log</button></div>';
+        '</div><button type="button" class="btn-secondary r-log">Log</button></div>';
       row.querySelector(".r-log").addEventListener("click",function(){ logRunnerSet(i,row); });
       wrap.appendChild(row);
     });
@@ -3392,7 +3395,7 @@ var FINISHES = [
   }
   function logRunnerSet(i,row){
     var run=state.runner; if(!run) return;
-    var st=run.steps[i], total=stepSets(st); if(st.done>=total) return;
+    var st=run.steps[i], total=stepSets(st);
     if(!st.name) return;
     var exId=ensureExercise(st.name, st.type);
     var k=kindOf(st.type);
@@ -3464,6 +3467,14 @@ var FINISHES = [
   document.getElementById("themeBtn").addEventListener("click",function(){ var r=document.documentElement; var cur=r.getAttribute("data-theme"); var dark = cur ? cur==="dark" : !window.matchMedia("(prefers-color-scheme: light)").matches; r.setAttribute("data-theme", dark?"light":"dark"); try{ localStorage.setItem("lb-theme", dark?"light":"dark"); }catch(e){} });
   try{ var saved=localStorage.getItem("lb-theme"); if(saved) document.documentElement.setAttribute("data-theme",saved); }catch(e){}
 
+  var logFlashTimer=null;
+  function flashLogged(entry){
+    var btn=document.querySelector('#logForm button[type="submit"]'); if(!btn) return;
+    btn.textContent="Entered \u00b7 "+entryDetail(entry);
+    btn.classList.add("flash");
+    clearTimeout(logFlashTimer);
+    logFlashTimer=setTimeout(function(){ btn.textContent="Enter into ledger"; btn.classList.remove("flash"); },1600);
+  }
   document.getElementById("logForm").addEventListener("submit",function(ev){
     ev.preventDefault();
     var nameEl=document.getElementById("logName"), exerciseName=nameEl.value.trim();
@@ -3477,23 +3488,21 @@ var FINISHES = [
       var w=document.getElementById("weightInput"), r=document.getElementById("repsInput");
       if(!r.value){ r.focus(); return; }
       entry.weight=w.value===""?0:Number(w.value); entry.reps=Number(r.value);
-      w.value=""; r.value="";
     } else if(type==="bodyweight"){
       var a=document.getElementById("addedInput"), br=document.getElementById("bwRepsInput");
       if(!br.value){ br.focus(); return; }
       entry.reps=Number(br.value); entry.added=a.value===""?null:Number(a.value);
-      a.value=""; br.value="";
     } else if(type==="hold"){
       var sc=document.getElementById("secsInput");
       if(!sc.value||Number(sc.value)<=0){ sc.focus(); return; }
-      entry.secs=Number(sc.value); sc.value="";
+      entry.secs=Number(sc.value);
     } else {
       var du=document.getElementById("durationInput"), di=document.getElementById("distanceInput");
       if(!du.value){ du.focus(); return; }
       entry.duration=Number(du.value); entry.distance=di.value===""?null:Number(di.value);
-      du.value=""; di.value="";
     }
     addEntry(date,entry);
+    flashLogged(entry);
   });
 
   /* ---------- boot ---------- */
