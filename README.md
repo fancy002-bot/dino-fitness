@@ -289,6 +289,28 @@ into one string, and `renderShop()` returns early when it has not moved. Logging
 none of them, so it fell to **37 ms**; buying, claiming or unlocking an era still redraws in
 full. Add to the signature if you add an input, or the catalogue will go stale.
 
+## The stipend token
+
+A gold velociraptor struck on a dark oak medallion, defined once as an SVG
+`<symbol>` near the top of the body and drawn with `<use>` everywhere else.
+
+Three things that had to be got right, all found by rendering rather than reasoning:
+
+**Seven filled paths, not one outline.** Drawing the animal as a single path with
+sub-paths punched holes wherever two parts overlapped — the sub-paths wound in
+opposite directions, so the neck cut a notch out of the body. Separate `<path>`
+elements cannot do that.
+
+**A `<symbol>` plus `<use>`, not inline artwork.** The coin sits beside every price
+in a 618-card catalogue. Measured on a 6x-throttled CPU, a full grid rebuild costs
+160ms with the old plain circle, 186ms with a shared symbol, and 425ms if every
+coin carries its own copy — 2.7x, for an icon nobody would look at twice.
+
+**The disc is dark and self-contained.** The token lands on a red claim button, a
+cream panel and a near-black masthead, so it cannot borrow its contrast from the
+surface underneath. It carries its own rim and a drop shadow, and `aria-hidden`,
+because the figure beside it always says what it means.
+
 ## The theme
 
 Candy red accent, sage-olive outlines, parchment letters, olive-charcoal ground.
