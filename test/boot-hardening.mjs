@@ -107,13 +107,30 @@ check("a stringly-typed weight is coerced, not left invisible",
 check("unreadable rows are counted", /unreadable/.test(junk.msg), "true");
 
 /* the cabinet is two thirds of the app; it must survive a move to a new device */
+/* a real specimen, and the era it actually belongs to */
+const specimen = lb.DINOS[0].id;
+const specimenEra = lb.eraOf(specimen);
 lb.state.rewards.tokens = 4321;
-lb.state.rewards.owned = ["tyrannosaurus"];
+lb.state.rewards.owned = [specimen];
+lb.state.rewards.erasUnlocked = [specimenEra];
 const full = lb.exportLedger();
-lb.state.rewards.tokens = 0; lb.state.rewards.owned = [];
+lb.state.rewards.tokens = 0; lb.state.rewards.owned = []; lb.state.rewards.erasUnlocked = [];
 lb.importLedger(full);
 check("tokens come back", lb.state.rewards.tokens, 4321);
-check("and so does the collection", lb.state.rewards.owned.indexOf("tyrannosaurus") !== -1, "true");
+/* a specimen is only restored into an era you could actually have opened - one
+   pasted file used to hand over all 618 and the completion bonus with them */
+check("a sealed era's specimen is refused", lb.state.rewards.owned.indexOf(specimen), -1);
+lb.state.rewards.erasUnlocked = [specimenEra];
+lb.importLedger(full);
+check("and comes back once that era is open",
+  lb.state.rewards.owned.indexOf(specimen) !== -1, "true");
+const grab = lb.importLedger(JSON.stringify({ sessions: [],
+  rewards: { owned: lb.DINOS.map(d => d.id) } }));
+check("a crafted file cannot buy the cabinet", /have not opened yet/.test(grab.msg), "true");
+check("and the completion bonus does not fire for it", !!lb.state.rewards.bonusClaimed, "false");
+/* a partial backup carrying only goals or rewards is a legitimate file */
+check("a rewards-only file is accepted",
+  lb.importLedger(JSON.stringify({ rewards: { tokens: 5000 } })).ok, "true");
 
 /* ---- records that reflect what was actually done ---- */
 check("a weighted hold outranks a longer bare one",
@@ -336,6 +353,100 @@ check("and falls back to today's only when it has none",
 /* ---- a starting load you can actually rack ---- */
 check("a novice barbell load is at least an empty bar",
   lb.startingLoad("Overhead Press", 120, 0, { sex: "female", age: 30 }) >= 44, "true");
+
+/* ---- round four: what six more agents found ---- */
+
+/* a ramp day holds a top single AND its back-off sets; each step must progress
+   off the group that answers its own rep target */
+lb.state.sessions = [];
+lb.state.goals.progression = "on";
+const rampDay = daysAgo(3);
+lb.state.sessions.push({ date: rampDay, sample: false, entries: [
+  { id: "r1", exerciseId: "ramp-squat", exerciseName: "Ramp Squat", type: "strength", weight: 405, reps: 1 },
+  { id: "r2", exerciseId: "ramp-squat", exerciseName: "Ramp Squat", type: "strength", weight: 335, reps: 5 },
+  { id: "r3", exerciseId: "ramp-squat", exerciseName: "Ramp Squat", type: "strength", weight: 335, reps: 5 },
+  { id: "r4", exerciseId: "ramp-squat", exerciseName: "Ramp Squat", type: "strength", weight: 335, reps: 5 }] });
+const single = lb.suggestNext({ exerciseId: "ramp-squat", name: "Ramp Squat", type: "strength", sets: 1, reps: 1, weight: 405 });
+const backoff = lb.suggestNext({ exerciseId: "ramp-squat", name: "Ramp Squat", type: "strength", sets: 3, reps: 5, weight: 335 });
+check("the top single progresses off the single", single.weight > 405, "true");
+check("and the back-off sets off the back-offs", backoff.weight > 335 && backoff.weight < 405, "true");
+check("the hint quotes the sets the number came from",
+  /405 lb/.test(lb.suggestNote(single, { type: "strength" })), "true");
+check("and the back-off hint quotes the back-offs",
+  /335 lb/.test(lb.suggestNote(backoff, { type: "strength" })), "true");
+
+/* one movement, one badge, on the best actually done */
+lb.state.sessions = [];
+[100, 110, 105, 120].forEach((wt, i) => lb.state.sessions.push({ date: daysAgo(10 - i), sample: false,
+  entries: [{ id: "pr" + i, exerciseId: "badge-lift", exerciseName: "Badge Lift", type: "strength", weight: wt, reps: 5 }] }));
+lb.recomputePRs("badge-lift", "strength");
+const badges = lb.state.sessions.flatMap(s => s.entries).filter(e => e.exerciseId === "badge-lift" && e.isPR);
+check("exactly one personal-record badge", badges.length, 1);
+check("and it is on the heaviest", badges[0] && badges[0].weight, 120);
+
+/* two steps of the same movement are two different steps */
+const twoStep = [
+  { exerciseId: "ramp-squat", name: "Ramp Squat", type: "strength", sets: 1, reps: 1, weight: 405, done: 1 },
+  { exerciseId: "ramp-squat", name: "Ramp Squat", type: "strength", sets: 3, reps: 5, weight: 335, done: 2 }];
+const hit = lb.matchStep(twoStep, { exerciseId: "ramp-squat", type: "strength", reps: 5 }, -1);
+check("striking a volume set finds the volume step", hit && hit.reps, 5);
+const hitSingle = lb.matchStep(twoStep, { exerciseId: "ramp-squat", type: "strength", reps: 1 }, -1);
+check("and striking the single finds the single", hitSingle && hitSingle.reps, 1);
+
+/* a restore must not hand over a cabinet, and must not pay a bonus for one */
+check("weigh-ins are never records", (() => {
+  lb.state.sessions = [{ date: daysAgo(2), sample: false, entries: [
+    { id: "w1", exerciseId: "__bodyweight", exerciseName: "Weigh-in", type: "weight", lb: 180 },
+    { id: "w2", exerciseId: "__bodyweight", exerciseName: "Weigh-in", type: "weight", lb: 190 }] }];
+  lb.recomputePRs("__bodyweight", "weight");
+  return lb.state.sessions[0].entries.some(e => e.isPR);
+})(), "false");
+
+/* an unmodified re-import must settle, not correct for ever */
+lb.state.sessions = [];
+lb.state.sessions.push({ date: daysAgo(5), sample: false, entries: [
+  { id: "s1", exerciseId: "settle", exerciseName: "Settle", type: "strength", weight: 150, reps: 5 },
+  { id: "s2", exerciseId: "settle", exerciseName: "Settle", type: "strength", weight: 200, reps: 5 }] });
+const settleFile = lb.exportLedger();
+lb.state.sessions = [];
+lb.importLedger(settleFile);
+const second = lb.importLedger(settleFile), third = lb.importLedger(settleFile);
+check("a re-import reports no corrections", /corrected/.test(second.msg), "false");
+check("and neither does a third", /corrected/.test(third.msg), "false");
+check("it says they are already here", /already here/.test(third.msg), "true");
+
+/* an entry with no id must mint the same id every time the same file is read */
+const noIdFile = JSON.stringify({ sessions: [{ date: daysAgo(8), entries: [
+  { exerciseId: "mint", exerciseName: "Mint", type: "strength", weight: 100, reps: 5 },
+  { exerciseId: "mint", exerciseName: "Mint", type: "strength", weight: 100, reps: 5 },
+  { exerciseId: "mint", exerciseName: "Mint", type: "strength", weight: 100, reps: 5 }] }] });
+lb.state.sessions = [];
+lb.importLedger(noIdFile);
+const afterOne = lb.state.sessions.reduce((a, s) => a + s.entries.length, 0);
+lb.importLedger(noIdFile); lb.importLedger(noIdFile);
+check("three identical sets with no id all survive", afterOne, 3);
+check("and re-importing the file does not duplicate them",
+  lb.state.sessions.reduce((a, s) => a + s.entries.length, 0), 3);
+
+/* the endurance week deals its jobs across the runs, not across the days */
+const fiveDay = lb.buildProgramme({ goal: "endurance", bw: 160, days: 5, kit: "full",
+  experience: 1, weeks: 16, mileage: 40 });
+const allRuns = fiveDay.flatMap(d => d.steps).filter(s => s.type === "cardio");
+check("every run has a distinct name", new Set(allRuns.map(r => r.name)).size, allRuns.length);
+check("the week's distance adds up to the mileage given",
+  Math.abs(allRuns.reduce((a, r) => a + (r.distance || 0), 0) - 40) < 2, "true");
+check("the taper really tapers for its last three weeks",
+  lb.weekFactor(13, 16) < 1 && lb.weekFactor(14, 16) < lb.weekFactor(13, 16) &&
+  lb.weekFactor(15, 16) < lb.weekFactor(14, 16), "true");
+check("race distance is used, not just collected",
+  /Against a/.test(lb.raceReadiness({ raceKm: 42.2, mileage: 40 }, 46)), "true");
+
+/* a perfect week pays the cap */
+lb.state.goals.sessions = 4;
+check("keeping every session pays the maximum", lb.rewardAmountForWeek(4), 50);
+lb.state.goals.sessions = 6;
+check("at any target", lb.rewardAmountForWeek(6), 50);
+lb.state.goals.sessions = 4;
 
 check("no console errors along the way", errors.length, 0);
 done("boot-hardening");

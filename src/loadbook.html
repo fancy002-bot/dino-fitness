@@ -79,7 +79,7 @@
   .brand-name{font-family:var(--font-display); font-weight:400; font-size:1.35rem; letter-spacing:0.22em; text-transform:uppercase; line-height:1;}
   .brand-sub{font-family:var(--font-caps); font-size:0.58rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-soft); margin-top:4px;}
   .mast-right{display:flex; align-items:center; gap:18px;}
-  .stipend{display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:0.84rem; color:var(--bronze-hi); border:2px solid var(--line-strong); padding:7px 12px;}
+  .stipend{display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:0.84rem; color:var(--ink-accent); border:2px solid var(--line-strong); padding:7px 12px;}
   .today{font-family:var(--font-mono); font-size:0.72rem; letter-spacing:0.06em; color:var(--ink-soft);}
   .sync-flag{font-family:var(--font-caps); font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink); border:2px solid var(--warn); padding:5px 9px; display:none;}
   .sync-flag.show{display:inline-block;}
@@ -114,7 +114,9 @@
   .frontis-grid{display:grid; grid-template-columns:auto 1fr auto; gap:32px; align-items:center; padding:28px 0; border-top:2px solid var(--line-strong); border-bottom:2px solid var(--line);}
   @media (max-width:960px){ .frontis-grid{grid-template-columns:1fr; gap:26px;} }
 
-  .dials{display:flex; align-items:center; gap:22px;}
+  /* wrapping was gated on a 380px viewport, so at 200% text on an ordinary 390px
+     phone the dial and its legend forced 57px of page-level horizontal scroll */
+  .dials{display:flex; align-items:center; gap:22px; flex-wrap:wrap;}
   .dial-wrap{position:relative; width:150px; height:150px; flex-shrink:0;}
   .dial-wrap svg{width:100%; height:100%;}
   .dial-track{fill:none; stroke:var(--surface-3);}
@@ -123,12 +125,15 @@
   .dial-center .v{font-family:var(--font-caps); font-weight:600; font-size:2rem; line-height:1; color:var(--bronze-hi);}
   .dial-center .l{font-family:var(--font-caps); font-size:0.62rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft); margin-top:4px;}
   .dial-legend{display:flex; flex-direction:column; gap:9px; min-width:0;}
-  @media (max-width:380px){ .dials{gap:12px; flex-wrap:wrap;} .dial-wrap{width:118px; height:118px;} .dl-row .k{min-width:60px;} .dl-row .v{font-size:0.76rem;} }
-  .dl-row{display:flex; align-items:baseline; gap:10px;}
+  .dial-legend{flex:1 1 200px;}
+  @media (max-width:380px){ .dials{gap:12px;} .dial-wrap{width:118px; height:118px;} .dl-row .k{min-width:60px;} .dl-row .v{font-size:0.76rem;} }
+  .dl-row{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; min-width:0;}
   .dl-row .sw{width:14px; height:2px; flex-shrink:0; margin-bottom:3px;}
   .dl-row.a .sw{background:var(--dial-a);} .dl-row.b .sw{background:var(--dial-b);} .dl-row.c .sw{background:var(--dial-c);}
   .dl-row .k{font-size:0.78rem; color:var(--ink-soft); min-width:88px;}
-  .dl-row .v{font-family:var(--font-mono); font-size:0.82rem;}
+  /* one legend value carries a whole sentence ("set it in settings to count
+     bodyweight sets"), which ran off the page at 200% text in a narrow band */
+  .dl-row .v{font-family:var(--font-mono); font-size:0.82rem; min-width:0; overflow-wrap:anywhere;}
   .dl-row .v small{color:var(--ink-mute); font-size:0.7rem;}
   .dl-row.d{margin-top:3px; padding-top:8px; border-top:1px solid var(--line);}
   .dl-row.d .k{color:var(--ink-mute);}
@@ -151,10 +156,12 @@
   .vit.empty span{font-family:var(--font-display); font-style:italic; color:var(--ink-mute); font-size:0.9rem;}
   .shelf-cap{font-family:var(--font-caps); font-size:0.58rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-soft); text-align:center; margin-top:8px;}
 
-  .frontis-stats{display:flex; flex-direction:column; gap:14px; min-width:170px;}
+  .frontis-stats{display:flex; flex-direction:column; gap:14px; min-width:0; flex:1 1 170px;}
   .fs{border-left:3px solid var(--line-strong); padding-left:14px;}
   .fs .k{font-family:var(--font-caps); font-size:0.58rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-soft);}
-  .fs .v{font-family:var(--font-caps); font-weight:600; font-size:1.5rem; line-height:1.05; margin-top:3px;}
+  /* the value and its trailing <small> ran past the viewport in a narrow band at
+     200% text, where no media query was watching */
+  .fs .v{font-family:var(--font-caps); font-weight:600; font-size:1.5rem; line-height:1.05; margin-top:3px; overflow-wrap:anywhere; min-width:0;}
   .fs .v small{font-family:var(--font-body); font-size:0.72rem; font-weight:400; color:var(--ink-soft);}
 
   /* ---- volume switch ---- */
@@ -191,7 +198,7 @@
   /* ---- ledger form ---- */
   .field{display:flex; flex-direction:column; gap:6px;}
   .field label{font-family:var(--font-caps); font-size:0.72rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-soft);}
-  .field select, .field input{background:var(--surface-2); border:2px solid var(--line); border-bottom-color:var(--line-strong); color:var(--ink); padding:10px 11px; font-family:var(--font-body); font-size:0.94rem; width:100%; border-radius:0;}
+  .field select, .field input{background:var(--surface-2); border:2px solid var(--line); border-bottom-color:var(--line-strong); color:var(--ink); min-height:44px; padding:10px 11px; font-family:var(--font-body); font-size:0.94rem; width:100%; border-radius:0;}
   .field input[type="number"], .field input[type="date"]{font-family:var(--font-mono);}
   .field select:focus, .field input:focus{border-color:var(--bronze); outline:2px solid var(--bronze-hi); outline-offset:1px;}
   .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
@@ -211,7 +218,7 @@
   .log-hint{font-family:var(--font-caps); font-size:0.68rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute); margin-top:12px; min-height:1em;}
   .weigh-bar{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-top:16px; padding-top:16px; border-top:2px solid var(--line);}
   .weigh-bar .k{font-family:var(--font-caps); font-size:0.68rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute);}
-  .weigh-bar input{width:88px; background:var(--surface-2); border:2px solid var(--line); color:var(--ink); padding:8px 9px; font-family:var(--font-mono); font-size:0.86rem; text-align:right; border-radius:0;}
+  .weigh-bar input{width:88px; min-height:44px; background:var(--surface-2); border:2px solid var(--line); color:var(--ink); padding:8px 9px; font-family:var(--font-mono); font-size:0.86rem; text-align:right; border-radius:0;}
   .weigh-note{font-family:var(--font-caps); font-size:0.52rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-mute);}
   .rest-bar{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-top:16px; padding-top:16px; border-top:2px solid var(--line);}
   .rest-read{font-family:var(--font-caps); font-weight:600; font-size:1.5rem; line-height:1; color:var(--ink); font-variant-numeric:tabular-nums; min-width:62px;}
@@ -220,7 +227,7 @@
   .rest-bar.elapsed .rest-mode{color:var(--bronze);}
   .rest-len{display:flex; align-items:center; gap:6px; margin-left:auto;}
   .rest-len .k{font-family:var(--font-caps); font-size:0.68rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-mute);}
-  .rest-len input{width:54px; background:var(--surface-2); border:2px solid var(--line); color:var(--ink); padding:5px 7px; font-family:var(--font-mono); font-size:0.78rem; text-align:right; border-radius:0;}
+  .rest-len input{width:54px; min-height:44px; background:var(--surface-2); border:2px solid var(--line); color:var(--ink); padding:5px 7px; font-family:var(--font-mono); font-size:0.78rem; text-align:right; border-radius:0;}
   .rest-len input:focus{border-color:var(--bronze); outline:2px solid var(--bronze-hi); outline-offset:1px;}
   @media (max-width:520px){ .rest-len{margin-left:0; width:100%;} }
 
@@ -231,7 +238,7 @@
   .sample-badge{font-family:var(--font-caps); font-size:0.56rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-mute); border:1px dashed var(--line-strong); padding:2px 7px;}
   .entry-row{display:grid; grid-template-columns:auto 1fr auto auto; gap:12px; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); background-image:repeating-linear-gradient(90deg, transparent 0 6px, transparent 6px 7px);}
   .entry-cat{width:6px; height:6px; border-radius:50%; flex-shrink:0;}
-  .entry-name{font-size:0.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:none; border:none; padding:0; text-align:left; cursor:pointer; font-family:inherit;}
+  .entry-name{font-size:0.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:none; border:none; padding:12px 0; min-height:44px; text-align:left; cursor:pointer; font-family:inherit;}
   .entry-name:hover{color:var(--bronze-hi);}
   .entry-name:focus-visible{outline:1px solid var(--bronze-hi); outline-offset:2px;}
   .entry-detail{font-family:var(--font-mono); font-size:0.8rem; color:var(--ink-soft); min-width:0;}
@@ -331,7 +338,9 @@
   /* filtering hides cards rather than rebuilding all 618 of them, and a grid item
      needs to be told explicitly */
   .plate[hidden]{display:none;}
-  .brass{margin-top:8px; background:linear-gradient(180deg, var(--bronze-hi), var(--bronze) 55%, var(--bronze-deep)); color:#FFFFFF; padding:7px 9px 6px; text-align:center; border:2px solid var(--bronze-deep); box-shadow:inset 0 1px 0 rgba(255,255,255,0.35);}
+  /* white on the top of the gradient measured 3.00:1; the plate reads from the
+     mid tone down, which clears 4.5 */
+  .brass{margin-top:8px; background:linear-gradient(180deg, var(--bronze) 0%, var(--bronze-deep) 100%); color:#FFFFFF; padding:7px 9px 6px; text-align:center; border:2px solid var(--bronze-deep); box-shadow:inset 0 1px 0 rgba(255,255,255,0.35);}
   .brass .no{font-family:var(--font-mono); font-size:0.56rem; letter-spacing:0.18em;}
   .brass .nm{font-family:var(--font-caps); font-weight:600; font-size:0.92rem; line-height:1.1; letter-spacing:0.02em; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .brass .gr{font-family:var(--font-caps); font-size:0.52rem; letter-spacing:0.16em; text-transform:uppercase; margin-top:2px; opacity:0.8;}
@@ -442,7 +451,7 @@
   /* ---- commission ---- */
   .cm-form{display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:12px; margin-bottom:14px;}
   .cm-hrow{display:flex; align-items:center; gap:7px;}
-  .cm-hrow input{background:var(--surface-2); border:2px solid var(--line); border-bottom-color:var(--line-strong); color:var(--ink); padding:9px 10px; font-family:var(--font-mono); font-size:0.86rem; width:100%; min-width:0; text-align:right; border-radius:0;}
+  .cm-hrow input{background:var(--surface-2); border:2px solid var(--line); border-bottom-color:var(--line-strong); color:var(--ink); min-height:44px; padding:9px 10px; font-family:var(--font-mono); font-size:0.86rem; width:100%; min-width:0; text-align:right; border-radius:0;}
   .cm-hrow input:focus{border-color:var(--bronze); outline:2px solid var(--bronze-hi); outline-offset:1px;}
   .cm-hrow .k{font-family:var(--font-caps); font-size:0.68rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute); flex-shrink:0;}
   .cm-verdict{border-left:4px solid var(--line-strong); padding:14px 16px; background:var(--surface-2); margin-top:18px;}
@@ -513,9 +522,9 @@
   @media (max-width:600px){ .set-row{grid-template-columns:1fr; gap:10px;} }
   .set-t{font-family:var(--font-display); font-size:1.08rem; line-height:1.2;}
   .set-d{font-size:0.84rem; color:var(--ink-soft); margin-top:3px; max-width:46ch;}
-  .set-head{font-family:var(--font-caps); font-size:0.58rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--bronze); margin:26px 0 2px; padding-top:16px; border-top:2px solid var(--line-strong);}
+  .set-head{font-family:var(--font-caps); font-size:0.58rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-accent); margin:26px 0 2px; padding-top:16px; border-top:2px solid var(--line-strong);}
   .set-in{display:flex; align-items:center; gap:7px;}
-  .set-in input{width:82px; background:var(--surface-2); border:2px solid var(--line); color:var(--ink); padding:8px 9px; font-family:var(--font-mono); font-size:0.86rem; text-align:right; border-radius:0;}
+  .set-in input{width:82px; min-height:44px; background:var(--surface-2); border:2px solid var(--line); color:var(--ink); padding:8px 9px; font-family:var(--font-mono); font-size:0.86rem; text-align:right; border-radius:0;}
   .set-in input:focus{border-color:var(--bronze); outline:2px solid var(--bronze-hi); outline-offset:1px;}
   .set-in span{font-family:var(--font-caps); font-size:0.68rem; letter-spacing:0.13em; text-transform:uppercase; color:var(--ink-mute);}
   .set-ins{display:flex; gap:10px; flex-wrap:wrap;}
@@ -2695,7 +2704,7 @@ var FINISHES = [
   function buildSpecPlate(id){
     var d = DINOS.find(function(x){ return x.id === id; }) || {}, b = DINO_BIOS[id] || {};
     var p = periodInfo(b.period), len = parseLengthM(b.size);
-    var ink = "#1A1A1A", mute = "rgba(26,26,26,0.55)", hair = "rgba(92,63,32,0.55)";
+    var ink = "#1A1A1A", mute = "rgba(26,26,26,0.78)", hair = "rgba(92,63,32,0.55)";
     var mass = b.mass || "\u2014", diet = b.diet || "\u2014";
     var glyph = DIET_GLYPH[diet] || '<circle cx="5.5" cy="5.5" r="5" fill="none" stroke="currentColor" stroke-width="1"/>';
     var barW = len ? Math.max(3, plateFrac(len)*PLATE_W) : 0;
@@ -2785,7 +2794,10 @@ var FINISHES = [
   }
   function rewardAmountForWeek(n){
     var target=Math.max(1, Math.round(Number(state.goals.sessions)||4));
-    return Math.min(10 + Math.max(n-1,0)*Math.round(40/target), 50);
+    /* keeping every session you set yourself is the maximum. Multiplying by n-1
+       meant the cap only arrived one session PAST your own target, so a textbook
+       week paid 40 of 50; and rounding the step first left 6 x 7 = 42, not 50. */
+    return Math.min(50, Math.round(10 + Math.max(n,0)*(40/target)));
   }
   function rewardAmountForStreak(s){ return Math.min(10 + Math.max(s-1,0)*2, 50); }
 
@@ -2933,15 +2945,22 @@ var FINISHES = [
     grid.innerHTML=html.join("");
     if(!grid.dataset.wired){
       grid.dataset.wired="1";
+      /* one listener answers for 618 cards, so it has to check the thing the
+         renderer used to answer by not existing: whether this card is shown */
+      var live=function(t,sel){
+        var el=t&&t.closest&&t.closest(sel); if(!el) return null;
+        var card=el.closest(".plate");
+        return (card&&card.hidden)?null:el;
+      };
       grid.addEventListener("click",function(ev){
-        var buy=ev.target.closest&&ev.target.closest(".dino-buy-btn");
+        var buy=live(ev.target,".dino-buy-btn");
         if(buy){ ev.stopPropagation(); buyDino(buy.dataset.id); return; }
-        var card=ev.target.closest&&ev.target.closest(".plate");
+        var card=live(ev.target,".plate");
         if(card) openDinoSheet(card.dataset.id);
       });
       grid.addEventListener("keydown",function(ev){
         if(ev.key!=="Enter"&&ev.key!==" ") return;
-        var card=ev.target.closest&&ev.target.closest(".plate");
+        var card=live(ev.target,".plate");
         if(card){ ev.preventDefault(); openDinoSheet(card.dataset.id); }
       });
     }
@@ -3220,6 +3239,10 @@ var FINISHES = [
              re-render; fall back to the first one still standing */
           if(!prev && id==="runnerSheet") prev=document.querySelector("#routineList .r-begin");
         }
+        /* Everything that opens a dialog lives inside the containers we mark
+           inert, and the browser silently refuses focus on an inert element - so
+           this has to happen AFTER the background is released, not before. */
+        if(sheetStack.length===0) setBackgroundInert(false);
         if(prev && document.contains(prev) && typeof prev.focus==="function") prev.focus();
         else { var host=document.getElementById("vol-ledger"); if(host) host.focus(); }
         break;
@@ -3303,9 +3326,11 @@ var FINISHES = [
     /* most corrections are made from the ledger with the runner shut, and the
        saved pip count was never touched, so reopening restored an inflated tally */
     if(!run){ adjustSavedRun(entry,delta); return; }
+    var pick=matchStep(run.steps, entry, delta);
+    if(!pick) return;
     for(var i=0;i<run.steps.length;i++){
       var st=run.steps[i];
-      if(st.exerciseId===entry.exerciseId && kindOf(st.type)===entry.type){
+      if(st===pick){
         st.done=Math.max(0, st.done+delta);
         if(delta<0) run.logged=Math.max(0, run.logged-1);
         saveRunProgress(); renderRunSteps();
@@ -3352,18 +3377,31 @@ var FINISHES = [
   }
   /* a PR is only true relative to everything else; correcting or striking a set can
      make a badge a lie, so the whole movement is re-judged in date order */
+  /* This predates both the specimen fix and the sort cache, and neither reached it:
+     it walked every entry including demo ones, so a seeded 175 lb bench kept a PR
+     badge beside your real 200, and it re-sorted the whole ledger itself. */
   function recomputePRs(exerciseId,type){
     if(!exerciseId) return;
-    var best=null;
-    state.sessions.slice().sort(function(a,b){ return a.date<b.date?-1:1; }).forEach(function(sn){
+    /* standing on a scale is not a record, and neither is going for a run */
+    if(type==="weight"||type==="cardio"){
+      eachRealEntry(function(e){ if(e.exerciseId===exerciseId&&e.type===type) e.isPR=false; });
+      return;
+    }
+    var best=null, bestEntry=null;
+    sessionsSorted().slice().reverse().forEach(function(sn){
       sn.entries.forEach(function(e){
         if(e.exerciseId!==exerciseId||e.type!==type) return;
+        if(isSampleEntry(sn,e)){ e.isPR=false; return; }
         var v = type==="bodyweight" ? bwScore(e) : type==="hold" ? holdScore(e) : entryMetric(e);
         if(v===null||type==="cardio"){ e.isPR=false; return; }
-        e.isPR = best!==null && v>best;
-        if(best===null||v>best) best=v;
+        e.isPR=false;
+        if(best===null||v>best){ best=v; bestEntry=e; }
       });
     });
+    /* Marking everything that was a record at the time meant a rising series wore
+       three badges at once and no amount of re-deriving converged. One movement,
+       one badge, on the best you have actually done. */
+    if(bestEntry) bestEntry.isPR=true;
   }
   function persistSession(date){
     if(!state.dbAvailable) return;
@@ -3815,31 +3853,43 @@ var FINISHES = [
         var c=pick("cardio"), cs=defaultStep(c.n,"cardio");
         cs.duration=rx.cardioMin; cs.restSec=60; steps.push(cs);
       }
-      /* An endurance plan used to be the same thirty-minute run on every day it
-         appeared. Give each run its job, and size the week off what is actually
-         being run now rather than off a constant. */
-      if(req.goal==="endurance"){
-        var runs=steps.filter(function(x){ return x.type==="cardio"; });
-        if(runs.length){
-          var kind=RUN_KINDS[di%RUN_KINDS.length];
-          var weekKm=Number(req.mileage)||0;
-          runs.forEach(function(r){
-            r.name=kind.n;
-            r.exerciseId=slugify(kind.n);
-            r.note=kind.pace;
-            if(weekKm>0){
-              /* about 6 min/km for an easy effort, quicker for the quality work */
-              var km=Math.max(1, Math.round(weekKm*kind.share*10)/10);
-              var perKm = kind.n==="Intervals" ? 5 : kind.n==="Tempo run" ? 5.4 : 6.2;
-              r.distance=km;
-              r.duration=Math.max(10, Math.round(km*perKm));
-            }
-          });
-        }
-      }
       out.push({name:day[0], steps:steps});
     });
+    if(req.goal==="endurance") shapeRunningWeek(out, req);
     return out;
+  }
+  /* An endurance plan used to be the same thirty-minute run wherever it appeared.
+     Each run gets its own job - but assigning by DAY was wrong: the five-day split
+     has a Conditioning day carrying two cardio slots and an Upper day carrying
+     none, so one day got Intervals twice, another got no run at all, and the second
+     easy run never appeared. The jobs are dealt across the runs themselves. */
+  function shapeRunningWeek(plan, req){
+    var runs=[];
+    plan.forEach(function(day){ day.steps.forEach(function(st){ if(st.type==="cardio") runs.push(st); }); });
+    if(!runs.length) return;
+    /* the shares are written for five runs; fewer runs keep the most important
+       jobs and the week is re-normalised so the mileage still adds up */
+    var kinds=RUN_KINDS.slice(0, Math.min(RUN_KINDS.length, runs.length));
+    while(kinds.length<runs.length) kinds.push(RUN_KINDS[1]);   /* extra days are easy running */
+    var total=kinds.reduce(function(a,k){ return a+k.share; },0);
+    var weekKm=Number(req.mileage)||0;
+    runs.forEach(function(r,i){
+      var kind=kinds[i];
+      r.name=kind.n; r.exerciseId=slugify(kind.n); r.note=kind.pace;
+      if(weekKm>0){
+        var km=Math.max(1, Math.round(weekKm*(kind.share/total)*10)/10);
+        var perKm = kind.n==="Intervals" ? 5 : kind.n==="Tempo run" ? 5.4 : 6.2;
+        r.distance=km;
+        r.duration=Math.max(10, Math.round(km*perKm));
+      }
+    });
+    /* two runs of the same job in one week are two different sessions, not one
+       repeated - number them so the ledger can tell them apart */
+    var seen={};
+    runs.forEach(function(r){
+      seen[r.name]=(seen[r.name]||0)+1;
+      if(seen[r.name]>1){ r.name=r.name+" "+seen[r.name]; r.exerciseId=slugify(r.name); }
+    });
   }
 
   /* ---------- the table ----------
@@ -3947,11 +3997,23 @@ var FINISHES = [
      the last three weeks before a race come down hard */
   function weekFactor(week,weeks){
     if(!weeks) return 1;
+    /* weeks run 0..weeks-1, so the last week has toGo===1. Handling only 0,1,2
+       left the third-from-last week on the build cycle while renderBuild coloured
+       it as taper - at 13 weeks that painted the highest week of the plan as the
+       start of the wind-down. */
     var toGo=weeks-week;
-    if(toGo<=0) return 0.4;
-    if(toGo===1) return 0.55;
-    if(toGo===2) return 0.75;
+    if(toGo<=1) return 0.4;
+    if(toGo===2) return 0.55;
+    if(toGo===3) return 0.75;
     return [1, 1.08, 1.16, 0.85][week%4];
+  }
+  /* sane() nulls anything over the ceiling and ||0 turned that into "no mileage
+     given", so 301 silently produced the generic plan with nothing said */
+  function clampField(id,ceil){
+    var el=document.getElementById(id); if(!el||el.value==="") return 0;
+    var v=sane(el.value,ceil);
+    if(v===null || v<0){ v=Math.max(0,Math.min(ceil, Math.abs(parseFloat(el.value))||0)); el.value=v||""; }
+    return v||0;
   }
   function commissionRequest(){
     var bwField=document.getElementById("cmBw").value;
@@ -3974,8 +4036,8 @@ var FINISHES = [
       })(),
       weeks: Number(document.getElementById("cmWeeks").value)||0,
       days: Number(document.getElementById("cmDays").value)||3,
-      mileage: sane(document.getElementById("cmMileage")&&document.getElementById("cmMileage").value,300)||0,
-      raceKm: sane(document.getElementById("cmRaceKm")&&document.getElementById("cmRaceKm").value,300)||0,
+      mileage: clampField("cmMileage",300),
+      raceKm: clampField("cmRaceKm",300),
       kit: document.getElementById("cmKit").value,
       experience: Number(document.getElementById("cmExp").value)||0,
       sex: document.getElementById("cmSex").value,
@@ -4072,15 +4134,40 @@ var FINISHES = [
       if(km>peak) peak=km;
       rows.push({w:w+1, f:f, km:km, taper:(weeks-w)<=3});
     }
+    var peakWeek=rows.reduce(function(a,r){ return r.f>a.f?r:a; },rows[0]);
+    var summary="A "+weeks+"-week build"+(base?" from "+Math.round(base)+" "+unitD()+" a week":"")+
+      ", rising for three weeks then easing for one, peaking in week "+peakWeek.w+
+      (base?" at about "+peak+" "+unitD():"")+", then coming down over the last three weeks to the race.";
     return '<div class="cm-oh">The build \u00b7 '+weeks+' weeks</div>'+
-      '<div class="build-grid">'+rows.map(function(r){
+      '<div class="build-grid" role="img" aria-label="'+escapeHtml(summary)+'">'+rows.map(function(r){
         return '<div class="build-w'+(r.taper?" taper":"")+'" title="Week '+r.w+(r.km?" \u00b7 "+r.km+" "+unitD():"")+'">'+
           '<i style="height:'+Math.max(6,Math.round(r.f/1.16*100))+'%"></i>'+
           '<span>'+r.w+'</span></div>';
       }).join("")+'</div>'+
-      '<p class="cm-note">Three weeks up, one week easier, repeated \u2014 then the last three weeks come down so you arrive fresh.'+
+      '<p class="cm-note">'+escapeHtml(summary)+' '+
       (base? ' Peak week about '+peak+' '+unitD()+'; the days above are a week at your current '+Math.round(base)+' '+unitD()+'.' :
-             ' Add what you run now and this will carry real distances.')+'</p>';
+             ' Add what you run now and this will carry real distances.')+'</p>'+
+      raceReadiness(req, peak);
+  }
+  /* Race distance was asked for and then never used. What it decides is whether the
+     mileage is enough for the race - the single most useful thing a build can tell
+     you, and the one a runner will not work out for themselves. */
+  function raceReadiness(req, peakWeek){
+    var race=Number(req.raceKm)||0, base=Number(req.mileage)||0;
+    if(!race||!base) return "";
+    var longShare=RUN_KINDS[0].share;
+    var peakLong=Math.round(peakWeek*longShare*10)/10;
+    /* a long run of about three quarters of the distance for a marathon, and
+       comfortably over it for anything 10k and under */
+    var wantLong = race>=30 ? race*0.75 : race>=15 ? race*0.85 : race*1.6;
+    var wantWeek = Math.round(wantLong/longShare);
+    var ok = peakLong >= wantLong*0.9;
+    return '<p class="'+(ok?"cm-note":"cm-warn")+'">Against a '+dOut(race)+' '+unitD()+
+      ' race, your longest run peaks at about '+dOut(peakLong)+' '+unitD()+'. '+
+      (ok ? 'That is enough to get you round.'
+          : 'For that distance the long run wants to reach about '+dOut(Math.round(wantLong*10)/10)+' '+unitD()+
+            ', which needs a peak week nearer '+wantWeek+' '+unitD()+'. Build the weekly figure up before the race rather than the long run alone.')+
+      '</p>';
   }
   function renderTable(f){
     if(!f) return '<div class="cm-oh">The table</div><p class="cm-note">Add your age and height and the eating to match will be worked out too.</p>';
@@ -4573,7 +4660,11 @@ var FINISHES = [
     for(var i=0;i<basis.length;i++){ h=((h*33)^basis.charCodeAt(i))>>>0; }
     return (e.exerciseId||"entry").slice(0,40)+"-"+h.toString(36);
   }
-  var ENTRY_FIELDS=["exerciseId","exerciseName","type","weight","reps","secs","duration","distance","added","lb","bw","isPR","sample"];
+  /* `sample` and `isPR` are deliberately not here. Neither is authored: coerceEntry
+     cannot express "sample:false", and isPR is owned by recomputePRs. Comparing
+     them made a re-import "correct" an entry, the recompute put it back, and the
+     next re-import corrected it again - for ever, on an unmodified file. */
+  var ENTRY_FIELDS=["exerciseId","exerciseName","type","weight","reps","secs","duration","distance","added","lb","bw"];
   function entryDiffers(a,b){
     for(var i=0;i<ENTRY_FIELDS.length;i++){
       var k=ENTRY_FIELDS[i], x=a[k], y=b[k];
@@ -4588,9 +4679,10 @@ var FINISHES = [
     var d;
     try{ d=JSON.parse(raw); }catch(e){ return {ok:false,msg:"That is not JSON."}; }
     if(!d||typeof d!=="object") return {ok:false,msg:"That is not a Loadbook ledger."};
-    if(!Array.isArray(d.sessions)&&!Array.isArray(d.exercises)&&!Array.isArray(d.routines))
-      return {ok:false,msg:"No sessions, movements or routines in there."};
-    var added={s:0,e:0,r:0,w:0}, skipped={dupe:0,bad:0,day:0,shape:0}, updated=0, seen={};
+    if(!Array.isArray(d.sessions)&&!Array.isArray(d.exercises)&&!Array.isArray(d.routines)&&
+       !(d.rewards&&typeof d.rewards==="object")&&!(d.goals&&typeof d.goals==="object"))
+      return {ok:false,msg:"No sessions, movements, routines, goals or collection in there."};
+    var added={s:0,e:0,r:0,w:0}, skipped={dupe:0,bad:0,day:0,shape:0,sealed:0}, updated=0, seen={};
     /* dedupe is scoped to the day: two files can legitimately reuse an id across
        sessions, and a globally unique id is not something a hand-written
        migration file can be expected to produce */
@@ -4605,7 +4697,7 @@ var FINISHES = [
       if(!r||!r.id||!Array.isArray(r.steps)||state.routines.some(function(x){return x.id===r.id;})) return;
       state.routines.push(r); persistRoutine(r); added.r++;
     });
-    var seq=0;
+    var seq=0, mintSeq={};
     /* a linear .find() per session made a big restore quadratic in distinct days:
        three times the data cost three and a half times the time */
     var byDate={};
@@ -4624,9 +4716,14 @@ var FINISHES = [
            id has to be derived from the entry itself: a Date.now() in it made
            every re-import of the same file duplicate the whole history. */
         if(!e.id){
-          var nth=0, base;
-          do { base="imp-"+contentId(sn.date,e,nth); nth++; } while(seen[key(sn.date,base)] && nth<200);
-          e.id=base;
+          /* Probing for a free slot meant the previous import's entry occupied
+             nth=0 and this one was pushed to nth=1 - so the same file imported
+             three times produced three copies. The occurrence counter is scoped
+             to THIS file, so the same file always mints the same ids. */
+          var stem=contentId(sn.date,e,0);
+          mintSeq[stem]=(mintSeq[stem]||0);
+          e.id="imp-"+contentId(sn.date,e,mintSeq[stem]);
+          mintSeq[stem]++;
         }
         var k=key(sn.date,e.id);
         if(seen[k]){
@@ -4635,7 +4732,15 @@ var FINISHES = [
           /* JSON.stringify is key-order sensitive, and a live entry is built by a
              different code path from a coerced one - so an unmodified re-import
              reported every set as corrected and rewrote it */
-          if(prior && entryDiffers(prior,e)){ Object.assign(prior,e); updated++; }
+          if(prior && entryDiffers(prior,e)){
+            /* a correction changes the numbers, not what the entry is or what the
+               ledger has worked out about it */
+            var wasSample=prior.sample, wasPR=prior.isPR;
+            Object.assign(prior,e);
+            if(wasSample!==undefined) prior.sample=wasSample;
+            prior.isPR=wasPR;
+            updated++;
+          }
           else skipped.dupe++;
           return;
         }
@@ -4678,7 +4783,7 @@ var FINISHES = [
       var r=d.rewards, R=state.rewards;
       var tk=sane(r.tokens,1e9); if(tk!==null&&tk>=0) R.tokens=Math.max(R.tokens,Math.round(tk));
       var fz=sane(r.freezes,999); if(fz!==null&&fz>=0) R.freezes=Math.max(R.freezes||0,Math.round(fz));
-      ["owned","shelf","frozenDates"].forEach(function(k){
+      ["shelf","frozenDates"].forEach(function(k){
         if(!Array.isArray(r[k])) return;
         R[k]=R[k]||[];
         r[k].forEach(function(v){ if(typeof v==="string"&&R[k].indexOf(v)===-1) R[k].push(v); });
@@ -4699,13 +4804,41 @@ var FINISHES = [
         Object.keys(r[k]).forEach(function(id){ if(!R[k][id]) R[k][id]=r[k][id]; });
       });
       /* taking the file's date let a crafted restore re-arm today's stipend */
+      /* The era gate was re-derived from earned weeks, but the thing that gate
+         exists to protect - which specimens you own - was pushed in unchecked, so
+         one pasted file bought the whole cabinet and the completion bonus with it.
+         A restored specimen has to be one you could actually have acquired. */
+      R.owned=R.owned||[];
+      if(Array.isArray(r.owned)){
+        /* gate on eras that are open - which were themselves re-derived from
+           weeks actually trained just above, so a genuine restore of your own
+           cabinet still works while a crafted file cannot mint one */
+        var earnedWeeks=weeksOnTarget(), refused=0;
+        r.owned.forEach(function(id){
+          if(typeof id!=="string"||R.owned.indexOf(id)!==-1) return;
+          var era=eraById(eraOf(id));
+          if(era && (earnedWeeks>=era.blocks || eraUnlocked(era.id))) R.owned.push(id); else refused++;
+        });
+        if(refused) skipped.sealed=refused;
+      }
       if(typeof r.lastClaimedDate==="string"&&validDate(r.lastClaimedDate)&&
          (!R.lastClaimedDate||r.lastClaimedDate>R.lastClaimedDate)) R.lastClaimedDate=r.lastClaimedDate;
       if(r.bonusClaimed) R.bonusClaimed=true;
       persistRewards();
     }
+    /* the import writes straight into state.sessions, so nothing re-judged the
+       badges: an imported heavier lift arrived with no PR while the lift it beat
+       kept one */
+    var touchedPRs={};
+    (d.sessions||[]).forEach(function(sn){
+      if(!sn||!Array.isArray(sn.entries)) return;
+      sn.entries.forEach(function(e){ if(e&&e.exerciseId&&e.type) touchedPRs[e.exerciseId+"|"+kindOf(e.type)]=1; });
+    });
+    Object.keys(touchedPRs).forEach(function(k){
+      var bits=k.split("|"); recomputePRs(bits[0], bits[1]);
+    });
     checkEras();
-    checkCompletionBonus();   /* a restored complete collection earned its bonus */
+    if(!skipped.sealed) checkCompletionBonus();   /* only if the whole collection really came back */
     fillCommission();   /* six months of data and it still asked for your bodyweight */
     /* say what did NOT come in. A restore that silently drops rows is worse than
        no restore at all. */
@@ -4717,6 +4850,7 @@ var FINISHES = [
     if(skipped.bad) lost.push(skipped.bad+" unreadable");
     if(skipped.day) lost.push(skipped.day+" day"+(skipped.day===1?"":"s")+" with a bad date");
     if(skipped.shape) lost.push(skipped.shape+" day"+(skipped.shape===1?"":"s")+" with no readable entry list");
+    if(skipped.sealed) lost.push(skipped.sealed+" specimen"+(skipped.sealed===1?"":"s")+" from eras you have not opened yet");
     if(lost.length) msg+=" \u00b7 skipped: "+lost.join(", ");
     return {ok:true,msg:msg};
   }
@@ -4775,7 +4909,10 @@ var FINISHES = [
   function stepTargetText(st){
     var rest=" \u00b7 rest "+fmtClock((Number(st.restSec)||0)*1000);
     var n=stepSets(st);
-    if(st.type==="cardio") return (st.duration||0)+" min"+rest;
+    if(st.type==="cardio"){
+      var km=Number(st.distance)||0;
+      return (st.duration||0)+" min"+(km?" \u00b7 "+dOut(km)+" "+unitD():"")+rest;
+    }
     if(st.type==="hold"){
       var ha=(st.added===null||st.added===undefined||st.added==="")?0:Number(st.added);
       return n+" \u00d7 "+fmtSecs(st.secs)+(ha?fmtAdded(ha):"")+rest;
@@ -5209,7 +5346,13 @@ var FINISHES = [
       else { out.added=null; out.secs = step ? lastSecs+5 : lastSecs; }
     } else if(st.type==="cardio"){
       var lastDur=maxOf(day.sets,function(e){return e.duration;});
+      var lastKm=maxOf(day.sets,function(e){return e.distance;});
       out.duration = step ? lastDur+1 : lastDur;
+      /* stepping the clock while leaving the distance alone quietly asks a runner
+         to run the same distance slower */
+      if(lastKm){
+        out.distance = step ? Math.round((lastKm*(out.duration/Math.max(1,lastDur)))*10)/10 : lastKm;
+      }
     } else if(st.type==="bodyweight"){
       var lastReps=minOf(day.sets,function(e){return e.reps;});
       var lastAdded=maxAbsOf(day.sets,function(e){return e.added;});
@@ -5223,7 +5366,7 @@ var FINISHES = [
         out.added=null; out.reps = step ? lastReps+1 : lastReps;
       }
     } else {
-      var work=workingSets(day);
+      var work=workingSets(day,st);   /* without the step it always picks the back-off group */
       var lastW=maxOf(work,function(e){return e.weight;});
       var planW=Number(st.weight)||0;
       var missedTwice = !met && hist.length>1 && !dayMetTarget(hist[1],st);
@@ -5265,7 +5408,9 @@ var FINISHES = [
       var la=maxAbsOf(s,function(e){return e.added;});
       tail=s.map(function(e){ return fmtSecs(e.secs); }).join(", ")+(la?fmtAdded(la):"");
     }
-    else if(st.type==="cardio") tail=s.map(function(e){ return (e.duration||0)+" min"; }).join(", ");
+    else if(st.type==="cardio") tail=s.map(function(e){
+      return (e.duration||0)+" min"+(e.distance?" \u00b7 "+dOut(e.distance)+" "+unitD():"");
+    }).join(", ");
     else if(st.type==="bodyweight"){
       var a=maxOf(s,function(e){return e.added;});
       tail="BW"+(a?fmtAdded(a):"")+" × "+s.map(function(e){ return e.reps; }).join(", ");
@@ -5276,7 +5421,10 @@ var FINISHES = [
       tail=fmtW(maxOf(q,function(e){return e.weight;}))+" × "+q.map(function(e){ return e.reps; }).join(", ");
     }
     var when = sg.away>1 ? (" ("+sg.away+" days ago)") : "";
-    return "last time " + tail + when;
+    /* on a routine's first run the history is another routine's, and saying "last
+       time" without saying whose is how a light day reads as a heavy one */
+    var whose = sg.borrowed ? " \u00b7 from your other sessions, not this routine" : "";
+    return "last time " + tail + when + whose;
   }
   /* fold a suggestion into the numbers a runner step is opened with */
   function applySuggestion(st){
@@ -5389,6 +5537,26 @@ var FINISHES = [
      This is kept per routine and per day rather than counted back out of the
      ledger: counting the ledger would let three squats logged in the morning
      arrive pre-ticked on an unrelated leg routine that evening. */
+  /* A routine can hold the same movement twice - a top single and its back-off
+     sets. Matching on movement and kind alone always hit the first of them, so
+     striking a volume set reset the single's pip instead. Rep target tells them
+     apart, and for a strike only a step with something to give back qualifies. */
+  function matchStep(steps, entry, delta){
+    var cands=steps.filter(function(st){
+      if(st.exerciseId!==entry.exerciseId || kindOf(st.type)!==entry.type) return false;
+      return delta>=0 || st.done>0;
+    });
+    if(!cands.length) return null;
+    if(cands.length===1) return cands[0];
+    var want=Number(entry.reps)||Number(entry.secs)||Number(entry.duration)||0;
+    var best=cands[0], bestGap=Infinity;
+    cands.forEach(function(st){
+      var have=Number(st.reps)||Number(st.secs)||Number(st.duration)||0;
+      var gap=Math.abs(have-want);
+      if(gap<bestGap){ bestGap=gap; best=st; }
+    });
+    return best;
+  }
   /* correct the stored pip count of a routine that is not currently open */
   function adjustSavedRun(entry,delta){
     try{
@@ -5396,13 +5564,16 @@ var FINISHES = [
       var p=JSON.parse(raw);
       if(!p||p.date!==todayISO()||!Array.isArray(p.done)) return;
       var r=routineById(p.routineId); if(!r) return;
-      for(var i=0;i<r.steps.length && i<p.done.length;i++){
-        var st=r.steps[i];
-        if(st.exerciseId===entry.exerciseId && kindOf(st.type)===entry.type){
-          p.done[i]=Math.max(0,(Number(p.done[i])||0)+delta);
-          localStorage.setItem("lb-run", JSON.stringify(p));
-          return;
-        }
+      var usable=r.steps.filter(function(st,i){
+        if(st.exerciseId!==entry.exerciseId || kindOf(st.type)!==entry.type) return false;
+        return delta>=0 || (Number(p.done[i])||0)>0;
+      });
+      var pick=matchStep(usable, entry, delta);
+      if(!pick) return;
+      var idx=r.steps.indexOf(pick);
+      if(idx>=0 && idx<p.done.length){
+        p.done[idx]=Math.max(0,(Number(p.done[idx])||0)+delta);
+        localStorage.setItem("lb-run", JSON.stringify(p));
       }
     }catch(e){}
   }
@@ -5433,7 +5604,7 @@ var FINISHES = [
       steps:r.steps.map(function(s,i){
         var have=saved?Math.max(0,Number(saved[i])||0):0;
         resumed+=have;
-        var step={exerciseId:s.exerciseId, name:s.name, type:kindOf(s.type), sets:s.sets, reps:s.reps, weight:s.weight, added:s.added, secs:s.secs, duration:s.duration, distance:null, restSec:s.restSec, done:have, routineId:id};
+        var step={exerciseId:s.exerciseId, name:s.name, type:kindOf(s.type), sets:s.sets, reps:s.reps, weight:s.weight, added:s.added, secs:s.secs, duration:s.duration, distance:(s.distance===undefined?null:s.distance), note:s.note, restSec:s.restSec, done:have, routineId:id};
         step.planText=stepTargetText(step);   /* what you were asked to do, kept as written */
         step.sg=applySuggestion(step);        /* derived here; the routine itself is untouched */
         return step;
@@ -5681,11 +5852,9 @@ var FINISHES = [
        were written, one of them wearing a personal-record badge. Only a real
        pointer can double-fire, so the guard is scoped to that - logging three
        sets in a row deliberately is still three sets. */
-    if(fromPointer){
-      var now=Date.now();
-      if(row===lastLogRow && now-lastLogAt<350) return;
-      lastLogAt=now; lastLogRow=row;
-    }
+    /* the window is spent only by a set that actually landed - marking it up front
+       swallowed a fast, legitimate retry after an out-of-range refusal */
+    if(fromPointer && row===lastLogRow && Date.now()-lastLogAt<350) return;
     var st=run.steps[i], total=stepSets(st);
     if(!st.name) return;
     var exId=ensureExercise(st.name, st.type);
@@ -5745,6 +5914,7 @@ var FINISHES = [
       if(owner){ focusIdx=[].indexOf.call(owner.parentNode.children,owner); focusCls=hadFocus.className.split(" ")[0]; }
     }
     run.refocus = focusIdx>=0 ? {i:focusIdx, cls:focusCls} : null;
+    if(fromPointer){ lastLogAt=Date.now(); lastLogRow=row; }   /* only a set that landed */
     st.done+=1; run.logged+=1; saveRunProgress();
     addEntry(todayISO(),entry);
     renderRunSteps();
