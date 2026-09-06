@@ -3526,6 +3526,10 @@ var FINISHES = [
   /* ---------- society ---------- */
   var me = null, fellowProfiles = {}, fellowUnsubs = [], inviteUnsub = null, fellowsUnsub = null, syncTimer = null;
   var FELLOW_CAP = 30;   /* cards watched at once; the count still reports the whole register */
+  /* the hosted register answers with a reason rather than a sentence, so the
+     wording lives in one place and both registers say the same thing */
+  var REDEEM_REFUSAL = {malformed:"That doesn't look like a friend code.", no_card:"Create your card first.",
+                        unknown:"No such code.", used:"That code has already been used.", own:"That's your own code."};
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   /* resolves true only when the text actually reached the clipboard */
   function copyText(t){
@@ -3618,7 +3622,20 @@ var FINISHES = [
     if(!me){ msg.textContent="Create your card first."; return; }
     if(!state.dbAvailable){ msg.textContent="Not connected to the register."; return; }
     if(!/^LB-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(code)){ msg.textContent="That doesn't look like a friend code."; return; }
-    var ref=state.db.doc("invites/"+code); msg.textContent="Checking…";
+    msg.textContent="Checking\u2026";
+    /* Where the register can redeem in one transaction, let it. The sequence
+       below is correct but it is a sequence: it marks a one-time code spent and
+       then writes the fellowship, and the rollback that covers a failure between
+       those two is something a database does not need to be told to do. */
+    if(typeof state.db.redeem==="function"){
+      state.db.redeem(code, me.id).then(function(res){
+        if(!res||!res.ok){ msg.textContent=REDEEM_REFUSAL[(res||{}).reason]||"Something went wrong. Try again."; return; }
+        msg.textContent=""; document.getElementById("redeemInput").value="";
+        showToast(STAR_SVG,"Admitted","You and "+(res.fromName||"a collector")+" are now fellows");
+      })["catch"](function(err){ console.error("Loadbook: redeem",err); msg.textContent="Something went wrong. Try again."; });
+      return;
+    }
+    var ref=state.db.doc("invites/"+code);
     ref.acquire({holder:me.id, ttlMs:5000}).then(function(res){
       if(!res.acquired){ msg.textContent="Someone is redeeming that code right now — try again in a moment."; return; }
       return ref.get().then(function(snap){
@@ -3680,7 +3697,11 @@ var FINISHES = [
     });
     el.querySelectorAll("[data-remove]").forEach(function(b){ b.addEventListener("click",function(){ removeFellow(b.dataset.remove); }); });
   }
-  function removeFellow(fid){ if(!me||!state.dbAvailable) return; state.db.doc("friends/"+me.id+"/list/"+fid).delete()["catch"](function(){}); state.db.doc("friends/"+fid+"/list/"+me.id).delete()["catch"](function(){}); }
+  function removeFellow(fid){
+    if(!me||!state.dbAvailable) return;
+    if(typeof state.db.removeFellow==="function"){ state.db.removeFellow(me.id,fid)["catch"](function(err){ console.error("Loadbook: fellow",err); }); return; }
+    state.db.doc("friends/"+me.id+"/list/"+fid).delete()["catch"](function(){}); state.db.doc("friends/"+fid+"/list/"+me.id).delete()["catch"](function(){});
+  }
   function renderSociety(){ renderMeCard(); if(!me){ renderInvites([]); renderFellows([]); } }
 
   /* ---------- commissioning a programme ----------
@@ -6214,6 +6235,135 @@ var FINISHES = [
     if(rs>0 && !state.runner) timerStart(rs*1000,"rest",null);
   });
 
+  /* ---------- the other register ----------
+     This page has two homes. Opened as an artifact it is handed a db by the
+     viewer; hosted, it builds one on Supabase. Everything above this line is
+     written against one interface and never learns which it got.
+
+     Reads are by path alone, never by owner: row-level security already limits
+     a path to the people entitled to it, so `sessions/2026-09-06` returns your
+     day and nobody else's, while `profiles/p_X` returns a fellow's card. Writes
+     always carry this user as the owner. */
+  function supabaseDb(sb, uid){
+    var TABLE="docs";
+    function shape(row){ return row ? row.data : undefined; }
+    function docSnap(path,row){
+      return { exists: !!row, id: path.split("/").pop(),
+               data: function(){ return row ? row.data : undefined; } };
+    }
+    /* a collection is the children of a path, so the prefix match has to stop at
+       the next slash - `friends/p_X/list` must not sweep up its grandchildren */
+    function childOf(coll,path){
+      return path.indexOf(coll+"/")===0 && path.slice(coll.length+1).indexOf("/")===-1;
+    }
+    function fail(err){ if(err) throw err; }
+
+    function docRef(path){
+      return {
+        get: function(){
+          return sb.from(TABLE).select("path,data").eq("path",path).limit(1)
+            .then(function(r){ fail(r.error); return docSnap(path,(r.data||[])[0]); });
+        },
+        set: function(data){
+          return sb.from(TABLE).upsert({owner:uid, path:path, data:data, updated_at:new Date().toISOString()},
+                                       {onConflict:"owner,path"})
+            .then(function(r){ fail(r.error); });
+        },
+        "delete": function(){
+          return sb.from(TABLE)["delete"]().eq("owner",uid).eq("path",path)
+            .then(function(r){ fail(r.error); });
+        },
+        /* the artifact register leases a document so two people cannot redeem one
+           code at once; Postgres does that inside redeem_invite instead, so there
+           is nothing to hold here */
+        acquire: function(){ return Promise.resolve({acquired:true, release:function(){}}); },
+        onSnapshot: function(cb,err){
+          var live=true;
+          function pull(){
+            if(!live) return;
+            docRef(path).get().then(function(sn){ if(live) cb(sn); },function(e){ if(live&&err) err(e); });
+          }
+          pull();
+          var ch=watch(function(row){ return row.path===path; }, pull);
+          return function(){ live=false; ch(); };
+        }
+      };
+    }
+
+    function query(coll,opts){
+      function run(){
+        var q=sb.from(TABLE).select("path,data").like("path",coll+"/%");
+        (opts.wheres||[]).forEach(function(w){
+          var col="data->>"+w[0];
+          if(w[1]==="==") q=q.eq(col,w[2]);
+          else if(w[1]==="!=") q=q.neq(col,w[2]);
+          else if(w[1]===">") q=q.gt(col,w[2]);
+          else if(w[1]===">=") q=q.gte(col,w[2]);
+          else if(w[1]==="<") q=q.lt(col,w[2]);
+          else if(w[1]==="<=") q=q.lte(col,w[2]);
+          else throw new Error("unsupported operator "+w[1]);
+        });
+        if(opts.order) q=q.order("data->>"+opts.order[0],{ascending:opts.order[1]!=="desc"});
+        if(opts.limit) q=q.limit(opts.limit);
+        return q.then(function(r){
+          fail(r.error);
+          /* LIKE cannot express "one level only", so the depth cut is done here */
+          var rows=(r.data||[]).filter(function(x){ return childOf(coll,x.path); });
+          return { empty:rows.length===0, size:rows.length,
+                   docs: rows.map(function(x){
+                     return { id:x.path.slice(coll.length+1), exists:true,
+                              data:function(){ return x.data; } };
+                   }) };
+        });
+      }
+      return {
+        where: function(f,op,v){ return query(coll, Object.assign({},opts,{wheres:(opts.wheres||[]).concat([[f,op,v]])})); },
+        orderBy: function(f,dir){ return query(coll, Object.assign({},opts,{order:[f,dir]})); },
+        limit: function(n){ return query(coll, Object.assign({},opts,{limit:n})); },
+        get: run,
+        onSnapshot: function(cb,err){
+          var live=true;
+          function pull(){ if(!live) return; run().then(function(sn){ if(live) cb(sn); },function(e){ if(live&&err) err(e); }); }
+          pull();
+          var ch=watch(function(row){ return childOf(coll,row.path||""); }, pull);
+          return function(){ live=false; ch(); };
+        }
+      };
+    }
+
+    /* one realtime channel for the whole table; every listener re-reads what it
+       asked for rather than trying to patch a row into a query it did not run */
+    var watchers=[], channel=null;
+    function watch(match,fn){
+      var w={match:match, fn:fn};
+      watchers.push(w);
+      if(!channel && sb.channel){
+        channel=sb.channel("loadbook-docs")
+          .on("postgres_changes",{event:"*",schema:"public",table:TABLE},function(payload){
+            var row=payload["new"]||payload.old||{};
+            watchers.forEach(function(x){ try{ if(x.match(row)) x.fn(); }catch(e){} });
+          }).subscribe();
+      }
+      return function(){ watchers=watchers.filter(function(x){ return x!==w; }); };
+    }
+
+    return {
+      doc: docRef,
+      collection: function(coll){ return query(coll,{}); },
+      /* Two operations the artifact register cannot do and Postgres can: both of
+         these cross from one collector to another, and both were a sequence of
+         client writes that could stop half way. */
+      redeem: function(code,myProfile){
+        return sb.rpc("redeem_invite",{code:code, my_profile:myProfile})
+          .then(function(r){ fail(r.error); return r.data; });
+      },
+      removeFellow: function(mine,theirs){
+        return sb.rpc("remove_fellow",{my_profile:mine, their_profile:theirs})
+          .then(function(r){ fail(r.error); });
+      }
+    };
+  }
+
   /* ---------- boot ---------- */
   document.getElementById("logType").innerHTML=kindOptions("strength");
   syncLogFields();
@@ -6231,6 +6381,45 @@ var FINISHES = [
     state.db.doc("settings/goals").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.goals={streak:d.streak||DEFAULT_GOALS.streak,sessions:d.sessions||DEFAULT_GOALS.sessions,volume:d.volume||DEFAULT_GOALS.volume,bodyweight:d.bodyweight||0,units:d.units==="kg"?"kg":"lb",height:d.height||0,age:d.age||0,sex:d.sex==="female"?"female":"male",progression:d.progression==="on"?"on":"off"}; renderAll(); fillCommission(); } })["catch"](function(err){console.error("Loadbook: goals",err);});
     state.db.doc("settings/rewards").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.rewards={tokens:d.tokens||0,lastClaimedDate:d.lastClaimedDate||null,owned:d.owned||[],variants:d.variants||{},finish:d.finish||{},freezes:d.freezes||0,frozenDates:d.frozenDates||[],bonusClaimed:!!d.bonusClaimed,shelf:d.shelf||[],erasUnlocked:d.erasUnlocked||[]}; renderAll(); checkCompletionBonus(); checkEras(); } })["catch"](function(err){console.error("Loadbook: rewards",err);});
   }
-  if (window.claude && typeof window.claude.use==="function"){ window.claude.use("db").then(function(db){ if(db){ state.db=db; state.dbAvailable=true; renderTopbar(); hydrateFromDb(); renderSociety(); subscribeSociety(); syncProfile(true); } else renderTopbar(); })["catch"](function(){ renderTopbar(); }); }
+  function connectRegister(db){
+    state.db=db; state.dbAvailable=true;
+    renderTopbar(); hydrateFromDb(); renderSociety(); subscribeSociety(); syncProfile(true);
+  }
+  /* Hosted, there is no viewer to hand us a db, so we build one - but only when
+     this build was given a project to talk to. Unconfigured, the page stays
+     exactly what it is offline: a working ledger with no register. */
+  function openHostedRegister(){
+    var cfg=window.LOADBOOK_SUPABASE;
+    if(!cfg||!cfg.url||!cfg.anonKey){ renderTopbar(); return; }
+    /* the client is fetched only by a build that has somewhere to point it, so
+       the artifact - which is never configured - never asks for it */
+    if(!window.supabase||!window.supabase.createClient){
+      var el=document.createElement("script");
+      el.src=cfg.client||"https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
+      el.onload=openHostedRegister;
+      el.onerror=function(){ console.error("Loadbook: could not load the register client"); renderTopbar(); };
+      document.head.appendChild(el);
+      return;
+    }
+    try{
+      var sb=window.supabase.createClient(cfg.url,cfg.anonKey);
+      var signIn=cfg.signIn||function(client){
+        /* the default keeps today's behaviour - open the page and you have a
+           card - while still giving row-level security a real user to enforce */
+        return client.auth.getSession().then(function(r){
+          var sess=r&&r.data&&r.data.session;
+          return sess?{data:{session:sess}}:client.auth.signInAnonymously();
+        });
+      };
+      signIn(sb).then(function(r){
+        var uid=r&&r.data&&(r.data.session?r.data.session.user.id:(r.data.user||{}).id);
+        if(!uid){ renderTopbar(); return; }
+        connectRegister(supabaseDb(sb,uid));
+      })["catch"](function(err){ console.error("Loadbook: register",err); renderTopbar(); });
+    }catch(err){ console.error("Loadbook: register",err); renderTopbar(); }
+  }
+  if (window.claude && typeof window.claude.use==="function"){
+    window.claude.use("db").then(function(db){ if(db) connectRegister(db); else openHostedRegister(); })["catch"](openHostedRegister);
+  } else openHostedRegister();
 })();
 </script>

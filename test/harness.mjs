@@ -9,12 +9,13 @@ export const SRC = path.join(path.dirname(fileURLToPath(import.meta.url)), "..",
    injects a window.__lb bridge just before the boot block so tests can drive
    internal state. The published file is never modified. */
 export const SHIM = path.join(path.dirname(fileURLToPath(import.meta.url)), "dbshim.js");
+export const FAKE = path.join(path.dirname(fileURLToPath(import.meta.url)), "supabase-fake.js");
 
 /* `db:true` installs a fake artifact runtime ahead of the page, so the code
    behind `window.claude.use("db")` -- all of Vol III -- can be driven at all.
    `seed` is written to localStorage before boot, which is the only way to
    arrive with a collector card already in hand. */
-export async function boot({ hooks = false, db = false, seed = null } = {}) {
+export async function boot({ hooks = false, db = false, seed = null, supabase = false } = {}) {
   let html = fs.readFileSync(SRC, "utf8");
   let pre = "";
   if (seed) {
@@ -23,6 +24,13 @@ export async function boot({ hooks = false, db = false, seed = null } = {}) {
     ).join("") + "}catch(e){}<\/script>";
   }
   if (db) pre += "<script>" + fs.readFileSync(SHIM, "utf8") + "<\/script>";
+  /* the hosted build: no viewer to hand us a register, an in-memory Supabase
+     enforcing the migration's own policies, and the config a real deployment
+     would carry */
+  if (supabase) {
+    pre += "<script>" + fs.readFileSync(FAKE, "utf8") + "<\/script>";
+    pre += "<script>window.LOADBOOK_SUPABASE={url:'https://fake.supabase.co',anonKey:'anon'};<\/script>";
+  }
   if (hooks) {
     const marker = "  /* ---------- boot ---------- */";
     if (!html.includes(marker)) throw new Error("boot marker missing - did the source structure change?");
@@ -38,7 +46,7 @@ export async function boot({ hooks = false, db = false, seed = null } = {}) {
     { runScripts: "dangerously", pretendToBeVisual: true, virtualConsole: vc, url: "https://example.test/" });
   await new Promise(r => setTimeout(r, 900));
   const w = dom.window;
-  return { dom, w, d: w.document, errors, lb: w.__lb, db: w.__db,
+  return { dom, w, d: w.document, errors, lb: w.__lb, db: w.__db, sb: w.__sb,
            click: el => el.dispatchEvent(new w.MouseEvent("click", { bubbles: true })),
            /* the shim settles writes on a microtask and listeners on a macrotask;
               one tick is a write landing, a few are the renders that follow */
