@@ -289,6 +289,24 @@ into one string, and `renderShop()` returns early when it has not moved. Logging
 none of them, so it fell to **37 ms**; buying, claiming or unlocking an era still redraws in
 full. Add to the signature if you add an input, or the catalogue will go stale.
 
+## The theme
+
+Candy red accent, sage-olive outlines, parchment letters, olive-charcoal ground.
+The sage is desaturated hard on purpose: red against a saturated green is loud,
+and an outline has to stay a background.
+
+Every value was picked against a 4.5:1 floor before it was applied rather than
+checked afterwards, and both palettes are swept by an in-page audit that
+composites every ancestor background down to the page. Two things that audit
+taught the hard way: `getComputedStyle` returns `color(srgb r g b / a)` for a
+`color-mix()`, whose components are 0-1 and not 0-255, and a semi-transparent
+background has to be composited rather than taken at face value - miss either and
+a passing element reads as a 1.16:1 failure.
+
+The fill red (`--bronze`/`--candy`) is 4.13:1 on a panel, so it is used for fills,
+borders and rules only. Small text uses `--ink-accent`, which clears 4.5:1 in both
+themes. Do not set 9px small-caps in `--bronze`.
+
 ## What the third round of user testing changed
 
 Thirteen agents drove the published build as real people — a powerlifter on a heavy/light

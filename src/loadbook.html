@@ -11,44 +11,46 @@
     --font-body:'EB Garamond',Georgia,serif;
     --font-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
     --candy:#F42B41; --candy-hi:#FF5C6C; --candy-deep:#960C1D;
-    --oak:#6B4A26; --oak-hi:#8A6234; --oak-deep:#3E2A14;
-    --ground:#131313; --surface:#1A1A1A; --surface-2:#232323; --surface-3:#2E2E2E;
-    --ink:#FFFFFF; --ink-soft:#B8B4B0; --ink-mute:#9C9893;
-    /* small caps text needs 4.5:1; the fill red is only 4.37 against the panel */
-    --ink-accent:#FF7885;
-    --line:rgba(138,98,52,0.62); --line-strong:rgba(172,126,72,0.95);
+    /* sage stands in for the old dark oak, desaturated hard: red against a
+       saturated green is loud, and an outline has to stay a background */
+    --oak:#6B7A52; --oak-hi:#8A9A6B; --oak-deep:#3A4230;
+    --ground:#161713; --surface:#1E201A; --surface-2:#262920; --surface-3:#333729;
+    --ink:#EDE6D2; --ink-soft:#C4BFA9; --ink-mute:#9AA087;
+    /* small caps text needs 4.5:1; the fill red is only 4.13 against the panel */
+    --ink-accent:#FF8A95;
+    --line:rgba(107,122,82,0.62); --line-strong:rgba(138,154,107,0.95);
     --bronze:var(--candy); --bronze-hi:var(--candy-hi); --bronze-deep:var(--candy-deep);
-    --marble:#0D0D0D; --vitrine:#101010; --study:#ECE6D8;
-    --g-standard:#8F8B87; --g-select:#C0904F; --g-reserve:#F42B41; --g-archival:#FF7E8B;
-    --good:#4FA05F; --warn:#E0A030;
-    --dial-a:#F42B41; --dial-b:#C0904F; --dial-c:#FF7E8B;
+    --marble:#0F110C; --vitrine:#12140F; --study:#EDE6D2;
+    --g-standard:#9AA087; --g-select:#8A9A6B; --g-reserve:#F42B41; --g-archival:#FF7E8B;
+    --good:#6FAE6A; --warn:#D9A93F;
+    --dial-a:#F42B41; --dial-b:#8A9A6B; --dial-c:#FF7E8B;
     --shadow:0 30px 60px -30px rgba(0,0,0,0.85), 0 2px 6px rgba(0,0,0,0.55);
     --spot:radial-gradient(ellipse 70% 55% at 30% 0%, rgba(244,43,65,0.10), transparent 70%);
   }
   :root[data-theme="light"]{
     --candy:#C40E24; --candy-hi:#E4152F; --candy-deep:#7E0A18;
-    --oak:#5C3F20; --oak-hi:#7A5530; --oak-deep:#33210F;
-    --ground:#EFECE7; --surface:#F8F6F2; --surface-2:#E6E2DB; --surface-3:#D8D3CA;
-    --ink:#141414; --ink-soft:#4E4A46; --ink-mute:#6E6A65;
+    --oak:#4E5A3C; --oak-hi:#6B7A52; --oak-deep:#2E3524;
+    --ground:#EFEDE4; --surface:#F7F5EC; --surface-2:#E6E3D6; --surface-3:#D8D4C4;
+    --ink:#141410; --ink-soft:#4E4A42; --ink-mute:#6E6A5D;
     --ink-accent:#A80B1E;
-    --line:rgba(92,63,32,0.45); --line-strong:rgba(78,53,26,0.88);
-    --g-standard:#5A5652; --g-select:#7A5530; --g-reserve:#C40E24; --g-archival:#E4152F;
-    --good:#3F7A45; --warn:#9A6B18;
-    --dial-a:#C40E24; --dial-b:#7A5530; --dial-c:#E4152F;
+    --line:rgba(78,90,60,0.45); --line-strong:rgba(62,72,48,0.88);
+    --g-standard:#5A5A4E; --g-select:#4E5A3C; --g-reserve:#C40E24; --g-archival:#E4152F;
+    --good:#33702F; --warn:#85621A;
+    --dial-a:#C40E24; --dial-b:#4E5A3C; --dial-c:#E4152F;
     --shadow:0 24px 50px -28px rgba(20,20,20,0.35), 0 2px 8px rgba(20,20,20,0.10);
     --spot:radial-gradient(ellipse 70% 55% at 30% 0%, rgba(196,14,36,0.07), transparent 70%);
   }
   @media (prefers-color-scheme: light){
     :root:not([data-theme="dark"]){
       --candy:#C40E24; --candy-hi:#E4152F; --candy-deep:#7E0A18;
-      --oak:#5C3F20; --oak-hi:#7A5530; --oak-deep:#33210F;
-      --ground:#EFECE7; --surface:#F8F6F2; --surface-2:#E6E2DB; --surface-3:#D8D3CA;
-      --ink:#141414; --ink-soft:#4E4A46; --ink-mute:#6E6A65;
+      --oak:#4E5A3C; --oak-hi:#6B7A52; --oak-deep:#2E3524;
+      --ground:#EFEDE4; --surface:#F7F5EC; --surface-2:#E6E3D6; --surface-3:#D8D4C4;
+      --ink:#141410; --ink-soft:#4E4A42; --ink-mute:#6E6A5D;
     --ink-accent:#A80B1E;
-      --line:rgba(92,63,32,0.45); --line-strong:rgba(78,53,26,0.88);
-      --g-standard:#5A5652; --g-select:#7A5530; --g-reserve:#C40E24; --g-archival:#E4152F;
-      --good:#3F7A45; --warn:#9A6B18;
-      --dial-a:#C40E24; --dial-b:#7A5530; --dial-c:#E4152F;
+      --line:rgba(78,90,60,0.45); --line-strong:rgba(62,72,48,0.88);
+      --g-standard:#5A5A4E; --g-select:#4E5A3C; --g-reserve:#C40E24; --g-archival:#E4152F;
+      --good:#33702F; --warn:#85621A;
+      --dial-a:#C40E24; --dial-b:#4E5A3C; --dial-c:#E4152F;
       --shadow:0 24px 50px -28px rgba(20,20,20,0.35), 0 2px 8px rgba(20,20,20,0.10);
       --spot:radial-gradient(ellipse 70% 55% at 30% 0%, rgba(196,14,36,0.07), transparent 70%);
     }
@@ -2704,14 +2706,14 @@ var FINISHES = [
   function buildSpecPlate(id){
     var d = DINOS.find(function(x){ return x.id === id; }) || {}, b = DINO_BIOS[id] || {};
     var p = periodInfo(b.period), len = parseLengthM(b.size);
-    var ink = "#1A1A1A", mute = "rgba(26,26,26,0.78)", hair = "rgba(92,63,32,0.55)";
+    var ink = "#1A1A1A", mute = "rgba(26,26,26,0.78)", hair = "rgba(78,90,60,0.55)";   /* the plate rules follow the sage */
     var mass = b.mass || "\u2014", diet = b.diet || "\u2014";
     var glyph = DIET_GLYPH[diet] || '<circle cx="5.5" cy="5.5" r="5" fill="none" stroke="currentColor" stroke-width="1"/>';
     var barW = len ? Math.max(3, plateFrac(len)*PLATE_W) : 0;
     var humW = plateFrac(1.8)*PLATE_W;
     var o = [];
     o.push('<svg class="spec-plate" viewBox="0 0 120 120" preserveAspectRatio="xMidYMid meet" role="img" aria-label="' + escapeHtml((d.name||"Specimen") + " catalogue plate, " + specNo(id) + ". Mass " + mass + ". " + diet + ". Length " + (len?fmtLen(len):"unrecorded") + ". " + p.label + ". Cast not yet commissioned.") + '">');
-    o.push('<rect width="120" height="120" fill="#ECE6D8"/>');
+    o.push('<rect width="120" height="120" fill="#EDE6D2"/>');
     o.push('<rect x="5.5" y="5.5" width="109" height="109" fill="none" stroke="' + hair + '" stroke-width="1.5"/>');
     o.push('<text x="12" y="19" font-family=' + JSON.stringify(CAPS_STACK) + ' font-size="6" letter-spacing="1.1" fill="' + mute + '">' + specNo(id) + '</text>');
     o.push('<g transform="translate(96 9)" fill="' + p.color + '" color="' + p.color + '">' + glyph + '</g>');
