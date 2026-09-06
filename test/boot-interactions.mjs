@@ -28,12 +28,19 @@ check("shelf click reopens its sheet", d.getElementById("sheetInner").querySelec
 
 /* --- filters --- */
 const chip = label => [...q("#filterChips .filter-chip")].find(b => b.textContent.startsWith(label));
+/* All 618 cards now stay in the DOM and filtering toggles `hidden`, so a filter
+   costs nothing - the assertions count what is SHOWN, not what exists. */
+const shownImgs = () => [...q("#shopGrid .plate")].filter(c => !c.hidden)
+  .reduce((n, c) => n + c.querySelectorAll(".vit img").length, 0);
+const shownCards = () => [...q("#shopGrid .plate")].filter(c => !c.hidden)
+  .reduce((n, c) => n + c.querySelectorAll(".vit.card svg.spec-plate").length, 0);
 check("Uncast chip exists", !!chip("Uncast"));
 click(chip("Uncast"));
-check("Uncast shows only plates", q("#shopGrid .vit img").length, 0);
+check("every card is kept, not rebuilt", q("#shopGrid .plate").length, 618);
+check("Uncast shows only plates", shownImgs(), 0);
 check("Uncast count", d.getElementById("catHint").textContent, "528 of 618 shown");
 click(chip("Illustrated"));
-check("Illustrated shows only casts", q("#shopGrid svg.spec-plate").length, 0);
+check("Illustrated shows only casts", shownCards(), 0);
 check("Illustrated count", d.getElementById("catHint").textContent, "90 of 618 shown");
 click(chip("All"));
 

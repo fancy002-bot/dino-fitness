@@ -328,6 +328,9 @@
   .plate.locked .vit img{filter:grayscale(1) brightness(0.55);}
   .plate.locked .vit.card svg{filter:grayscale(1) brightness(0.97);}
   .plate{content-visibility:auto; contain-intrinsic-size:auto 252px;}
+  /* filtering hides cards rather than rebuilding all 618 of them, and a grid item
+     needs to be told explicitly */
+  .plate[hidden]{display:none;}
   .brass{margin-top:8px; background:linear-gradient(180deg, var(--bronze-hi), var(--bronze) 55%, var(--bronze-deep)); color:#FFFFFF; padding:7px 9px 6px; text-align:center; border:2px solid var(--bronze-deep); box-shadow:inset 0 1px 0 rgba(255,255,255,0.35);}
   .brass .no{font-family:var(--font-mono); font-size:0.56rem; letter-spacing:0.18em;}
   .brass .nm{font-family:var(--font-caps); font-weight:600; font-size:0.92rem; line-height:1.1; letter-spacing:0.02em; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -2617,7 +2620,22 @@ var FINISHES = [
   function relDate(iso){ var d=daysBetween(iso,todayISO()); if(d===0)return"Today"; if(d===1)return"Yesterday"; if(d>1)return d+" days ago"; return fmtDate(iso); }
   function slugify(s){ return s.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"")||("ex-"+Date.now()); }
   function addDays(iso,n){ var d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-  function sessionsSorted(){ return state.sessions.slice().sort(function(a,b){ return a.date<b.date?1:-1; }); }
+  /* This is called from renderRecent, renderChart, the movement sheet, the export
+     and the commission - every one of them re-sorted the entire ledger. The cache
+     is invalidated by any write, which all go through touchSessions(). */
+  var _sorted=null, _sortedFrom=null, _sortedLen=-1;
+  function touchSessions(){ _sorted=null; }
+  function sessionsSorted(){
+    /* The explicit invalidations cover every write path in the app, but a cache
+       that goes stale in silence is a bug waiting to be written, so it also
+       notices the array being replaced or grown behind its back. */
+    if(_sorted && (state.sessions!==_sortedFrom || state.sessions.length!==_sortedLen)) _sorted=null;
+    if(!_sorted){
+      _sorted=state.sessions.slice().sort(function(a,b){ return a.date<b.date?1:-1; });
+      _sortedFrom=state.sessions; _sortedLen=state.sessions.length;
+    }
+    return _sorted;
+  }
   function activeDateSet(){ var s={}; state.sessions.forEach(function(x){ if(trainingEntries(x).length) s[x.date]=true; }); (state.rewards.frozenDates||[]).forEach(function(d){s[d]=true;}); return s; }
   function firstGapDate(){ var t=todayISO(), s=activeDateSet(); var c=s[t]?t:addDays(t,-1); while(s[c]) c=addDays(c,-1); return c; }
   function computeCurrentStreak(){ var t=todayISO(), s=activeDateSet(); var n=0, c=s[t]?t:addDays(t,-1); while(s[c]){n++; c=addDays(c,-1);} return n; }
@@ -2841,38 +2859,85 @@ var FINISHES = [
       var n = g==="All" ? DINOS.length : g==="Illustrated" ? DINOS.filter(function(d){return !!DINO_IMG[d.id];}).length : g==="Uncast" ? DINOS.filter(function(d){return !DINO_IMG[d.id];}).length : g==="Bronze" ? BRONZE.length : DINOS.filter(function(d){return d.group===g;}).length;
       if(!n) return;
       var b=document.createElement("button"); b.type="button"; b.className="filter-chip"+(state.shopGroup===g?" active":"");
-      b.innerHTML=g+'<span class="n">'+n+'</span>'; b.addEventListener("click",function(){ state.shopGroup=g; renderShop(); }); w.appendChild(b);
+      b.innerHTML=g+'<span class="n">'+n+'</span>'; b.addEventListener("click",function(){ state.shopGroup=g; applyShopFilter(); }); w.appendChild(b);
     });
   }
   /* Rebuilding 618 cards costs ~100ms on a mid-range phone, and renderAll() runs on
      every logged set. These are the only inputs that change what the cards look like,
      so when none of them has moved there is nothing to redraw. */
+  /* The filter and the query are deliberately NOT in this signature. What a card
+     looks like depends on tokens, ownership, eras and finishes; whether it is
+     shown depends on the filter. Rebuilding 618 cards and their listeners to
+     answer the second question was the single most expensive thing in the app. */
+  /* What a card is made of - which changes need the 618 SVGs rebuilt and reparsed. */
   function shopSignature(){
     var r=state.rewards;
-    return [state.shopGroup, state.shopQuery, r.tokens, (r.owned||[]).length,
-            (r.erasUnlocked||[]).join(","), JSON.stringify(r.finish||{})].join("|");
+    return [(r.owned||[]).length, (r.erasUnlocked||[]).join(","), JSON.stringify(r.finish||{})].join("|");
   }
-  var shopDrawn=null;
+  var shopDrawn=null, shopTokens=null;
   function renderShop(force){
     var sig=shopSignature();
-    if(!force && shopDrawn===sig && document.getElementById("shopGrid").children.length) return;
-    shopDrawn=sig;
-    var grid=document.getElementById("shopGrid"); grid.innerHTML=""; renderFilterChips();
-    var shown=0;
-    DINOS.filter(shopMatches).forEach(function(d){
-      shown++;
+    if(!force && shopDrawn===sig && document.getElementById("shopGrid").children.length){
+      /* the token count changes on every logged set and every import, and it only
+         decides whether a buy button is greyed out - that is not a rebuild */
+      if(shopTokens!==state.rewards.tokens){ shopTokens=state.rewards.tokens; repriceShop(); }
+      return;
+    }
+    shopDrawn=sig; shopTokens=state.rewards.tokens;
+    var grid=document.getElementById("shopGrid"); renderFilterChips();
+    /* 618 appendChild calls invalidated layout 618 times, and 1,236 listeners were
+       attached one at a time. One string, one assignment, two delegated handlers. */
+    var html=new Array(DINOS.length);
+    for(var i=0;i<DINOS.length;i++){
+      var d=DINOS[i];
       var owned=state.rewards.owned.indexOf(d.id)!==-1;
-      var card=document.createElement("div"); card.className="plate"+(owned?"":" locked"); card.dataset.id=d.id; card.setAttribute("role","button"); card.setAttribute("tabindex","0");
-      card.innerHTML = vitrine(d.id, owned) +
+      html[i]='<div class="plate'+(owned?"":" locked")+'" data-id="'+escapeHtml(d.id)+'" role="button" tabindex="0">'+
+        vitrine(d.id, owned) +
         '<div class="brass"><div class="no">'+specNo(d.id)+'</div><div class="nm">'+d.name+'</div><div class="gr">'+GRADE[d.rarity]+'</div></div>' +
         '<div class="plate-foot"><span class="cast-tag '+(isBronze(d.id)?"bronze":"")+'">'+(isBronze(d.id)?"Bronze cast":(DINO_IMG[d.id]?"Study model":"Catalogue plate"))+'</span>' +
-        (owned ? '' : (eraUnlocked(eraOf(d.id)) ? '<button type="button" class="dino-buy-btn" data-id="'+d.id+'" '+(state.rewards.tokens<d.cost?"disabled":"")+'>'+COIN_SVG+d.cost+'</button>' : '<span class="lock-note">Era '+eraById(eraOf(d.id)).roman+' · sealed</span>')) + '</div>';
-      grid.appendChild(card);
+        (owned ? '' : (eraUnlocked(eraOf(d.id)) ? '<button type="button" class="dino-buy-btn" data-id="'+escapeHtml(d.id)+'" '+(state.rewards.tokens<d.cost?"disabled":"")+'>'+COIN_SVG+d.cost+'</button>' : '<span class="lock-note">Era '+eraById(eraOf(d.id)).roman+' \u00b7 sealed</span>')) +
+        '</div></div>';
+    }
+    grid.innerHTML=html.join("");
+    if(!grid.dataset.wired){
+      grid.dataset.wired="1";
+      grid.addEventListener("click",function(ev){
+        var buy=ev.target.closest&&ev.target.closest(".dino-buy-btn");
+        if(buy){ ev.stopPropagation(); buyDino(buy.dataset.id); return; }
+        var card=ev.target.closest&&ev.target.closest(".plate");
+        if(card) openDinoSheet(card.dataset.id);
+      });
+      grid.addEventListener("keydown",function(ev){
+        if(ev.key!=="Enter"&&ev.key!==" ") return;
+        var card=ev.target.closest&&ev.target.closest(".plate");
+        if(card){ ev.preventDefault(); openDinoSheet(card.dataset.id); }
+      });
+    }
+    applyShopFilter();
+  }
+  function repriceShop(){
+    var grid=document.getElementById("shopGrid"); if(!grid) return;
+    var t=state.rewards.tokens;
+    grid.querySelectorAll(".dino-buy-btn").forEach(function(b){
+      var d=DINOS.find(function(x){ return x.id===b.dataset.id; });
+      if(d) b.disabled = t < d.cost;
     });
+  }
+  /* Searching and filtering only change which of the existing cards are shown.
+     The cards are appended in DINOS order and never reordered, so this walks the
+     two lists in step - a querySelector per id was slower than the rebuild it
+     replaced. */
+  function applyShopFilter(){
+    var grid=document.getElementById("shopGrid"); if(!grid) return;
+    var kids=grid.children, shown=0;
+    for(var i=0;i<DINOS.length && i<kids.length;i++){
+      var match=shopMatches(DINOS[i]);
+      if(match) shown++;
+      if(kids[i].hidden===match) kids[i].hidden=!match;   /* only touch what changes */
+    }
     document.getElementById("shopEmpty").style.display=shown?"none":"block";
     document.getElementById("catHint").textContent = shown + " of " + DINOS.length + " shown";
-    grid.querySelectorAll(".dino-buy-btn").forEach(function(b){ b.addEventListener("click",function(ev){ ev.stopPropagation(); buyDino(b.dataset.id); }); });
-    grid.querySelectorAll(".plate").forEach(function(c){ c.addEventListener("click",function(){ openDinoSheet(c.dataset.id); }); c.addEventListener("keydown",function(ev){ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); openDinoSheet(c.dataset.id);} }); });
+    renderFilterChips();
   }
 
   function mostLoggedExerciseId(){ var c={}; state.sessions.forEach(function(s){ var seen={}; s.entries.forEach(function(e){seen[e.exerciseId]=true;}); Object.keys(seen).forEach(function(id){c[id]=(c[id]||0)+1;}); }); var best=null,bc=0; Object.keys(c).forEach(function(id){ if(c[id]>bc){best=id;bc=c[id];} }); return best; }
@@ -3015,10 +3080,13 @@ var FINISHES = [
     var W=520,H=220,pL=34,pR=18,pT=20,pB=30; var vals=pts.map(function(p){return p.value;}); var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals); if(mn===mx){mn-=1;mx+=1;} var rg=mx-mn; mn-=rg*0.15; mx+=rg*0.15;
     /* points used to be evenly spaced by array index, so a two-week illness gap
        was invisible and adherence read off the line was simply wrong */
-    var t0=new Date(pts[0].date+"T00:00:00").getTime();
-    var t1=new Date(pts[pts.length-1].date+"T00:00:00").getTime();
+    /* px() was called once for the path and again per dot, constructing a fresh
+       Date each time - 2,800 of them on a 1,400-point chart */
+    var stamps=pts.map(function(pt){ return new Date(pt.date+"T00:00:00").getTime(); });
+    var t0=stamps[0], t1=stamps[stamps.length-1];
     var span=Math.max(1, t1-t0);
-    function px(i){ return pL+((new Date(pts[i].date+"T00:00:00").getTime()-t0)/span)*(W-pL-pR); }
+    var xs=stamps.map(function(ms){ return pL+((ms-t0)/span)*(W-pL-pR); });
+    function px(i){ return xs[i]; }
     function py(v){ return H-pB-((v-mn)/(mx-mn))*(H-pT-pB); }
     [0,0.25,0.5,0.75,1].forEach(function(f){ var y=pT+f*(H-pT-pB); var l=document.createElementNS(ns,"line"); l.setAttribute("x1",pL); l.setAttribute("x2",W-pR); l.setAttribute("y1",y); l.setAttribute("y2",y); l.setAttribute("class","chart-grid"); if(f!==0&&f!==1&&f!==0.5) l.setAttribute("stroke-opacity","0.5"); svg.appendChild(l); if(f===0||f===0.5||f===1){ var t=document.createElementNS(ns,"text"); t.setAttribute("x",2); t.setAttribute("y",y+3); t.setAttribute("class","chart-axis-label"); t.textContent=Math.round(mx-f*(mx-mn)); svg.appendChild(t);} });
     var defs=document.createElementNS(ns,"defs"); var g=document.createElementNS(ns,"linearGradient"); g.setAttribute("id","areaGrad"); g.setAttribute("x1","0"); g.setAttribute("y1","0"); g.setAttribute("x2","0"); g.setAttribute("y2","1");
@@ -3153,7 +3221,7 @@ var FINISHES = [
   }
 
   /* ---------- mutations ---------- */
-  function upsertSessionLocal(date,fn){ var s=state.sessions.find(function(x){return x.date===date;}); if(!s){ s={date:date,sample:false,entries:[]}; state.sessions.push(s);} fn(s); if(!s.entries.length) state.sessions=state.sessions.filter(function(x){return x!==s;}); return s; }
+  function upsertSessionLocal(date,fn){ var s=state.sessions.find(function(x){return x.date===date;}); if(!s){ s={date:date,sample:false,entries:[]}; state.sessions.push(s);} fn(s); if(!s.entries.length) state.sessions=state.sessions.filter(function(x){return x!==s;}); touchSessions(); return s; }
   function addEntry(date,entry){
     if(entry.type==="bodyweight"){
       if(entry.bw===undefined && Number(state.goals.bodyweight)>0) entry.bw=Number(state.goals.bodyweight);
@@ -3337,7 +3405,7 @@ var FINISHES = [
       s.entries=s.entries.filter(function(e){ return !isSampleEntry(s,e); });
       if(s.entries.length!==before){ s.sample=false; touched.push(s.date); }
     });
-    state.sessions=state.sessions.filter(function(s){ return s.entries.length; });
+    state.sessions=state.sessions.filter(function(s){ return s.entries.length; }); touchSessions();
     touched.forEach(function(d){ persistSession(d); });
     if(state.dbAvailable){ state.db.collection("sessions").where("sample","==",true).get().then(function(snap){ snap.docs.forEach(function(d){ state.db.doc("sessions/"+d.id).delete()["catch"](function(){}); }); })["catch"](function(err){console.error("Loadbook: clear",err);}); } renderAll(); }
   function persistRewards(){ if(!state.dbAvailable) return; state.db.doc("settings/rewards").set({tokens:state.rewards.tokens,lastClaimedDate:state.rewards.lastClaimedDate,owned:state.rewards.owned,variants:state.rewards.variants||{},finish:state.rewards.finish||{},freezes:state.rewards.freezes||0,frozenDates:state.rewards.frozenDates||[],bonusClaimed:!!state.rewards.bonusClaimed,shelf:state.rewards.shelf||[],erasUnlocked:state.rewards.erasUnlocked||[]})["catch"](function(err){console.error("Loadbook: rewards",err);}); }
@@ -4060,7 +4128,10 @@ var FINISHES = [
     host.setAttribute("role","img");
     host.setAttribute("aria-label",trained+" training day"+(trained===1?"":"s")+" in the last year, most recent at the right");
     /* it used to open on last September and you had to scroll sideways to find your own year */
-    if(typeof host.scrollTo==="function"||"scrollLeft" in host) host.scrollLeft=host.scrollWidth;
+    /* reading scrollWidth right after replacing 364 cells forces a reflow; the
+       scroll is cosmetic, so it can wait for the next frame */
+    var toEnd=function(){ try{ host.scrollLeft=host.scrollWidth; }catch(e){} };
+    if(typeof requestAnimationFrame==="function") requestAnimationFrame(toEnd); else toEnd();
     var hint=document.getElementById("calHint");
     if(hint) hint.textContent=trained+" day"+(trained===1?"":"s")+" in the last year";
     var lab=document.getElementById("calMonths");
@@ -4425,13 +4496,17 @@ var FINISHES = [
       state.routines.push(r); persistRoutine(r); added.r++;
     });
     var seq=0;
+    /* a linear .find() per session made a big restore quadratic in distinct days:
+       three times the data cost three and a half times the time */
+    var byDate={};
+    state.sessions.forEach(function(x){ byDate[x.date]=x; });
     (d.sessions||[]).forEach(function(sn){
       /* a session we cannot read is a day the user loses; say so rather than
          returning silently before any counter is touched */
       if(!sn||typeof sn!=="object"||!Array.isArray(sn.entries)){ skipped.shape++; return; }
       if(!validDate(sn.date)){ skipped.day++; skipped.bad+=sn.entries.length; return; }
-      var have=state.sessions.find(function(x){ return x.date===sn.date; });
-      if(!have){ have={date:sn.date,sample:false,entries:[]}; state.sessions.push(have); }
+      var have=byDate[sn.date];
+      if(!have){ have={date:sn.date,sample:false,entries:[]}; state.sessions.push(have); byDate[sn.date]=have; touchSessions(); }
       sn.entries.forEach(function(raw){
         var e=coerceEntry(raw);
         if(!e){ skipped.bad++; return; }
@@ -4537,7 +4612,7 @@ var FINISHES = [
   }
   function clearTrainingRecord(){
     var dates=state.sessions.map(function(s){ return s.date; }), ids=state.routines.map(function(r){ return r.id; });
-    state.sessions=[]; state.routines=[];
+    state.sessions=[]; touchSessions(); state.routines=[];
     clearRunProgress();
     if(state.dbAvailable){
       dates.forEach(function(d){ state.db.doc("sessions/"+d).delete()["catch"](function(){}); });
@@ -5655,7 +5730,7 @@ var FINISHES = [
   document.getElementById("buyFreezeBtn").addEventListener("click",buyFreeze);
   document.getElementById("useFreezeBtn").addEventListener("click",useFreeze);
   var shopSearchTimer=null;
-  document.getElementById("shopSearch").addEventListener("input",function(){ var v=this.value; clearTimeout(shopSearchTimer); shopSearchTimer=setTimeout(function(){ state.shopQuery=v; renderShop(); },160); });
+  document.getElementById("shopSearch").addEventListener("input",function(){ var v=this.value; clearTimeout(shopSearchTimer); shopSearchTimer=setTimeout(function(){ state.shopQuery=v; applyShopFilter(); },160); });
   document.getElementById("composeBtn").addEventListener("click",function(){ if(state.routineDraft) closeEditor(); else composeRoutine(); });
   document.getElementById("cancelRoutineBtn").addEventListener("click",closeEditor);
   document.getElementById("addStepBtn").addEventListener("click",function(){ var d=state.routineDraft; if(!d) return; syncDraft(); var last=d.steps[d.steps.length-1]; d.steps.push(defaultStep("","strength")); renderStepRows(); });
@@ -5824,7 +5899,7 @@ var FINISHES = [
     var got={ex:false,se:false}; function ready(){ if(got.ex&&got.se) renderAll(); }
     state.db.collection("exercises").onSnapshot(function(snap){ if(!snap.empty) state.exercises=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}); got.ex=true; ready(); },function(err){console.error("Loadbook: exercises",err);});
     state.db.collection("routines").onSnapshot(function(snap){ state.routines=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}).filter(function(r){return r.steps&&r.steps.length;}); renderRoutines(); },function(err){console.error("Loadbook: routines",err);});
-    state.db.collection("sessions").orderBy("date","desc").limit(400).onSnapshot(function(snap){ state.sessions=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}).filter(function(s){return s.entries&&s.entries.length;}); normalizeSessions(); got.se=true; ready(); },function(err){console.error("Loadbook: sessions",err);});
+    state.db.collection("sessions").orderBy("date","desc").limit(400).onSnapshot(function(snap){ state.sessions=snap.docs.map(function(d){return Object.assign({id:d.id},d.data());}).filter(function(s){return s.entries&&s.entries.length;}); touchSessions(); normalizeSessions(); got.se=true; ready(); },function(err){console.error("Loadbook: sessions",err);});
     state.db.doc("settings/goals").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.goals={streak:d.streak||DEFAULT_GOALS.streak,sessions:d.sessions||DEFAULT_GOALS.sessions,volume:d.volume||DEFAULT_GOALS.volume,bodyweight:d.bodyweight||0,units:d.units==="kg"?"kg":"lb",height:d.height||0,age:d.age||0,sex:d.sex==="female"?"female":"male",progression:d.progression==="on"?"on":"off"}; renderAll(); fillCommission(); } })["catch"](function(err){console.error("Loadbook: goals",err);});
     state.db.doc("settings/rewards").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.rewards={tokens:d.tokens||0,lastClaimedDate:d.lastClaimedDate||null,owned:d.owned||[],variants:d.variants||{},finish:d.finish||{},freezes:d.freezes||0,frozenDates:d.frozenDates||[],bonusClaimed:!!d.bonusClaimed,shelf:d.shelf||[],erasUnlocked:d.erasUnlocked||[]}; renderAll(); checkCompletionBonus(); checkEras(); } })["catch"](function(err){console.error("Loadbook: rewards",err);});
   }
