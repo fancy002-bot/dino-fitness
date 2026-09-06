@@ -5,5 +5,5 @@
    file is not. Never put an sb_secret_ key here. */
 window.LOADBOOK_SUPABASE = {
   url: "https://hvlinxqvqhscsynafylx.supabase.co",
-  anonKey: "PASTE_sb_publishable_KEY_HERE"
+  anonKey: "sb_publishable_vi3nvIEY4kPYY6bLLJwvUw_PnO_yI7q"
 };
