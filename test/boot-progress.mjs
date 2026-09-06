@@ -24,8 +24,10 @@ check("the seeded samples are marked as such", lb.state.sessions.some(s => s.sam
 check("and are not progressed from",
   lb.suggestNext(step({ exerciseId: "bench-press", name: "Bench Press", reps: 5 })), "null");
 
-/* --- with progression OFF (the default) the runner opens on what you did --- */
-check("progression is off out of the box", lb.state.goals.progression, "off");
+/* Progression now ships ON: the deload after two failed sessions is gated behind
+   it, and a safety net nobody finds is not a safety net. Off still means off. */
+check("progression is on out of the box", lb.state.goals.progression, "on");
+lb.state.goals.progression = "off";
 seed("2026-09-01", "off-squat", "Off Squat", "strength", 3, { weight: 200, reps: 5 });
 let off = lb.suggestNext(step({ exerciseId: "off-squat", name: "Off Squat", sets: 3, reps: 5, weight: 200 }));
 check("it holds last session's load", off.weight, 200);

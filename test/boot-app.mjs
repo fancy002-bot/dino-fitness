@@ -76,6 +76,14 @@ check("and estimates a max beside the heaviest bar",
   /Est\. max/.test(d.getElementById("movementInner").textContent));
 check("and lists them", q("#movementInner .mv-row").length > 0, "true");
 check("with a way through to the chart", !!d.getElementById("mvChart"));
+/* records are judged on real work, so the seeded plank is not one */
+lb.openMovement("plank");
+check("a movement with only specimen sets has no record of yours",
+  /no record/.test(d.getElementById("movementInner").textContent), "true");
+const yesterday = (() => { const t = new Date(); t.setDate(t.getDate() - 1);
+  return t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(t.getDate()).padStart(2, "0"); })();
+lb.addEntry(yesterday, { id: "real-plank", exerciseId: "plank", exerciseName: "Plank",
+  type: "hold", secs: 75, added: null });
 lb.openMovement("plank");
 check("a hold reads in seconds", /sec|:/.test(d.getElementById("movementInner").textContent));
 check("its kind is named", /Timed hold/.test(d.getElementById("movementInner").textContent));

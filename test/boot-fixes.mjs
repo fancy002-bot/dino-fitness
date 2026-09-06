@@ -125,6 +125,10 @@ check("and the chart offers to plot it", !!d.querySelector('#chartExercise optio
 /* ---- lifter: correcting a set, in place ---- */
 const target = lb.state.sessions.find(s => s.date === "2026-09-01").entries.find(e => e.weight === 95);
 lb.renderAll();
+/* Recent now pages by entry rather than by day, so an older session may sit behind
+   "Show more" - which is the point of the pagination. Open it the way a user would. */
+let moreBtn = d.getElementById("recentMore");
+while (moreBtn) { click(moreBtn); moreBtn = d.getElementById("recentMore"); }
 const editBtn = [...q("#recentList .entry-edit")].find(b => b.dataset.entry === target.id);
 check("every entry offers a correction", !!editBtn);
 click(editBtn);
@@ -225,13 +229,19 @@ const eased = lb.suggestNext(easyStep);
 check("with progression off you get back what you lifted", eased.weight, 45);
 check("and it is not treated as a lay-off", !!eased.stale, "false");
 
-/* a fortnight off sick must not hand back the peak with no comment */
+/* a fortnight off sick must not hand back the peak with no comment. The backoff is
+   part of progression, so "off" does not get one either - Settings promises off
+   means "the runner opens on what you did last time". */
+lb.state.goals.progression = "on";
 lb.state.sessions = lb.state.sessions.filter(s => s.date !== daysAgo(2));
 lb.state.sessions.push({ date: daysAgo(21), sample: false, entries: easySets(["ez4", "ez5", "ez6"]) });
 const returning = lb.suggestNext(easyStep);
 check("three weeks away is flagged", !!returning.stale, "true");
 check("and eases you back rather than resuming the peak", returning.weight < 45, "true");
 check("the note dates the last session", /21 days ago/.test(lb.suggestNote(returning, easyStep)), "true");
+lb.state.goals.progression = "off";
+check("with progression off there is no backoff either",
+  !!lb.suggestNext(easyStep).stale, "false");
 lb.state.sessions = lb.state.sessions.filter(s => s.date !== daysAgo(21));
 lb.state.sessions.push({ date: daysAgo(2), sample: false, entries: easySets(["ez7", "ez8", "ez9"]) });
 check("not the plan's heavier number", eased.weight !== 90, "true");

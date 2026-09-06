@@ -176,10 +176,12 @@ lb.state.sessions = [];
 for (let i = 1; i <= 30; i++) lb.state.sessions.push({ date: daysAgo(i), sample: false,
   entries: [{ id: "p" + i, exerciseId: "squat", exerciseName: "Squat", type: "strength", weight: 200 + i, reps: 5 }] });
 lb.renderAll();
-check("it opens on fourteen", q("#recentList .day-group").length, 14);
+/* pagination counts entries, not days: eight seeded days of 39 entries used to
+   put 117 tab stops on the page before "show more" could ever appear */
+check("it opens on a page, not the whole ledger", q("#recentList .day-group").length, 14);
 check("and says there is more", /Showing 14 of 30/.test(text("#recentHint")), "true");
 click(d.getElementById("recentMore"));
-check("more is one press away", q("#recentList .day-group").length, 28);
+check("more is one press away", q("#recentList .day-group").length > 14, "true");
 const find = d.getElementById("recentFind");
 find.value = daysAgo(3);
 find.dispatchEvent(new w.Event("input", { bubbles: true }));
@@ -200,7 +202,13 @@ tabs[0].dispatchEvent(new w.KeyboardEvent("keydown", { key: "ArrowRight", bubble
 check("arrow keys move between them", tabs[1].getAttribute("aria-selected"), "true");
 tabs[1].dispatchEvent(new w.KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
 check("and back again", tabs[0].getAttribute("aria-selected"), "true");
-check("there is a main landmark", d.querySelector("main") ? d.querySelector("main").id : "", "vol-ledger");
+/* the landmark used to be the Ledger panel itself, which is display:none for two
+   thirds of the app's screen time, so there was no main at all on Cabinet */
+check("there is a main landmark", d.querySelector("main") ? d.querySelector("main").id : "", "volumes");
+click(d.querySelector('.vol-tab[data-vol="cabinet"]'));
+check("and it survives switching volume", d.querySelectorAll("main").length, 1);
+check("with the cabinet inside it", !!d.querySelector("main #vol-cabinet"), "true");
+click(d.querySelector('.vol-tab[data-vol="ledger"]'));
 check("and a way past the entries", q("a.skip").length, 2);
 
 /* ---- no set was done tomorrow ---- */

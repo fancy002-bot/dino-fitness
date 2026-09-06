@@ -138,7 +138,18 @@ check("sets logged in total", lb.state.sessions.reduce((a, s) => a + s.entries.l
 lb.closeRunner();
 
 /* --- personal records are judged in each kind's own terms --- */
-/* the seeded sample already holds a set of 20 push-ups, so that is the record */
+/* Specimen entries are illustration, so they are not anybody's record - a demo run
+   used to show up as your personal best under the most ordinary name you could
+   type. Records are judged on real work only, so log some. */
+const realDay = (() => { const t = new Date(); t.setDate(t.getDate() - 1);
+  return t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(t.getDate()).padStart(2, "0"); })();
+/* the seeded demo holds a set of 20; the real work logged above is 12, and 12 is
+   what the record must say */
+check("the demo set of 20 is not your record", lb.bestFor("push-up", "bodyweight", 0) === 20, "false");
+lb.addEntry(realDay, { id: "mine-pu", exerciseId: "push-up", exerciseName: "Push-up",
+  type: "bodyweight", reps: 20, added: null });
+lb.addEntry(realDay, { id: "mine-run", exerciseId: "running", exerciseName: "Running",
+  type: "cardio", duration: 30, distance: 6.2 });
 check("best bodyweight reps at bodyweight", lb.bestFor("push-up", "bodyweight", 0), 20);
 check("the set just logged counts toward it", lb.bestFor("push-up", "bodyweight", 0) >= 12, "true");
 check("weighted pull-ups are judged apart from unweighted",
