@@ -2905,7 +2905,7 @@ var FINISHES = [
         r.innerHTML='<span class="entry-cat" style="background:'+catColorVar(ex?ex.category:"Push")+';"></span>'+
           (openable?'<button type="button" class="entry-name" data-mv="'+escapeHtml(e.exerciseId)+'">'+escapeHtml(e.exerciseName)+'</button>'
                    :'<span class="entry-name as-text">'+escapeHtml(e.exerciseName)+'</span>')+
-          '<span class="entry-detail">'+detail+(e.isPR?' <span class="pr-badge">PR</span>':'')+'</span><button class="entry-edit" data-date="'+s.date+'" data-entry="'+e.id+'" title="Correct this entry" aria-label="Edit">✎</button><button class="entry-del" data-date="'+s.date+'" data-entry="'+e.id+'" title="Strike entry" aria-label="Delete">×</button>';
+          '<span class="entry-detail">'+detail+(e.isPR?' <span class="pr-badge" title="Personal record \u2014 your best on this movement so far">PR</span>':'')+'</span><button class="entry-edit" data-date="'+s.date+'" data-entry="'+e.id+'" title="Correct this entry" aria-label="Edit">✎</button><button class="entry-del" data-date="'+s.date+'" data-entry="'+e.id+'" title="Strike entry" aria-label="Delete">×</button>';
         g.appendChild(r);
       });
       if(s.prep&&prepText(s.prep)){
@@ -3460,16 +3460,21 @@ var FINISHES = [
       }
       /* the rate ceiling is not the only limit: if eating to that rate would go under
          the resting requirement, the honest rate is the one the floor allows */
-      var feasible=max;
+      var rateCeiling=max, byFloor=null;
       if(h && req.age){
         var bmrHere=bmrOf(req.sex,bw,h,req.age), tdeeHere=Math.round(bmrHere*activityFactor(req.days||3));
-        var byFloor=(tdeeHere-bmrHere)*7/KCAL_PER_LB;
-        if(byFloor>0 && byFloor<feasible) feasible=byFloor;
+        byFloor=(tdeeHere-bmrHere)*7/KCAL_PER_LB;
       }
-      max=feasible;
+      /* two separate limits, and the reason printed has to be the one that bit */
+      var floorBites = byFloor!==null && byFloor>0 && byFloor<rateCeiling;
+      max = floorBites ? byFloor : rateCeiling;
       if(perWeek>max){
         out.verdict="unrealistic";
-        out.says.push("That is "+round2(wOut(perWeek))+" "+unitW()+" a week. Above about "+round2(wOut(max))+" "+unitW()+" a week \u2014 1% of your bodyweight \u2014 the loss stops being mostly fat.");
+        out.says.push("That is "+round2(wOut(perWeek))+" "+unitW()+" a week. "+(floorBites
+          ? ("Training "+(req.days||3)+" days a week you burn about "+Math.round(tdeeHere).toLocaleString()+
+             " kcal a day and rest needs "+Math.round(bmrHere).toLocaleString()+" of them, so the most that can honestly come off is about "+
+             round2(wOut(max))+" "+unitW()+" a week without eating under your resting requirement.")
+          : ("Above about "+round2(wOut(max))+" "+unitW()+" a week \u2014 1% of your bodyweight \u2014 the loss stops being mostly fat.")));
         out.options.push({label:"Keep "+fmtW(amount)+", take "+fmtWeeks(Math.ceil(amount/max)), amount:amount, weeks:Math.ceil(amount/max), why:"you still get the figure you asked for", lean:true});
         out.options.push({label:"Keep "+fmtWeeks(weeks)+", aim for "+fmtW(Math.floor(max*weeks)), amount:Math.floor(max*weeks), weeks:weeks, why:"if the date is the part that matters"});
         return out;
@@ -3816,7 +3821,7 @@ var FINISHES = [
       (function(){
         var t=f.meals.reduce(function(a,m){ return {k:a.k+m.kcal, p:a.p+m.p, c:a.c+m.c, f:a.f+m.f}; },{k:0,p:0,c:0,f:0});
         return '<p class="cm-note">The four plates below come to '+t.k.toLocaleString()+' kcal \u00b7 '+
-          t.p+'p '+t.c+'c '+t.f+'f \u2014 rounding to whole portions, so within a few per cent of the figures above.</p>';
+          t.p+'p '+t.c+'c '+t.f+'f \u2014 the food is rounded to whole servings, so each figure lands within about a tenth of the target above.</p>';
       })()+
       '<p class="cm-note">Resting '+f.bmr.toLocaleString()+' · with the programme '+f.tdee.toLocaleString()+
         ' · '+(f.delta===0?'eating at that':sign+f.delta+' to match the goal')+'.</p>'+
@@ -3831,10 +3836,11 @@ var FINISHES = [
             return '<span>'+escapeHtml(it.n)+' <em>'+it.g+' g</em></span>';
           }).join("")+'</div></div>';
       }).join("")+'</div>'+
-      '<p class="cm-note">Portions are worked back from the macros and rounded — an estimate to aim at, not a prescription. Anything with a medical dimension is a question for a professional.</p>';
+      '<p class="cm-note">Portions are worked back from the protein, carbohydrate and fat figures above, and rounded to whole servings — an estimate to aim at, not a prescription. Anything with a medical dimension is a question for a professional.</p>';
   }
   function questLine(){
-    var q=state.goals.quest; if(!q||!q.amount) return "";
+    var q=state.goals.quest;
+    if(!q||!q.amount||!GOAL_KINDS[q.goal]||!GOAL_KINDS[q.goal].numeric) return "";
     var now=Number(state.goals.bodyweight)||q.startLb;
     var moved = q.goal==="fat" ? (q.startLb-now) : (now-q.startLb);
     var weeksIn = Math.max(0, Math.round(daysBetween(q.startDate, todayISO())/7));
@@ -3845,15 +3851,22 @@ var FINISHES = [
       '<div class="quest-d">'+(moved>0?fmtW(Math.round(moved*10)/10)+" so far":"nothing recorded yet")+
       ' \u00b7 '+weeksIn+' of '+q.weeks+' weeks \u00b7 now '+fmtW(now)+
       ' \u00b7 target '+fmtW(q.goal==="fat"?q.startLb-q.amount:q.startLb+q.amount)+
-      '</div><button type="button" class="btn-secondary" id="questClear">Drop this goal</button></div>';
+      '</div><button type="button" class="btn-secondary" id="questClear">Stop tracking this goal</button></div>';
+  }
+  function wireQuestClear(){
+    var qc=document.getElementById("questClear");
+    if(qc) qc.addEventListener("click",function(){ state.goals.quest=null; persistGoals(); renderCommission(); });
   }
   function renderCommission(){
     var host=document.getElementById("cmOut"); if(!host) return;
     var c=state.commission;
+    /* the goal you agreed to belongs at the top of this panel whether or not a
+       plan is also on screen - it used to appear only once the commission was
+       cleared, behind a button that reads as destructive */
+    var quest=questLine();
     if(!c){
-      host.innerHTML=questLine();
-      var qc=document.getElementById("questClear");
-      if(qc) qc.addEventListener("click",function(){ state.goals.quest=null; persistGoals(); renderCommission(); });
+      host.innerHTML=quest;
+      wireQuestClear();
       return;
     }
     var a=c.assess, cls=a.verdict==="unrealistic"?"bad":a.verdict==="stretch"?"warn":a.verdict==="blocked"?"bad":"good";
@@ -3896,7 +3909,8 @@ var FINISHES = [
         '<div class="routine-actions"><button type="button" class="btn-primary" style="width:auto;" id="cmAdopt">Enter these in the programme</button>'+
         '<button type="button" class="btn-secondary" id="cmDiscard">Discard</button></div></div>';
     }
-    host.innerHTML=html;
+    host.innerHTML=quest+html;
+    wireQuestClear();
     host.querySelectorAll(".cm-opt").forEach(function(b){
       b.addEventListener("click",function(){ acceptCounter(Number(b.dataset.opt)); });
     });
@@ -4211,7 +4225,9 @@ var FINISHES = [
       height: state.goals.height||0,
       age: state.goals.age||0,
       sex: state.goals.sex||"male",
-      progression: state.goals.progression==="on"?"on":"off"
+      progression: state.goals.progression==="on"?"on":"off",
+      quest: state.goals.quest||null   /* this object is rebuilt wholesale; anything
+                                          not named here is silently discarded */
     };
     persistGoals();
     var restEl=document.getElementById("restLen");
@@ -4308,7 +4324,11 @@ var FINISHES = [
       });
       if(d.goals.sex==="male"||d.goals.sex==="female") state.goals.sex=d.goals.sex;
       if(d.goals.progression==="on"||d.goals.progression==="off") state.goals.progression=d.goals.progression;
-      if(d.goals.quest&&typeof d.goals.quest==="object") state.goals.quest=d.goals.quest;
+      var iq=d.goals.quest;
+      if(iq&&typeof iq==="object"&&GOAL_KINDS[iq.goal]&&GOAL_KINDS[iq.goal].numeric&&sane(iq.amount,NUM_CEIL)>0)
+        state.goals.quest={goal:iq.goal, amount:sane(iq.amount,NUM_CEIL), weeks:sane(iq.weeks,520)||12,
+                           startLb:sane(iq.startLb,NUM_CEIL)||0,
+                           startDate:validDate(iq.startDate)?iq.startDate:todayISO()};
       persistGoals();
       if(d.goals.units==="kg"||d.goals.units==="lb") setUnits(d.goals.units);
     }

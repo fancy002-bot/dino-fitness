@@ -214,5 +214,52 @@ lb.closeSettings();
 check("and comes back afterwards",
   d.querySelector("body > .wrap").hasAttribute("inert"), "false");
 
+/* ---- round three: what the beginner and the adversarial pass found ---- */
+
+/* the refusal has to name the limit that actually bit. It printed
+   "1% of your bodyweight" beside a figure that was the calorie floor. */
+d.getElementById("cmGoal").value = "fat";
+d.getElementById("cmGoal").dispatchEvent(new w.Event("change", { bubbles: true }));
+d.getElementById("cmBw").value = "210";
+d.getElementById("cmFt").value = "5"; d.getElementById("cmIn").value = "8";
+d.getElementById("cmAge").value = "41";
+d.getElementById("cmSex").value = "male";
+d.getElementById("cmDays").value = "3";
+d.getElementById("cmAmount").value = "40";
+d.getElementById("cmWeeks").value = "12";
+click(d.getElementById("cmDraw"));
+const refusal = text("#cmOut");
+check("an impossible ask is refused", /cannot be met honestly/.test(refusal), "true");
+const ceiling = Number((refusal.match(/most that can honestly come off is about ([\d.]+)/) ||
+                        refusal.match(/Above about ([\d.]+)/) || [])[1]);
+check("the refusal quotes a ceiling", isFinite(ceiling), "true");
+check("and if it says 1% of bodyweight, the figure really is 1%",
+  !/1% of your bodyweight/.test(refusal) || Math.abs(ceiling - 2.1) < 0.06, "true");
+check("otherwise it explains the resting requirement instead",
+  /1% of your bodyweight/.test(refusal) || /resting requirement/.test(refusal), "true");
+
+/* the goal you adopt has to be visible without clicking something that reads as delete */
+click(d.querySelector("#cmOut .cm-opt"));
+lb.adoptProgramme();
+check("the agreed goal is recorded", !!lb.state.goals.quest, "true");
+check("and shown while the plan is still on screen",
+  /of \d+ weeks/.test(text("#cmOut")), "true");
+check("the button offers to stop tracking, not to delete",
+  /Stop tracking this goal/.test(text("#cmOut")), "true");
+
+/* state.goals is rebuilt wholesale on save; anything unnamed is discarded */
+d.getElementById("setStreak") || lb.openSettings();
+lb.saveSettings();
+check("saving settings keeps the goal", !!lb.state.goals.quest, "true");
+lb.closeSettings();
+
+/* an imported quest naming a goal that does not exist used to throw on render */
+lb.importLedger(JSON.stringify({ sessions: [],
+  goals: { quest: { goal: "telekinesis", amount: 10, weeks: 12, startLb: 200, startDate: "2026-01-01" } } }));
+check("a nonsense goal is not adopted", lb.state.goals.quest.goal !== "telekinesis", "true");
+lb.state.goals.quest = { goal: "telekinesis", amount: 10, weeks: 12, startLb: 200, startDate: "2026-01-01" };
+check("and could not render one if it had", lb.questLine(), "");
+lb.state.goals.quest = null;
+
 check("no console errors along the way", errors.length, 0);
 done("boot-hardening");
