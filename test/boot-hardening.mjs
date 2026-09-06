@@ -269,5 +269,73 @@ lb.state.goals.quest = { goal: "telekinesis", amount: 10, weeks: 12, startLb: 20
 check("and could not render one if it had", lb.questLine(), "");
 lb.state.goals.quest = null;
 
+/* ---- the stipend stopped punishing rest days ---- */
+lb.state.sessions = [];
+lb.state.goals.sessions = 4;
+lb.state.rewards.lastClaimedDate = null;
+const thisWeek = n => {
+  /* n training days inside the current Monday-start week, today included */
+  const out = [];
+  const t = new Date();
+  const back = (t.getDay() + 6) % 7;
+  for (let i = 0; i < n; i++) {
+    const day = new Date(t); day.setDate(t.getDate() - Math.min(back, i));
+    out.push(day.getFullYear() + "-" + String(day.getMonth() + 1).padStart(2, "0") + "-" + String(day.getDate()).padStart(2, "0"));
+  }
+  return [...new Set(out)];
+};
+thisWeek(4).forEach((date, i) => lb.state.sessions.push({ date, sample: false,
+  entries: [{ id: "sw" + i, exerciseId: "squat", exerciseName: "Squat", type: "strength", weight: 200, reps: 5 }] }));
+const kept = lb.sessionsThisWeek();
+check("sessions kept this week are counted", kept > 0, "true");
+/* on a Mon/Tue/Thu/Fri split the consecutive-day streak tops out at 2, and the
+   old bonus paid 12 of a possible 50 for a perfectly kept week */
+check("a kept week pays more than a two-day streak",
+  lb.rewardAmountForWeek(4) > 12, "true");
+check("and it is capped", lb.rewardAmountForWeek(99), 50);
+check("a weigh-in does not count as a session kept", (() => {
+  const before = lb.sessionsThisWeek();
+  lb.state.sessions.push({ date: thisWeek(6).pop(), sample: false,
+    entries: [{ id: "wi-week", exerciseId: "__bodyweight", exerciseName: "Weigh-in", type: "weight", lb: 180 }] });
+  return lb.sessionsThisWeek() === before;
+})(), "true");
+
+/* ---- an endurance plan is a build, not the same run five times ---- */
+const runPlan = lb.buildProgramme({ goal: "endurance", bw: 160, days: 5, kit: "full",
+  experience: 1, weeks: 16, mileage: 40 });
+const runs = runPlan.flatMap(d => d.steps).filter(s => s.type === "cardio");
+check("the plan actually contains running", runs.length > 0, "true");
+check("and the runs are not all the same", new Set(runs.map(r => r.name)).size > 1, "true");
+check("each run says what it is for", runs.every(r => !!r.note), "true");
+check("and carries a real distance from your mileage",
+  runs.some(r => Number(r.distance) > 0), "true");
+/* three up, one easier, then three weeks down */
+check("the build rises", lb.weekFactor(2, 16) > lb.weekFactor(0, 16), "true");
+check("every fourth week backs off", lb.weekFactor(3, 16) < lb.weekFactor(2, 16), "true");
+check("and the last week is the lightest",
+  lb.weekFactor(15, 16) < lb.weekFactor(0, 16), "true");
+check("the taper is drawn", /The build/.test(lb.renderBuild({ goal: "endurance", weeks: 16, mileage: 40 })), "true");
+check("and a short plan says so instead",
+  /laid out here/.test(lb.renderBuild({ goal: "endurance", weeks: 2, mileage: 0 })), "true");
+
+/* ---- the sort cache must not go stale when something writes behind its back ---- */
+const sortedBefore = lb.sessionsSorted().length;
+lb.state.sessions.push({ date: "2020-01-02", sample: false,
+  entries: [{ id: "cache-probe", exerciseId: "squat", exerciseName: "Squat", type: "strength", weight: 100, reps: 5 }] });
+check("a direct push is noticed by the sort cache", lb.sessionsSorted().length, sortedBefore + 1);
+lb.state.sessions = lb.state.sessions.filter(s => s.date !== "2020-01-02");
+check("and so is a replacement", lb.sessionsSorted().length, sortedBefore);
+
+/* ---- a bodyweight set is priced at the bodyweight it was done at ---- */
+lb.state.goals.bodyweight = 180;
+const bwSet = { type: "bodyweight", reps: 10, added: null, bw: 150 };
+check("volume uses the weight recorded with the set", lb.entryLoad(bwSet), 1500);
+check("and falls back to today's only when it has none",
+  lb.entryLoad({ type: "bodyweight", reps: 10, added: null }), 1800);
+
+/* ---- a starting load you can actually rack ---- */
+check("a novice barbell load is at least an empty bar",
+  lb.startingLoad("Overhead Press", 120, 0, { sex: "female", age: 30 }) >= 44, "true");
+
 check("no console errors along the way", errors.length, 0);
 done("boot-hardening");

@@ -462,6 +462,12 @@
   .cm-mv{font-family:var(--font-display); font-size:0.98rem;}
   .cm-mv em{font-family:var(--font-mono); font-style:normal; font-size:0.72rem; color:var(--ink-soft); margin-left:5px;}
   .cm-note{font-size:0.86rem; color:var(--ink-soft); margin:14px 0 0;}
+  .build-grid{display:flex; align-items:flex-end; gap:3px; height:70px; margin-top:6px;}
+  .build-w{flex:1; min-width:0; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%;}
+  .build-w i{display:block; width:100%; background:var(--bronze); min-height:6px;}
+  .build-w.taper i{background:var(--oak-hi);}
+  .build-w span{font-family:var(--font-mono); font-size:0.44rem; color:var(--ink-mute); margin-top:3px;}
+  @media (max-width:560px){ .build-w span{display:none;} }
   .quest{border:2px solid var(--bronze); padding:16px 18px; margin-top:18px;}
   .quest-t{font-family:var(--font-display); font-size:1.2rem;}
   .quest-bar{height:8px; background:var(--surface-3); margin:12px 0 8px; border:1px solid var(--line);}
@@ -707,9 +713,13 @@
         <div class="field"><label for="cmDays">Days a week</label><select id="cmDays"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
         <div class="field"><label for="cmKit">What you have</label><select id="cmKit"><option value="full">A full gym</option><option value="minimal">Dumbbells and a bar</option><option value="bodyweight">Bodyweight only</option></select></div>
       </div>
+      <div class="cm-form" id="cmMileageWrap" style="display:none;">
+        <div class="field"><label for="cmMileage">Running now, a week</label><div class="cm-hrow"><input type="number" id="cmMileage" min="0" max="300" step="any" placeholder="20"><span class="k" id="cmMileageUnit">km</span></div></div>
+        <div class="field"><label for="cmRaceKm">Race distance</label><div class="cm-hrow"><input type="number" id="cmRaceKm" min="1" max="300" step="any" placeholder="42.2"><span class="k">km</span></div></div>
+      </div>
       <div class="cm-form" id="cmTarget">
-        <div class="field"><label for="cmAmount" id="cmAmountLabel">Amount</label><div class="cm-hrow"><input type="number" id="cmAmount" min="0" step="any" placeholder="10"><span class="k" id="cmAmountUnit">lb</span></div></div>
-        <div class="field"><label for="cmWeeks">In how many weeks</label><div class="cm-hrow"><input type="number" id="cmWeeks" min="1" max="260" step="1" placeholder="12"><span class="k">weeks</span></div></div>
+        <div class="field" id="cmAmountField"><label for="cmAmount" id="cmAmountLabel">Amount</label><div class="cm-hrow"><input type="number" id="cmAmount" min="0" step="any" placeholder="10"><span class="k" id="cmAmountUnit">lb</span></div></div>
+        <div class="field" id="cmWeeksField"><label for="cmWeeks" id="cmWeeksLabel">In how many weeks</label><div class="cm-hrow"><input type="number" id="cmWeeks" min="1" max="260" step="1" placeholder="12"><span class="k">weeks</span></div></div>
       </div>
       <div class="routine-actions"><button type="button" class="btn-primary" style="width:auto;" id="cmDraw">Draw it up</button></div>
       <div id="cmOut" role="status" aria-live="polite" tabindex="-1"></div>
@@ -2760,16 +2770,38 @@ var FINISHES = [
     setRing(document.getElementById("ringC"), vol/g.volume, 44);
   }
 
+  /* The bonus used to scale with consecutive calendar days, which on a sane
+     Mon/Tue/Thu/Fri split tops out at two — it paid 12 of a possible 50 and told
+     a client to train on their programmed rest day to earn the rest. It scales
+     with sessions kept this week against your own target instead, so a rest day
+     is part of the plan rather than a penalty. */
+  function sessionsThisWeek(){
+    var t=todayISO(), start=weekKey(t), n=0;
+    state.sessions.forEach(function(s){
+      if(s.date>t || weekKey(s.date)!==start) return;
+      if(trainingEntries(s).some(function(e){ return !isSampleEntry(s,e); })) n++;
+    });
+    return n;
+  }
+  function rewardAmountForWeek(n){
+    var target=Math.max(1, Math.round(Number(state.goals.sessions)||4));
+    return Math.min(10 + Math.max(n-1,0)*Math.round(40/target), 50);
+  }
   function rewardAmountForStreak(s){ return Math.min(10 + Math.max(s-1,0)*2, 50); }
 
   function renderRewards(){
     document.getElementById("tokenPill").innerHTML = COIN_SVG + '<span>' + state.rewards.tokens.toLocaleString() + '</span>';
-    var streak=computeCurrentStreak(), hasToday=todaysSessionLogged(), claimed=state.rewards.lastClaimedDate===todayISO(), reward=rewardAmountForStreak(streak);
+    var streak=computeCurrentStreak(), hasToday=todaysSessionLogged(), claimed=state.rewards.lastClaimedDate===todayISO();
+    var kept=sessionsThisWeek(), target=Math.max(1,Math.round(Number(state.goals.sessions)||4)), reward=rewardAmountForWeek(kept);
     document.getElementById("rewardStreakNum").textContent = streak;
     var btn=document.getElementById("claimBtn"), text=document.getElementById("rewardText");
-    if (claimed){ btn.disabled=true; btn.innerHTML="Drawn today"; text.innerHTML="<b>Stipend drawn.</b><span>The next draws tomorrow.</span>"; }
-    else if (!hasToday){ btn.disabled=true; btn.innerHTML="Enter a set first"; text.innerHTML="<b>Stipend withheld.</b><span>Enter today's training to release +"+reward+".</span>"; }
-    else { btn.disabled=false; btn.innerHTML=COIN_SVG+" Draw +"+reward; text.innerHTML="<b>Stipend available.</b><span>"+streak+"-day streak bonus applied.</span>"; }
+    if (claimed){ btn.disabled=true; btn.innerHTML="Drawn today"; text.innerHTML="<b>Stipend drawn.</b><span>The next draws on your next training day.</span>"; }
+    else if (!hasToday){ btn.disabled=true; btn.innerHTML="Enter a set first";
+      text.innerHTML="<b>Held until you train.</b><span>"+(kept>=target
+        ? "You have kept all "+target+" sessions this week \u2014 rest is part of it."
+        : kept+" of "+target+" sessions kept this week. The next one releases +"+rewardAmountForWeek(kept+1)+".")+"</span>"; }
+    else { btn.disabled=false; btn.innerHTML=COIN_SVG+" Draw +"+reward;
+      text.innerHTML="<b>Stipend available.</b><span>"+kept+" of "+target+" sessions kept this week.</span>"; }
     var ownedTotal = state.rewards.owned.length;
     document.getElementById("collectionCount").innerHTML = ownedTotal + ' <small>of ' + DINOS.length + '</small>';
     var bz = BRONZE.filter(function(id){ return state.rewards.owned.indexOf(id)!==-1; }).length;
@@ -3409,7 +3441,7 @@ var FINISHES = [
     touched.forEach(function(d){ persistSession(d); });
     if(state.dbAvailable){ state.db.collection("sessions").where("sample","==",true).get().then(function(snap){ snap.docs.forEach(function(d){ state.db.doc("sessions/"+d.id).delete()["catch"](function(){}); }); })["catch"](function(err){console.error("Loadbook: clear",err);}); } renderAll(); }
   function persistRewards(){ if(!state.dbAvailable) return; state.db.doc("settings/rewards").set({tokens:state.rewards.tokens,lastClaimedDate:state.rewards.lastClaimedDate,owned:state.rewards.owned,variants:state.rewards.variants||{},finish:state.rewards.finish||{},freezes:state.rewards.freezes||0,frozenDates:state.rewards.frozenDates||[],bonusClaimed:!!state.rewards.bonusClaimed,shelf:state.rewards.shelf||[],erasUnlocked:state.rewards.erasUnlocked||[]})["catch"](function(err){console.error("Loadbook: rewards",err);}); }
-  function claimDaily(){ if(state.rewards.lastClaimedDate===todayISO()||!todaysSessionLogged()) return; var s=computeCurrentStreak(), r=rewardAmountForStreak(s); state.rewards.tokens+=r; state.rewards.lastClaimedDate=todayISO(); persistRewards(); renderRewards(); renderShop(); renderFreeze(); showToast(COIN_SVG,"+"+r+" stipend drawn",s+"-day streak bonus"); }
+  function claimDaily(){ if(state.rewards.lastClaimedDate===todayISO()||!todaysSessionLogged()) return; var n=sessionsThisWeek(), r=rewardAmountForWeek(n); state.rewards.tokens+=r; state.rewards.lastClaimedDate=todayISO(); persistRewards(); renderRewards(); renderShop(); renderFreeze(); showToast(COIN_SVG,"+"+r+" stipend drawn",n+" session"+(n===1?"":"s")+" kept this week"); }
   function buyDino(id){ var d=DINOS.find(function(x){return x.id===id;}); if(!d||state.rewards.owned.indexOf(id)!==-1||state.rewards.tokens<d.cost||!eraUnlocked(eraOf(id))) return; state.rewards.tokens-=d.cost; state.rewards.owned.push(id); persistRewards(); renderAll(); showToast(vitrine(id,true),"Acquired",d.name+" · "+specNo(id)); checkCompletionBonus(); }
   function buyFinish(d,fid){ var c=finishCost(d,fid); if(state.rewards.tokens<c) return; state.rewards.tokens-=c; if(!state.rewards.variants[d.id]) state.rewards.variants[d.id]=[]; state.rewards.variants[d.id].push(fid); state.rewards.finish[d.id]=fid; persistRewards(); renderAll(); openDinoSheet(d.id); showToast(vitrine(d.id,true,"",fid),finishById(fid).name+" finish",d.name); }
   function equipFinish(id,fid){ state.rewards.finish[id]=fid; persistRewards(); renderAll(); openDinoSheet(id); }
@@ -3783,6 +3815,28 @@ var FINISHES = [
         var c=pick("cardio"), cs=defaultStep(c.n,"cardio");
         cs.duration=rx.cardioMin; cs.restSec=60; steps.push(cs);
       }
+      /* An endurance plan used to be the same thirty-minute run on every day it
+         appeared. Give each run its job, and size the week off what is actually
+         being run now rather than off a constant. */
+      if(req.goal==="endurance"){
+        var runs=steps.filter(function(x){ return x.type==="cardio"; });
+        if(runs.length){
+          var kind=RUN_KINDS[di%RUN_KINDS.length];
+          var weekKm=Number(req.mileage)||0;
+          runs.forEach(function(r){
+            r.name=kind.n;
+            r.exerciseId=slugify(kind.n);
+            r.note=kind.pace;
+            if(weekKm>0){
+              /* about 6 min/km for an easy effort, quicker for the quality work */
+              var km=Math.max(1, Math.round(weekKm*kind.share*10)/10);
+              var perKm = kind.n==="Intervals" ? 5 : kind.n==="Tempo run" ? 5.4 : 6.2;
+              r.distance=km;
+              r.duration=Math.max(10, Math.round(km*perKm));
+            }
+          });
+        }
+      }
       out.push({name:day[0], steps:steps});
     });
     return out;
@@ -3879,6 +3933,26 @@ var FINISHES = [
     if(unitsPref()==="kg"){ return (Number(document.getElementById("cmCm").value)||0)/2.54; }
     return (Number(document.getElementById("cmFt").value)||0)*12 + (Number(document.getElementById("cmIn").value)||0);
   }
+  /* A marathon build is not the same run five times a week. Proportions are the
+     usual ones: the long run is about a third of the week, easy running carries
+     the bulk, and one quality session each of tempo and intervals. */
+  var RUN_KINDS=[
+    {n:"Long run",  share:0.32, pace:"conversational, the whole way"},
+    {n:"Easy run",  share:0.24, pace:"conversational"},
+    {n:"Tempo run", share:0.18, pace:"comfortably hard, you can speak in short phrases"},
+    {n:"Easy run",  share:0.16, pace:"conversational"},
+    {n:"Intervals", share:0.10, pace:"hard efforts with equal easy recovery"}
+  ];
+  /* build, then taper: volume rises for three weeks, backs off on the fourth, and
+     the last three weeks before a race come down hard */
+  function weekFactor(week,weeks){
+    if(!weeks) return 1;
+    var toGo=weeks-week;
+    if(toGo<=0) return 0.4;
+    if(toGo===1) return 0.55;
+    if(toGo===2) return 0.75;
+    return [1, 1.08, 1.16, 0.85][week%4];
+  }
   function commissionRequest(){
     var bwField=document.getElementById("cmBw").value;
     return {
@@ -3900,6 +3974,8 @@ var FINISHES = [
       })(),
       weeks: Number(document.getElementById("cmWeeks").value)||0,
       days: Number(document.getElementById("cmDays").value)||3,
+      mileage: sane(document.getElementById("cmMileage")&&document.getElementById("cmMileage").value,300)||0,
+      raceKm: sane(document.getElementById("cmRaceKm")&&document.getElementById("cmRaceKm").value,300)||0,
       kit: document.getElementById("cmKit").value,
       experience: Number(document.getElementById("cmExp").value)||0,
       sex: document.getElementById("cmSex").value,
@@ -3909,7 +3985,16 @@ var FINISHES = [
   function syncCommission(){
     var goal=document.getElementById("cmGoal").value;
     var numeric=GOAL_KINDS[goal].numeric;
-    document.getElementById("cmTarget").style.display=numeric?"grid":"none";
+    /* An endurance goal has no "amount", but it very much has a timeframe - the
+       race. Hiding the whole block meant a build had no weeks to build over. */
+    var endurance = goal==="endurance";
+    document.getElementById("cmTarget").style.display=(numeric||endurance)?"grid":"none";
+    document.getElementById("cmAmountField").style.display=numeric?"flex":"none";
+    document.getElementById("cmWeeksLabel").textContent = endurance ? "Weeks until the race" : "In how many weeks";
+    /* a ten-kilometre-a-week runner and a forty were given the same programme,
+       because the wizard never asked */
+    var mw=document.getElementById("cmMileageWrap");
+    if(mw) mw.style.display = endurance ? "grid" : "none";
     if(numeric){
       var amt=document.getElementById("cmAmount"), wks=document.getElementById("cmWeeks");
       if(amt.value===""){
@@ -3973,6 +4058,29 @@ var FINISHES = [
     renderAll();
     showToast(STAR_SVG,"Programme entered",names.length+" routines · "+names.join(", "));
     scrollToEl(document.getElementById("routineList"));
+  }
+  /* The routines hold one week's shape; they cannot express the fact that a build
+     rises and then comes down. This does, in the one place a runner will look. */
+  function renderBuild(req){
+    var weeks=Math.max(1,Math.min(52,Math.round(Number(req.weeks)||0)));
+    var base=Number(req.mileage)||0;
+    if(weeks<4) return '<p class="cm-note">Give a number of weeks and what you run now, and the build and the taper will be laid out here.</p>';
+    var rows=[], peak=0;
+    for(var w=0; w<weeks; w++){
+      var f=weekFactor(w,weeks);
+      var km=base?Math.round(base*f):0;
+      if(km>peak) peak=km;
+      rows.push({w:w+1, f:f, km:km, taper:(weeks-w)<=3});
+    }
+    return '<div class="cm-oh">The build \u00b7 '+weeks+' weeks</div>'+
+      '<div class="build-grid">'+rows.map(function(r){
+        return '<div class="build-w'+(r.taper?" taper":"")+'" title="Week '+r.w+(r.km?" \u00b7 "+r.km+" "+unitD():"")+'">'+
+          '<i style="height:'+Math.max(6,Math.round(r.f/1.16*100))+'%"></i>'+
+          '<span>'+r.w+'</span></div>';
+      }).join("")+'</div>'+
+      '<p class="cm-note">Three weeks up, one week easier, repeated \u2014 then the last three weeks come down so you arrive fresh.'+
+      (base? ' Peak week about '+peak+' '+unitD()+'; the days above are a week at your current '+Math.round(base)+' '+unitD()+'.' :
+             ' Add what you run now and this will carry real distances.')+'</p>';
   }
   function renderTable(f){
     if(!f) return '<div class="cm-oh">The table</div><p class="cm-note">Add your age and height and the eating to match will be worked out too.</p>';
@@ -4064,9 +4172,11 @@ var FINISHES = [
         c.plan.map(function(day,i){
           return '<div class="cm-day"><div class="cm-dn">'+String(i+1).padStart(2,"0")+' · '+escapeHtml(day.name)+'</div>'+
             '<div class="cm-ds">'+day.steps.map(function(st){
-              return '<span class="cm-mv">'+escapeHtml(st.name)+' <em>'+escapeHtml(stepTargetText(st).split(" · rest")[0])+'</em></span>';
+              return '<span class="cm-mv">'+escapeHtml(st.name)+' <em>'+escapeHtml(stepTargetText(st).split(" · rest")[0])+
+                (st.note?' \u00b7 '+escapeHtml(st.note):'')+'</em></span>';
             }).join("")+'</div></div>';
         }).join("")+
+        (c.req.goal==="endurance" ? renderBuild(c.req) : '')+
         '<p class="cm-note">Each day comes with a warm-up and a cool-down switched on, drawn from its own movements. They run inside the workout.</p>'+
         (c.req.kit==="bodyweight"
           ? '<p class="cm-note">Rep targets are set from your training age — adjust them on the first session.</p>'
