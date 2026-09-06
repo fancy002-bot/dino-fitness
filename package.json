@@ -4,7 +4,9 @@
   "private": true,
   "description": "Source of record for the Loadbook artifact (training ledger + dinosaur cabinet).",
   "scripts": {
-    "test": "node test/boot-smoke.mjs && node test/boot-interactions.mjs && node test/boot-routines.mjs && node test/boot-kinds.mjs && node test/boot-prelude.mjs && node test/boot-ledger.mjs && node test/boot-app.mjs && node test/boot-commission.mjs && node test/boot-progress.mjs && node test/boot-table.mjs && node test/boot-fixes.mjs"
+    "test": "node test/boot-smoke.mjs && node test/boot-interactions.mjs && node test/boot-routines.mjs && node test/boot-kinds.mjs && node test/boot-prelude.mjs && node test/boot-ledger.mjs && node test/boot-app.mjs && node test/boot-commission.mjs && node test/boot-progress.mjs && node test/boot-table.mjs && node test/boot-fixes.mjs && node test/boot-hardening.mjs"
   },
-  "devDependencies": { "jsdom": "^26.0.0" }
+  "devDependencies": {
+    "jsdom": "^26.0.0"
+  }
 }

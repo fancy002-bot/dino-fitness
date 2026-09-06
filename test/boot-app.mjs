@@ -69,7 +69,11 @@ lb.openMovement("front-squat");
 check("the movement sheet opens", d.getElementById("movementSheet").classList.contains("show"));
 check("it names the movement", d.querySelector("#movementInner .runner-title").textContent, "Front Squat");
 check("it reports a best", /220\.5 lb/.test(d.getElementById("movementInner").textContent));
-check("it counts the sets", q("#movementInner .sheet-stats .v").length, 4);
+/* Best, Sets, Days, Last - plus the estimated max, which a heaviest-single "best"
+   cannot express on its own */
+check("it counts the sets", q("#movementInner .sheet-stats .v").length, 5);
+check("and estimates a max beside the heaviest bar",
+  /Est\. max/.test(d.getElementById("movementInner").textContent));
 check("and lists them", q("#movementInner .mv-row").length > 0, "true");
 check("with a way through to the chart", !!d.getElementById("mvChart"));
 lb.openMovement("plank");

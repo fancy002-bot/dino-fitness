@@ -82,10 +82,15 @@ check("no movement is unnamed", plan.every(p => p.steps.every(s => !!s.name)), "
 const lifts = plan.flatMap(p => p.steps).filter(s => s.type === "strength");
 check("hypertrophy sets and reps", lifts[0].sets + "×" + lifts[0].reps, "4×9");
 check("with a rest to match", lifts[0].restSec, 85);
-const strong = lb.buildProgramme({ goal: "strength", bw: 200, days: 4, kit: "full", experience: 0 });
+const strong = lb.buildProgramme({ goal: "strength", bw: 200, days: 4, kit: "full", experience: 2 });
 const heavy = strong.flatMap(p => p.steps).filter(s => s.type === "strength")[0];
 check("strength work is heavier and shorter", heavy.sets + "×" + heavy.reps, "5×4");
 check("and rests far longer", heavy.restSec, 170);
+/* but a first-year lifter learns the movement before loading it */
+const green = lb.buildProgramme({ goal: "strength", bw: 200, days: 4, kit: "full", experience: 0 });
+const greenLift = green.flatMap(p => p.steps).filter(s => s.type === "strength")[0];
+check("a novice is not started on a low-rep protocol", greenLift.reps >= 8, "true");
+check("with a shorter rest to match", greenLift.restSec <= 110, "true");
 
 /* --- loads come off bodyweight and training age --- */
 check("a 200 lb novice starts the squat at 100", lb.startingLoad("Back Squat", 200, 0), 100);
@@ -123,7 +128,12 @@ check("bodyweight was remembered though", lb.state.goals.bodyweight, 200);
 check("and height", Math.round(lb.state.goals.height), 70);
 click(d.querySelector("#cmOut .cm-opt"));
 check("accepting the counter draws the plan", lb.state.commission.plan.length, 3);
-check("the form now holds the agreed figure", d.getElementById("cmWeeks").value, "15");
+/* the counter-offer is now limited by the resting-calorie floor as well as by the
+   rate ceiling, so it promises a timeframe that can actually be eaten to */
+check("the form now holds the agreed figure", d.getElementById("cmWeeks").value, "22");
+click(d.getElementById("cmDraw"));
+check("and re-drawing that figure is accepted, not refused again",
+  /cannot be met honestly/.test(d.getElementById("cmOut").textContent), "false");
 check("keeping their 30", d.getElementById("cmAmount").value, "30");
 check("and it reads as reasonable now", /reasonable ask|holds up/.test(d.getElementById("cmOut").textContent));
 check("the plan is shown day by day", q("#cmOut .cm-day").length, 3);

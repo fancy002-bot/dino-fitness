@@ -101,9 +101,14 @@ sg = lb.suggestNext(step({ exerciseId: "trail-run", name: "Trail Run", type: "ca
 check("cardio adds a minute", sg.duration, 31);
 
 /* --- how it reads --- */
-check("the note quotes the sets back",
-  lb.suggestNote(lb.suggestNext(step({ exerciseId: "back-squat", name: "Back Squat", sets: 3, reps: 5, weight: 200 })),
-    { type: "strength" }), "last time 200 lb × 5, 5, 5");
+/* the note now dates itself: "last time" with no date was handing back a peak set
+   from before a two-week illness as though it were yesterday */
+const noteFor = () => lb.suggestNote(
+  lb.suggestNext(step({ exerciseId: "back-squat", name: "Back Squat", sets: 3, reps: 5, weight: 200 })),
+  { type: "strength" });
+check("the note quotes the sets back", /last time 200 lb × 5, 5, 5/.test(noteFor()), "true");
+/* "last time" with no date handed back a pre-illness peak as though it were yesterday */
+check("and says how long ago", /days ago/.test(noteFor()), "true");
 
 /* --- in the runner, and the routine is left alone --- */
 lb.renderAll();

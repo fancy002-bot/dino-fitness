@@ -152,7 +152,16 @@ lb.renderAll();
 const mvText = id => { lb.openMovement(id); return d.getElementById("movementInner").textContent; };
 check("bodyweight best is in reps", /20 reps/.test(mvText("push-up")));
 check("hold best is a duration", /1:02/.test(mvText("hollow-hold")));
-check("cardio has no single best", /time-based/.test(mvText("running")));
+/* cardio used to read "time-based" - forty runs and no record at all */
+check("cardio reports a real record", /km/.test(mvText("running")));
+check("and a best pace with it", /\/km/.test(mvText("running")));
+check("a weighted hold outranks a longer bare one", (() => {
+  const bare = { type: "hold", secs: 100, added: null };
+  const load = { type: "hold", secs: 95, added: 45 };
+  return lb.holdScore(load) > lb.holdScore(bare);
+})(), "true");
+check("Epley stops flattering past a dozen reps",
+  lb.epley(100, 35), lb.epley(100, 12));
 d.getElementById("movementSheet").classList.remove("show");
 
 /* --- the log form carries every kind --- */

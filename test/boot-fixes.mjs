@@ -197,5 +197,61 @@ check("a closed sheet is hidden from the tab order",
 check("there is a skip link", !!d.querySelector("a.skip"));
 check("and the toast announces itself", d.getElementById("toast").getAttribute("aria-live"), "polite");
 
+/* ---- round two: the 63-year-old's findings ---- */
+
+/* the tally printed a DOM node once anything inside the runner had focus.
+   jsdom has no real focus, so force the condition the browser creates. */
+click(d.querySelector("#routineList .r-begin"));
+const logBtn = d.querySelector("#runSteps .r-log");
+logBtn.focus();
+click(logBtn);
+check("the set counter is a number, not an element",
+  /^\d+ (of \d+ sets entered|sets entered)/.test(d.getElementById("runTally").textContent), "true");
+check("no object stringification reached the screen",
+  /object|\[object/i.test(d.getElementById("runTally").textContent), "false");
+lb.closeRunner();
+
+/* "off" has to mean off: the routine's plan must not put a heavier number back */
+lb.state.goals.progression = "off";
+/* the app dates everything locally; toISOString() is UTC and drifts an evening test */
+const daysAgo = n => { const t = new Date(); t.setDate(t.getDate() - n);
+  return t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(t.getDate()).padStart(2, "0"); };
+const easySets = ids => ids.map(id => ({ id, exerciseId: "easy-squat", exerciseName: "Easy Squat",
+  type: "strength", weight: 45, reps: 5 }));
+lb.state.sessions.push({ date: daysAgo(2), sample: false, entries: easySets(["ez1", "ez2", "ez3"]) });
+const easyStep = { exerciseId: "easy-squat", name: "Easy Squat", type: "strength",
+  sets: 3, reps: 5, weight: 90 };
+const eased = lb.suggestNext(easyStep);
+check("with progression off you get back what you lifted", eased.weight, 45);
+check("and it is not treated as a lay-off", !!eased.stale, "false");
+
+/* a fortnight off sick must not hand back the peak with no comment */
+lb.state.sessions = lb.state.sessions.filter(s => s.date !== daysAgo(2));
+lb.state.sessions.push({ date: daysAgo(21), sample: false, entries: easySets(["ez4", "ez5", "ez6"]) });
+const returning = lb.suggestNext(easyStep);
+check("three weeks away is flagged", !!returning.stale, "true");
+check("and eases you back rather than resuming the peak", returning.weight < 45, "true");
+check("the note dates the last session", /21 days ago/.test(lb.suggestNote(returning, easyStep)), "true");
+lb.state.sessions = lb.state.sessions.filter(s => s.date !== daysAgo(21));
+lb.state.sessions.push({ date: daysAgo(2), sample: false, entries: easySets(["ez7", "ez8", "ez9"]) });
+check("not the plan's heavier number", eased.weight !== 90, "true");
+
+/* age and sex must reach the programme, not just the calorie count */
+const young = lb.buildProgramme({ goal: "strength", bw: 180, height: 66, days: 2, kit: "full", experience: 0, age: 25, sex: "male" });
+const older = lb.buildProgramme({ goal: "strength", bw: 180, height: 66, days: 2, kit: "full", experience: 0, age: 63, sex: "female" });
+const yw = young.flatMap(p => p.steps).find(x => x.name === "Back Squat").weight;
+const ow = older.flatMap(p => p.steps).find(x => x.name === "Back Squat").weight;
+check("a 63-year-old is not handed a 25-year-old's bar", ow < yw, "true");
+check("and the difference is substantial", ow / yw < 0.85, "true");
+check("an older beginner is gated off pull-ups",
+  older.flatMap(p => p.steps).map(x => x.name).includes("Pull-up"), "false");
+
+/* Reset returns to the rest the routine asked for */
+lb.timerArm(120000);
+lb.timerNudge(30); lb.timerNudge(30);
+check("nudging raises the clock", lb.timer.targetMs > 120000, "true");
+lb.timerArm(lb.timer.baseMs);
+check("reset returns to the routine's rest", lb.timer.targetMs, 120000);
+
 check("no JS errors throughout", errors.length, 0);
 done("boot-fixes");

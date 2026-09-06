@@ -289,6 +289,54 @@ into one string, and `renderShop()` returns early when it has not moved. Logging
 none of them, so it fell to **37 ms**; buying, claiming or unlocking an era still redraws in
 full. Add to the signature if you add an input, or the catalogue will go stale.
 
+## What the third round of user testing changed
+
+Thirteen agents drove the published build as real people — a powerlifter on a heavy/light
+split, a first-timer, a calisthenics athlete, a metric lifter, a coach with six months of
+history, a keyboard-only user at 200% text, a data migration, an adversarial pass. What
+they found were not missing features. They were places where the app was confidently wrong.
+
+**Escaping belongs in `showToast`, not at its call sites.** Four of about thirty callers
+passed a movement, routine or collector name straight into `innerHTML`. A movement named
+`<img src=x onerror=…>` executed on its own personal-record toast, survived into the export,
+and came back on import. `showToast` now escapes `title` and `sub` itself and the call sites
+pass raw text; the icon parameter is still markup on purpose.
+
+**Every numeric write is bounded at the boundary.** `sane(v, ceil)` returns `null` for
+anything non-finite or out of range, and the log form, the inline pencil edit, the weigh-in,
+the settings targets and `importLedger` all go through it. One `1e308` used to make `round1`
+overflow to `Infinity`, which made the whole progression chart `NaN` with no way to find the
+row responsible.
+
+**The specimen flag lives on the entry, not the session.** It was per session, so one demo
+plank made a whole day of real work invisible to progression and deletable by "Clear
+specimen entries". Legacy records are normalised down onto their entries once at load.
+
+**Import reconciles, and says what it skipped.** Dedupe is scoped to `date + id` rather than
+globally (the seed reused `squat-0` on every specimen day, so restoring your own backup
+dropped 41% of it); an entry without an id is given one; a re-import with changed values is a
+correction rather than a duplicate; bad dates and unreadable rows are counted and reported;
+`rewards`, units, progression and sex all come back, because the export had always carried
+them and the import had always thrown them away.
+
+**Eras unlock on weeks that met your session target.** They used to need five consecutive
+training days. A Mon/Tue/Thu/Fri programme can never reach five, so eighty-three correct
+sessions unlocked nothing at all — the reward loop punished exactly the programming it
+should reward.
+
+**Progression reads the right day, and notices a lay-off.** Sets logged through a runner
+carry their `routineId`, so a heavy/light split no longer progresses Monday off Thursday's
+lighter work. Ten days or more since the last session sets `stale`, backs the prescription
+off, and says so on the runner line; `suggestNote` now dates itself.
+
+**Loads land on a grid you can actually load.** `loadStep` and `roundLoad` are unit-aware,
+so a metric deload is 75 kg rather than 74.8, and a step is 2.5 kg rather than 10 lb.
+
+**The plate is solved, not stacked.** `buildPlate` sized the protein food to hit the protein
+target on its own and never subtracted the protein already in 250 g of rice — the food
+listed came out 47% over on protein against the header printed above it. It now iterates to
+a solution, and the figure beside each meal is computed from the food on the plate.
+
 ## Three traps in this file
 
 **Number inputs take `step="1"` or `step="any"`, never a grid.** A `step="5"` on the
@@ -316,7 +364,7 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-582 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+738 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted
@@ -325,7 +373,14 @@ the weekly volume, personal records and each movement's own record; and `boot-pr
 the derivation does its job — a leg routine and a pull routine get demonstrably different
 drills, every pattern survives the cap, that the clock chains drill to drill on its own and
 lets go at the end, that a logged set claims it back, and that what was ticked is added up onto
-the day without ever becoming an entry. `test/harness.mjs` injects a `window.__lb` bridge to reach
+the day without ever becoming an entry. and `boot-hardening.mjs`, which pins the third round of user-test findings: the toast
+escapes what it is handed, an overflowing figure is refused with a reason, a weigh-in is
+neither a session nor a record, specimen entries clear without taking real work with them,
+an export round-trips every set including ids that repeat across days, an import corrects
+rather than duplicates and reports what it skipped, a weighted hold outranks a longer bare
+one, a four-day week counts toward an era, the ledger is searchable past fourteen sessions,
+and the volumes are a real tab pattern with an inert background behind a dialog.
+`test/harness.mjs` injects a `window.__lb` bridge to reach
 inside the IIFE; the published file is never modified.
 
 ## Layout
