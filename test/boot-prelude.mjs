@@ -9,6 +9,8 @@ const submitEditor = () => d.getElementById("routineEditor")
   .dispatchEvent(new w.Event("submit", { bubbles: true, cancelable: true }));
 const row = n => d.querySelector(`#stepRows .step-row:nth-child(${n})`);
 const names = list => list.map(x => x.n);
+const localToday = () => { const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const clock = n => Math.floor(n / 60) + ":" + String(n % 60).padStart(2, "0");
 
 /* build a routine straight through the composer */
@@ -178,7 +180,8 @@ check("and it is resting again", d.getElementById("timerMode").textContent, "res
 /* --- closing adds it all up and keeps it with the day --- */
 const coolDone = q("#runCool .aside-row.done").length;
 lb.closeRunner();
-const today = lb.state.sessions.find(s2 => s2.date === new Date().toISOString().slice(0, 10));
+/* the app dates a session locally, not in UTC — the two differ for most of the day */
+const today = lb.state.sessions.find(s2 => s2.date === localToday());
 check("the day carries the preliminaries", !!(today && today.prep));
 check("with every warm-up drill counted", today.prep.warm.drills, warm.length);
 check("and their seconds added up", today.prep.warm.secs,

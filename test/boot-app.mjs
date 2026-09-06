@@ -5,6 +5,8 @@ import { boot, check, done } from "./harness.mjs";
 const { d, w, lb, click, errors } = await boot({ hooks: true });
 const q = s => d.querySelectorAll(s);
 const set = (el, v) => { el.value = v; el.dispatchEvent(new w.Event("change", { bubbles: true })); };
+const localToday = () => { const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const submitLog = () => d.getElementById("logForm")
   .dispatchEvent(new w.Event("submit", { bubbles: true, cancelable: true }));
 
@@ -83,7 +85,7 @@ check("today is marked", q("#calGrid .cal-d.today").length, 1);
 check("days with training are shaded", q("#calGrid .cal-d.l1, #calGrid .cal-d.l2, #calGrid .cal-d.l3").length > 0, "true");
 check("days without are not", q("#calGrid .cal-d.l0").length > 0, "true");
 check("it runs to the end of this week",
-  cells[cells.length - 1].iso >= new Date().toISOString().slice(0, 10), "true");
+  cells[cells.length - 1].iso >= localToday(), "true");
 check("and never shades a day that has not happened", cells.filter(c => c.future && c.sets > 0).length, 0);
 check("it says how many days", /\d+ days? in the last year/.test(d.getElementById("calHint").textContent));
 check("and carries a key", q(".cal-key .cal-d").length, 4);

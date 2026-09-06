@@ -99,6 +99,25 @@ Collector cards (`lb-me`) and the theme choice are browser-local, not in the db.
   and are labelled as a starting point, not a prescription. Bodyweight-only plans contain no
   loaded lift at all.
 
+  **The table — the eating drawn up beside the programme.** Energy from **Mifflin-St Jeor**,
+  which is why the form asks for sex and age: the same body is about 166 kcal apart at rest
+  between the male and female constants, and that difference carries through the whole plan.
+  Activity comes from the days a week the programme actually asks for.
+
+  **The deficit or surplus is sized from the rate the goal was agreed at**, not guessed
+  separately — a pound a week is 3500 kcal, so 500 a day. That is what "match the work" means
+  here: negotiate the goal, and the eating follows the number you settled on. Protein is 1.0 g
+  per lb in a deficit and 0.85 otherwise, fat 0.35 g per lb, carbs the remainder. The day is
+  split into three meals and a training snack, each with a plate worked back from its macros —
+  lean protein, a carb, greens, a fat, in grams.
+
+  **A floor the arithmetic cannot go under.** If hitting the agreed rate by eating alone would
+  put the target below the resting requirement, it is held at BMR and says so: *training burns
+  the rest — do not close the gap by eating less*. This is reachable in practice, for a small
+  frame training lightly at the top of the allowed rate, and it is the point at which the app
+  stops doing arithmetic and says something. Everything here is labelled an estimate, and
+  anything with a medical dimension is pointed at a professional.
+
   **Preliminaries — a warm-up and a cool-down, optional per routine.** Switched on from
   the routine's *Preliminaries* panel, which opens by itself the moment a routine is created.
   Both default to off; only the two flags `warmup` and `cooldown` are stored on the routine.
@@ -297,7 +316,7 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-537 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+582 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted
