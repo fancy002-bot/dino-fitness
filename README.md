@@ -291,8 +291,11 @@ full. Add to the signature if you add an input, or the catalogue will go stale.
 
 ## The stipend token
 
-A gold velociraptor struck on a black medallion, defined once as an SVG `<symbol>`
-near the top of the body and drawn with `<use>` everywhere else. The disc is barely
+A gold velociraptor struck on black inside a gold rim, defined once as an SVG
+`<symbol>` near the top of the body and drawn with `<use>` everywhere else. The rim
+carries its own gradient rather than a flat gold, so it reads as struck metal
+rather than a drawn ring, and a dark hairline sits outside it — gold against the
+cream panel has almost no edge on its own. The disc is barely
 warm (`#48443C` to `#0A0A08`) rather than neutral, so it relates to the gold without
 reading brown — it was dark oak first, and the gold had nothing to push against.
 
