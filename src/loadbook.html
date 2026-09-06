@@ -3525,6 +3525,7 @@ var FINISHES = [
 
   /* ---------- society ---------- */
   var me = null, fellowProfiles = {}, fellowUnsubs = [], inviteUnsub = null, fellowsUnsub = null, syncTimer = null;
+  var FELLOW_CAP = 30;   /* cards watched at once; the count still reports the whole register */
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   /* resolves true only when the text actually reached the clipboard */
   function copyText(t){
@@ -3630,7 +3631,15 @@ var FINISHES = [
           return Promise.all([
             state.db.doc("friends/"+me.id+"/list/"+d.from).set({id:d.from, since:now}),
             state.db.doc("friends/"+d.from+"/list/"+me.id).set({id:me.id, since:now})
-          ]);
+          ])["catch"](function(err){
+            /* a code admits one fellow, once: if the fellowship did not land,
+               giving it back is the only way the two of them can try again -
+               otherwise the code is burnt and there is no second one */
+            return Promise.all([
+              state.db.doc("friends/"+me.id+"/list/"+d.from)["delete"]()["catch"](function(){}),
+              state.db.doc("friends/"+d.from+"/list/"+me.id)["delete"]()["catch"](function(){})
+            ]).then(function(){ return ref.set(d)["catch"](function(){}); }).then(function(){ throw err; });
+          });
         }).then(function(){
           msg.textContent=""; document.getElementById("redeemInput").value="";
           showToast(STAR_SVG,"Admitted","You and "+(d.fromName||"a collector")+" are now fellows");
@@ -3646,15 +3655,18 @@ var FINISHES = [
     },function(err){ console.error("Loadbook: invites",err); });
     fellowsUnsub=state.db.collection("friends/"+me.id+"/list").onSnapshot(function(snap){
       fellowUnsubs.forEach(function(u){ u(); }); fellowUnsubs=[]; fellowProfiles={};
-      var ids=snap.docs.map(function(x){ return x.id; }).slice(0,30);
-      ids.forEach(function(fid){ fellowUnsubs.push(state.db.doc("profiles/"+fid).onSnapshot(function(ps){ fellowProfiles[fid]=ps.exists?ps.data():{name:"Unknown collector"}; renderFellows(ids); },function(){})); });
-      renderFellows(ids);
+      /* only FELLOW_CAP cards are watched and drawn, but the count is told the
+         truth - a fellow who silently vanished off the end read as unfriended */
+      var total=snap.docs.length, ids=snap.docs.map(function(x){ return x.id; }).slice(0,FELLOW_CAP);
+      ids.forEach(function(fid){ fellowUnsubs.push(state.db.doc("profiles/"+fid).onSnapshot(function(ps){ fellowProfiles[fid]=ps.exists?ps.data():{name:"Unknown collector"}; renderFellows(ids,total); },function(){})); });
+      renderFellows(ids,total);
     },function(err){ console.error("Loadbook: fellows",err); });
   }
-  function renderFellows(ids){
+  function renderFellows(ids,total){
+    if(total===undefined||total<ids.length) total=ids.length;
     var el=document.getElementById("fellowList"); el.innerHTML="";
-    document.getElementById("fellowCount").textContent=ids.length+(ids.length===1?" fellow":" fellows");
-    document.getElementById("fellowsStat").innerHTML=ids.length+' <small>'+(ids.length===1?"fellow":"fellows")+'</small>';
+    document.getElementById("fellowCount").textContent=(ids.length<total?ids.length+" of "+total+" fellows":ids.length+(ids.length===1?" fellow":" fellows"));
+    document.getElementById("fellowsStat").innerHTML=total+' <small>'+(total===1?"fellow":"fellows")+'</small>';
     if(!me){ el.innerHTML='<p class="empty-note">Create your card to join the Society.</p>'; return; }
     if(!ids.length){ el.innerHTML='<p class="empty-note">No fellows yet. Issue a code and hand it to one.</p>'; return; }
     ids.forEach(function(fid){

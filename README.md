@@ -409,7 +409,7 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-738 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+905 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted
@@ -427,6 +427,53 @@ one, a four-day week counts toward an era, the ledger is searchable past fourtee
 and the volumes are a real tab pattern with an inert background behind a dialog.
 `test/harness.mjs` injects a `window.__lb` bridge to reach
 inside the IIFE; the published file is never modified.
+
+### Vol. III, and the db shim
+
+For four rounds every agent wrote the same line — *not covered: Vol III needs a db,
+unavailable over `file://`* — so the Society, a third of the app's navigation, had
+never been exercised by anything. `test/dbshim.js` is a stand-in for the artifact
+runtime's `db`: it implements only the shapes the page actually consumes
+(`doc().get/set/delete/onSnapshot/acquire`, `collection().where/orderBy/limit/get/onSnapshot`),
+settles writes on a microtask and fires listeners on a macrotask, and is injected
+ahead of the page so `window.claude.use("db")` resolves. `boot({db:true})` installs it,
+`boot({seed:{...}})` writes localStorage before boot — the only way to arrive with a
+collector card already in hand — and `boot({db:false})` is the preview state a visitor
+without a register sees. `db.__seed()` is a write from another device, `db.__failAcquire`
+is someone else holding the same code at the same instant, and `db.__failPaths` is the
+register refusing a write.
+
+`boot-society.mjs` then drives the real code: 99 checks over cards, codes, redemption,
+fellows, restore and preview. Two defects came out of it, both now fixed and pinned:
+
+1. **A code that admits nobody must not be spent.** Redemption marked the invite used
+   and *then* wrote the two friendship rows. If those failed, the code was burnt — it is
+   one-time by design, so the two of them could never be fellows and no error said so.
+   The friendship writes now roll back and the code is handed back, and the retry works.
+2. **The fellow list is capped at 30; the count said "30 fellows".** A fellow past the
+   cap vanished silently and read as having unfriended you. The list still shows 30, but
+   the count says "30 of 34 fellows" and the frontispiece stat reports the whole register.
+
+The suite needs a larger heap (a dozen 2.7 MB documents), hence the
+`--max-old-space-size` in the npm script; `npm run test:society` runs it alone.
+
+### Properties, not examples
+
+Progression and import have produced a regression in every round, three of them a fix
+that landed on one call site and missed the others. Example tests catch the instance and
+have repeatedly missed the class, so `prop-invariants.mjs` generates random ledgers —
+four kinds of work, awkward values, hand-written days with no ids, both unit systems —
+and asserts what has to hold for all of them:
+
+* importing twice equals importing once, and the second pass says it took nothing;
+* export then import is the same ledger;
+* exactly one badge per movement, on the best set, however the sets arrive;
+* a suggestion never exceeds last time plus one step, and is never negative;
+* every load the app itself prescribes lands on the loadable grid (5 lb / 2.5 kg);
+* nothing both steps up and deloads.
+
+It is seeded and deterministic: a failure prints the case and `SEED=<n> node
+test/prop-invariants.mjs` replays it. `npm run test:props` runs it alone.
 
 ## Layout
 
