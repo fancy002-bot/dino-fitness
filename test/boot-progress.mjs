@@ -24,6 +24,17 @@ check("the seeded samples are marked as such", lb.state.sessions.some(s => s.sam
 check("and are not progressed from",
   lb.suggestNext(step({ exerciseId: "bench-press", name: "Bench Press", reps: 5 })), "null");
 
+/* --- with progression OFF (the default) the runner opens on what you did --- */
+check("progression is off out of the box", lb.state.goals.progression, "off");
+seed("2026-09-01", "off-squat", "Off Squat", "strength", 3, { weight: 200, reps: 5 });
+let off = lb.suggestNext(step({ exerciseId: "off-squat", name: "Off Squat", sets: 3, reps: 5, weight: 200 }));
+check("it holds last session's load", off.weight, 200);
+check("and does not claim a step up", off.stepped, "false");
+check("but still reports what you did", /last time 200 lb/.test(lb.suggestNote(off, { type: "strength" })), "true");
+
+/* everything below is with it switched on */
+lb.state.goals.progression = "on";
+
 /* --- strength: hit it and the load goes up --- */
 seed("2026-09-01", "back-squat", "Back Squat", "strength", 3, { weight: 200, reps: 5 });
 let sg = lb.suggestNext(step({ exerciseId: "back-squat", name: "Back Squat", sets: 3, reps: 5, weight: 200 }));
@@ -42,21 +53,31 @@ check("presses and rows the smaller", lb.loadStep("Overhead Press"), 5);
 check("and isolation work smaller still", lb.loadStep("Biceps Curl"), 2.5);
 
 /* --- miss it and it holds --- */
-seed("2026-09-02", "front-squat", "Front Squat", "strength", 3, { weight: 185, reps: 3 });
+seed("2026-08-28", "front-squat", "Front Squat", "strength", 3, { weight: 185, reps: 3 });
 sg = lb.suggestNext(step({ exerciseId: "front-squat", name: "Front Squat", sets: 3, reps: 5, weight: 185 }));
 check("a missed target holds the load", sg.weight, 185);
 check("and is not a step up", sg.stepped, "false");
 check("nor a deload, on one miss", sg.deload, "false");
 
 /* --- miss twice and it eases off --- */
-seed("2026-09-03", "front-squat", "Front Squat", "strength", 3, { weight: 185, reps: 4 });
+seed("2026-08-29", "front-squat", "Front Squat", "strength", 3, { weight: 185, reps: 4 });
 sg = lb.suggestNext(step({ exerciseId: "front-squat", name: "Front Squat", sets: 3, reps: 5, weight: 185 }));
 check("two misses in a row eases off", sg.deload, "true");
 check("by about a tenth, to a round number", sg.weight, 165);
 
-/* --- the plan is a floor, never regressed below --- */
+/* --- the plan is a floor while you are working at or above it --- */
 sg = lb.suggestNext(step({ exerciseId: "back-squat", name: "Back Squat", sets: 3, reps: 5, weight: 300 }));
 check("a plan heavier than history stands", sg.weight, 300);
+
+/* --- but a stale plan must not undo a deload. This was the reported bug: after
+       easing off, the plan yanked you straight back onto the weight you failed. --- */
+seed("2026-08-30", "front-squat", "Front Squat", "strength", 3, { weight: 165, reps: 5 });
+sg = lb.suggestNext(step({ exerciseId: "front-squat", name: "Front Squat", sets: 3, reps: 5, weight: 185 }));
+check("after a deload it ramps, not jumps", sg.weight, 175);
+check("rather than back onto the failure weight", sg.weight < 185, "true");
+seed("2026-08-31", "front-squat", "Front Squat", "strength", 3, { weight: 175, reps: 5 });
+sg = lb.suggestNext(step({ exerciseId: "front-squat", name: "Front Squat", sets: 3, reps: 5, weight: 185 }));
+check("and keeps ramping the next session", sg.weight, 185);
 
 /* --- bodyweight --- */
 seed("2026-09-01", "archer-push-up", "Archer Push-up", "bodyweight", 3, { reps: 10, added: null });
@@ -98,7 +119,10 @@ click(d.querySelector("#routineList .r-begin"));
 check("but the runner opens on the suggestion",
   lb.state.runner.steps[0].weight, 210);
 check("the input is prefilled with it", d.querySelector("#runSteps .r-wt").value, "210");
-check("the target line shows the suggestion", /210 lb/.test(d.querySelector("#runSteps .run-target").textContent));
+check("the target line still shows the plan you wrote",
+  /200 lb/.test(d.querySelector("#runSteps .run-target").textContent));
+check("with today's suggestion beside it, not replacing it",
+  /today .*210 lb/.test(d.querySelector("#runSteps .run-why").textContent));
 check("and says where it came from", /last time 200 lb × 5, 5, 5/.test(d.querySelector("#runSteps .run-why").textContent));
 check("and that it stepped up", /stepping up/.test(d.querySelector("#runSteps .run-why").textContent));
 check("the stored routine is untouched", lb.state.routines[0].steps[0].weight, 200);
@@ -113,6 +137,18 @@ check("with the reasoning shown", /last time 200 lb/.test(d.getElementById("logH
 d.getElementById("logName").value = "Never Heard Of It";
 d.getElementById("logName").dispatchEvent(new w.Event("change", { bubbles: true }));
 check("an unknown movement fills in nothing", d.getElementById("weightInput").value, "210");
+
+/* --- the session you are standing in is not "last time" --- */
+const todayISO = () => { const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+seed(todayISO(), "today-squat", "Today Squat", "strength", 3, { weight: 315, reps: 3 });
+check("a movement done only today has no history to go on",
+  lb.suggestNext(step({ exerciseId: "today-squat", name: "Today Squat", sets: 3, reps: 3, weight: 315 })), "null");
+seed("2026-09-01", "both-squat", "Both Squat", "strength", 3, { weight: 300, reps: 3 });
+seed(todayISO(), "both-squat", "Both Squat", "strength", 3, { weight: 300, reps: 3 });
+const both = lb.suggestNext(step({ exerciseId: "both-squat", name: "Both Squat", sets: 3, reps: 3, weight: 300 }));
+check("today's sets are ignored in favour of the real last session", both.date, "2026-09-01");
+check("so reopening a workout cannot inflate the weight", both.weight, 310);
 
 check("no JS errors throughout", errors.length, 0);
 done("boot-progress");

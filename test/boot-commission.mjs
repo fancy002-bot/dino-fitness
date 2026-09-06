@@ -109,6 +109,7 @@ check("a strength plan does not",
 /* --- drawing up, refusing, accepting the counter, adopting --- */
 d.getElementById("cmBw").value = "200";
 d.getElementById("cmFt").value = "5"; d.getElementById("cmIn").value = "10";
+d.getElementById("cmAge").value = "34";
 set(d.getElementById("cmGoal"), "fat");
 d.getElementById("cmAmount").value = "30";
 d.getElementById("cmWeeks").value = "4";
@@ -131,7 +132,9 @@ check("adopting enters them as routines", lb.state.routines.length, 3);
 check("under their split names", lb.state.routines.map(r => r.name).join(", "), "Push, Pull, Legs");
 check("with their movements enrolled",
   lb.state.routines[0].steps.every(s => !!lb.state.exercises.find(e => e.id === s.exerciseId)), "true");
-check("and the commission is cleared", lb.state.commission, "null");
+check("the plan is cleared once entered", lb.state.commission.plan, "null");
+check("but the table it drew is kept", !!lb.state.commission.food);
+check("and still shown", /The table/.test(d.getElementById("cmOut").textContent));
 check("they run like any other routine", !!d.querySelector("#routineList .r-begin"));
 
 check("no JS errors throughout", errors.length, 0);
