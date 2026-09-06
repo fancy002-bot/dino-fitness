@@ -291,8 +291,10 @@ full. Add to the signature if you add an input, or the catalogue will go stale.
 
 ## The stipend token
 
-A gold velociraptor struck on a dark oak medallion, defined once as an SVG
-`<symbol>` near the top of the body and drawn with `<use>` everywhere else.
+A gold velociraptor struck on a black medallion, defined once as an SVG `<symbol>`
+near the top of the body and drawn with `<use>` everywhere else. The disc is barely
+warm (`#48443C` to `#0A0A08`) rather than neutral, so it relates to the gold without
+reading brown — it was dark oak first, and the gold had nothing to push against.
 
 Three things that had to be got right, all found by rendering rather than reasoning:
 
@@ -306,9 +308,9 @@ in a 618-card catalogue. Measured on a 6x-throttled CPU, a full grid rebuild cos
 160ms with the old plain circle, 186ms with a shared symbol, and 425ms if every
 coin carries its own copy — 2.7x, for an icon nobody would look at twice.
 
-**The disc is dark and self-contained.** The token lands on a red claim button, a
-cream panel and a near-black masthead, so it cannot borrow its contrast from the
-surface underneath. It carries its own rim and a drop shadow, and `aria-hidden`,
+**The disc is self-contained.** The token lands on a red claim button, a cream
+panel and a near-black masthead, so it cannot borrow its contrast from the surface
+underneath. It carries its own rim and a drop shadow, and `aria-hidden`,
 because the figure beside it always says what it means.
 
 ## The theme
