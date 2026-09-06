@@ -8,7 +8,7 @@ if [ -z "$ACCOUNT" ]; then echo "usage: ./connect-github.sh <github-account-name
 echo "== checking the key is accepted =="
 ssh -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 | head -2 || true
 
-for pair in "$HOME/loadbook-app:loadbook-app" "$HOME/loadbook-ds:loadbook-ds"; do
+for pair in "$HOME/loadbook-app:dino-fitness" "$HOME/loadbook-ds:loadbook-ds"; do
   DIR="${pair%%:*}"; NAME="${pair##*:}"
   [ -d "$DIR/.git" ] || { echo "skip $NAME (not a repo)"; continue; }
   cd "$DIR"
