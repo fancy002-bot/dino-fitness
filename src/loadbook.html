@@ -4566,6 +4566,7 @@ var FINISHES = [
             '<button type="button" class="seg-b'+(isDark?" on":"")+'" data-theme="dark">Dark</button>'+
             '<button type="button" class="seg-b'+(isDark?"":" on")+'" data-theme="light">Light</button>'+
           '</div></div>'+
+        (state.db&&state.db.auth ? '<div class="set-head">Your account</div><div id="setAccount"></div>' : '')+
         '<div class="set-head">Your record</div>'+
         '<div class="set-row"><div><div class="set-t">'+t.sets+' set'+(t.sets===1?"":"s")+' over '+t.days+' day'+(t.days===1?"":"s")+'</div>'+
           '<div class="set-d">'+(t.first?"Since "+fmtDate(t.first)+".":"Nothing entered yet.")+' '+
@@ -4583,6 +4584,7 @@ var FINISHES = [
           '<button type="button" class="btn-secondary" id="setClear">Clear…</button></div>'+
       '</div>';
     document.getElementById("settingsClose").addEventListener("click",closeSettings);
+    renderAccountBlock();
     document.querySelectorAll("#settingsInner .seg-b[data-units]").forEach(function(b){
       b.addEventListener("click",function(){ setUnits(b.dataset.units); });
     });
@@ -4634,6 +4636,84 @@ var FINISHES = [
     openSheet("settingsSheet");
   }
   function closeSettings(){ closeSheet("settingsSheet"); }
+
+  /* ---------- the account ----------
+     A ledger with no account lives in one browser. Clearing site data takes it,
+     and it cannot follow you onto a phone - which is the whole of the problem.
+     Attaching an email upgrades the anonymous account in place: the uid does not
+     change, so every set already written stays owned by the same person and
+     nothing is migrated anywhere. */
+  function looksLikeEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v||"").trim()); }
+  function accountMsg(txt,warn){
+    var m=document.getElementById("setAccountMsg");
+    if(m){ m.textContent=txt||""; m.style.color = warn ? "var(--warn)" : ""; }
+  }
+  function renderAccountBlock(){
+    var el=document.getElementById("setAccount"); if(!el||!state.db||!state.db.auth) return;
+    var a=state.account, t=ledgerTotals();
+    var carrying = t.sets>0 || state.routines.length>0;
+
+    if(a&&a.email){
+      el.innerHTML=
+        '<div class="set-row"><div><div class="set-t">'+escapeHtml(a.email)+'</div>'+
+        '<div class="set-d">Your record follows this address. Open Loadbook anywhere else, ask for a link, and the same ledger is there.</div></div>'+
+        '<button type="button" class="btn-secondary" id="setSignOut">Sign out</button></div>'+
+        '<p class="set-d" id="setAccountMsg" style="margin:0 0 8px;"></p>';
+      var so=document.getElementById("setSignOut"), armed=false;
+      so.addEventListener("click",function(){
+        if(!armed){
+          armed=true; so.textContent="Sign out of this device";
+          accountMsg("This device goes back to an empty ledger. Your record stays on the account and comes back when you sign in.");
+          return;
+        }
+        state.db.auth.signOut().then(function(){ location.reload(); },function(){ accountMsg("Could not sign out. Try again.",true); });
+      });
+      return;
+    }
+
+    el.innerHTML=
+      '<div class="set-row"><div><div class="set-t">This ledger lives in this browser</div>'+
+      '<div class="set-d">Nothing is lost while you stay here, but clearing site data would take it and it cannot follow you onto a phone. '+
+      'Add an email and it becomes an account \u2014 <b>everything you already have stays exactly as it is</b>, because the account is upgraded rather than replaced.</div></div></div>'+
+      '<div class="set-row"><div style="grid-column:1/-1;">'+
+        '<div class="field"><label for="setEmail">Email</label>'+
+        '<input type="email" id="setEmail" autocomplete="email" spellcheck="false" placeholder="you@example.com"></div>'+
+        '<div class="routine-actions">'+
+          '<button type="button" class="btn-primary" style="width:auto;" id="setAttach">Send me a link</button>'+
+          (carrying ? '' : '<button type="button" class="btn-secondary" id="setSignIn">I already have a ledger</button>')+
+        '</div>'+
+        '<p class="set-d" id="setAccountMsg"></p>'+
+        (carrying
+          ? '<p class="set-d">Signing in to an existing ledger is offered only on a device with nothing on it, because it would swap accounts and leave these '+
+            t.sets+' set'+(t.sets===1?"":"s")+' behind under this one. To bring this record to an account you already have: copy the ledger below, sign in there, and paste it back.</p>'
+          : '')+
+      '</div></div>';
+
+    var em=document.getElementById("setEmail");
+    document.getElementById("setAttach").addEventListener("click",function(){
+      var v=(em.value||"").trim();
+      if(!looksLikeEmail(v)){ accountMsg("That does not look like an email address.",true); em.focus(); return; }
+      accountMsg("Sending\u2026");
+      state.db.auth.attachEmail(v).then(function(){
+        accountMsg("Check "+v+" for a link. Opening it confirms the address and keeps everything already here.");
+      },function(err){
+        console.error("Loadbook: account",err);
+        accountMsg((err&&err.message)||"Could not send the link. Try again.",true);
+      });
+    });
+    var si=document.getElementById("setSignIn");
+    if(si) si.addEventListener("click",function(){
+      var v=(em.value||"").trim();
+      if(!looksLikeEmail(v)){ accountMsg("Put the address your ledger is under above.",true); em.focus(); return; }
+      accountMsg("Sending\u2026");
+      state.db.auth.signIn(v).then(function(){
+        accountMsg("Check "+v+" for a link. Opening it brings that ledger here.");
+      },function(err){
+        console.error("Loadbook: account",err);
+        accountMsg((err&&err.message)||"Could not send the link. Try again.",true);
+      });
+    });
+  }
   /* not every context has matchMedia; a missing one must not take the sheet down */
   function prefersLight(){
     try{ return !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches); }
@@ -6447,8 +6527,38 @@ var FINISHES = [
       removeFellow: function(mine,theirs){
         return sb.rpc("remove_fellow",{my_profile:mine, their_profile:theirs})
           .then(function(r){ fail(r.error); });
+      },
+      /* Who this ledger belongs to, and how to make that survive the device.
+         An anonymous account is upgraded in place: Supabase keeps the same
+         auth.uid(), so every row already written stays owned by the same person
+         and nothing has to be migrated. That is the whole reason the default is
+         anonymous rather than a sign-in wall. */
+      auth: {
+        whoami: function(){
+          return sb.auth.getUser().then(function(r){
+            var u=r&&r.data&&r.data.user;
+            return u?{id:u.id, email:u.email||null, anonymous:!!u.is_anonymous&&!u.email}:null;
+          },function(){ return null; });
+        },
+        attachEmail: function(email){
+          return sb.auth.updateUser({email:email},{emailRedirectTo:returnHere()})
+            .then(function(r){ if(r&&r.error) throw r.error; return true; });
+        },
+        signIn: function(email){
+          return sb.auth.signInWithOtp({email:email, options:{emailRedirectTo:returnHere()}})
+            .then(function(r){ if(r&&r.error) throw r.error; return true; });
+        },
+        signOut: function(){ return sb.auth.signOut(); },
+        onChange: function(fn){
+          try{ return sb.auth.onAuthStateChange(function(){ fn(); }); }catch(e){ return null; }
+        }
       }
     };
+  }
+  /* the link in the email has to come back to this page, without the token
+     fragment of whatever visit asked for it */
+  function returnHere(){
+    try{ return location.href.split("#")[0].split("?")[0]; }catch(e){ return undefined; }
   }
 
   /* ---------- the register you can carry ----------
@@ -6701,6 +6811,7 @@ var FINISHES = [
        it fails honestly rather than being queued into a promise nobody awaits */
     if(remote.redeem) wrapped.redeem=function(a,b){ return remote.redeem(a,b); };
     if(remote.removeFellow) wrapped.removeFellow=function(a,b){ return remote.removeFellow(a,b); };
+    if(remote.auth) wrapped.auth=remote.auth;   /* an account is not a document; nothing to mirror */
     return wrapped;
   }
 
@@ -6729,6 +6840,18 @@ var FINISHES = [
     state.db.doc("settings/goals").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.goals={streak:d.streak||DEFAULT_GOALS.streak,sessions:d.sessions||DEFAULT_GOALS.sessions,volume:d.volume||DEFAULT_GOALS.volume,bodyweight:d.bodyweight||0,units:d.units==="kg"?"kg":"lb",height:d.height||0,age:d.age||0,sex:d.sex==="female"?"female":"male",progression:d.progression==="on"?"on":"off"}; renderAll(); fillCommission(); } })["catch"](function(err){console.error("Loadbook: goals",err);});
     state.db.doc("settings/rewards").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.rewards={tokens:d.tokens||0,lastClaimedDate:d.lastClaimedDate||null,owned:d.owned||[],variants:d.variants||{},finish:d.finish||{},freezes:d.freezes||0,frozenDates:d.frozenDates||[],bonusClaimed:!!d.bonusClaimed,shelf:d.shelf||[],erasUnlocked:d.erasUnlocked||[]}; renderAll(); checkCompletionBonus(); checkEras(); } })["catch"](function(err){console.error("Loadbook: rewards",err);});
   }
+  /* who the ledger belongs to, as far as this device knows */
+  function readAccount(){
+    if(!state.db||!state.db.auth) return Promise.resolve(null);
+    return state.db.auth.whoami().then(function(a){
+      var was=state.account&&state.account.email;
+      state.account=a;
+      if(a&&a.email!==was) renderTopbar();
+      var sheet=document.getElementById("settingsSheet");
+      if(sheet&&sheet.classList.contains("show")) renderAccountBlock();
+      return a;
+    });
+  }
   function connectRegister(db){
     state.db=localFirst(db); state.dbAvailable=true;
     renderTopbar(); hydrateFromDb(); renderSociety(); subscribeSociety(); syncProfile(true);
@@ -6737,6 +6860,7 @@ var FINISHES = [
      this build was given a project to talk to. Unconfigured, the page stays
      exactly what it is offline: a working ledger with no register. */
   function openHostedRegister(){
+    state.account=state.account||null;
     var cfg=window.LOADBOOK_SUPABASE;
     if(!cfg||!cfg.url||!cfg.anonKey){ renderTopbar(); return; }
     /* the client is fetched only by a build that has somewhere to point it, so
@@ -6760,9 +6884,14 @@ var FINISHES = [
         });
       };
       signIn(sb).then(function(r){
-        var uid=r&&r.data&&(r.data.session?r.data.session.user.id:(r.data.user||{}).id);
-        if(!uid){ renderTopbar(); return; }
-        connectRegister(supabaseDb(sb,uid));
+        var u=r&&r.data&&(r.data.session?r.data.session.user:r.data.user);
+        if(!u||!u.id){ renderTopbar(); return; }
+        connectRegister(supabaseDb(sb,u.id));
+        readAccount();
+        /* the confirmation link lands back on this page with a session in the
+           URL, which the client swallows silently - without this the settings
+           sheet would still be offering to send an email that already arrived */
+        if(state.db.auth&&state.db.auth.onChange) state.db.auth.onChange(readAccount);
       })["catch"](function(err){ console.error("Loadbook: register",err); renderTopbar(); });
     }catch(err){ console.error("Loadbook: register",err); renderTopbar(); }
   }

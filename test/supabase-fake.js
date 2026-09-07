@@ -146,11 +146,52 @@
       return ch;
     };
 
+    /* Accounts. The property that matters is that upgrading an anonymous user
+       keeps its id: everything already written stays owned by the same person,
+       which is the whole reason the app can default to no sign-in at all. */
+    let user = null;
+    const authListeners = [];
+    const fireAuth = () => authListeners.slice().forEach(f => { try { f("CHANGE", user ? { user } : null); } catch (e) {} });
+    api.__mail = [];                       /* links the register would have sent */
+    api.__user = () => user;
+    /* the reader opens the link in the email */
+    api.__confirmEmail = () => {
+      const m = api.__mail.filter(x => x.kind === "attach").pop();
+      if (!m || !user) return null;
+      user = { ...user, email: m.email, is_anonymous: false };
+      fireAuth();
+      return user;
+    };
+    /* the same person, on a device that has never seen them */
+    api.__signInAs = (id, email) => {
+      uid = id; user = { id, email, is_anonymous: false };
+      fireAuth(); return user;
+    };
     api.auth = {
-      getSession: () => Promise.resolve({ data: { session: null } }),
+      getSession: () => Promise.resolve({ data: { session: user ? { user } : null } }),
+      getUser: () => Promise.resolve({ data: { user }, error: null }),
       signInAnonymously: () => {
         uid = uid || "00000000-0000-4000-8000-000000000001";
-        return Promise.resolve({ data: { user: { id: uid }, session: { user: { id: uid } } }, error: null });
+        user = user || { id: uid, email: null, is_anonymous: true };
+        fireAuth();
+        return Promise.resolve({ data: { user, session: { user } }, error: null });
+      },
+      updateUser: (attrs, opts) => {
+        if (!user) return Promise.resolve({ data: null, error: { message: "not signed in" } });
+        if (api.__rejectAuth) return Promise.resolve({ data: null, error: { message: api.__rejectAuth } });
+        api.__mail.push({ kind: "attach", email: attrs.email, redirect: opts && opts.emailRedirectTo });
+        /* unconfirmed: the id is unchanged and the account is not permanent yet */
+        return Promise.resolve({ data: { user }, error: null });
+      },
+      signInWithOtp: (o) => {
+        if (api.__rejectAuth) return Promise.resolve({ data: null, error: { message: api.__rejectAuth } });
+        api.__mail.push({ kind: "signin", email: o.email, redirect: o.options && o.options.emailRedirectTo });
+        return Promise.resolve({ data: {}, error: null });
+      },
+      signOut: () => { user = null; uid = null; fireAuth(); return Promise.resolve({ error: null }); },
+      onAuthStateChange: (fn) => {
+        authListeners.push(fn);
+        return { data: { subscription: { unsubscribe: () => {} } } };
       }
     };
     return api;
