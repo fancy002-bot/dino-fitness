@@ -61,7 +61,24 @@ export async function boot({ hooks = false, db = false, seed = null, supabase = 
            /* the local-first layer reads IndexedDB asynchronously, so tearing the
               window down the instant a test ends lands a snapshot callback on a
               dead document. Let the page settle, then close it. */
-           close: async () => { await new Promise(r => setTimeout(r, 60)); dom.window.close(); } };
+           /* Fixed tick counts are guesswork once IndexedDB is in the chain: the
+              number of turns a write takes is an implementation detail, and a
+              test that encodes it is flaky by construction. Wait for the thing
+              you are actually waiting for. */
+           until: async (fn, ms = 5000) => {
+             const t0 = Date.now();
+             for (;;) {
+               let v; try { v = await fn(); } catch { v = false; }
+               if (v) return v;
+               if (Date.now() - t0 > ms) return v;
+               await new Promise(r => setTimeout(r, 10));
+             }
+           },
+           close: async () => {
+             try { w.__lb?.state?.db?.stop?.(); } catch {}
+             await new Promise(r => setTimeout(r, 60));
+             dom.window.close();
+           } };
 }
 
 let failed = 0;

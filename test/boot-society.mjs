@@ -16,7 +16,11 @@ const toastSub = d => (d.querySelector("#toast .toast-sub")?.textContent || "").
 async function makeCard(env, name = "Marcus") {
   env.d.getElementById("meNameInput").value = name;
   env.click(env.d.getElementById("meCreateBtn"));
-  await env.tick(3);
+  /* the card exists locally at once; wait for it to reach the register, which
+     is what the checks that follow are actually about */
+  await env.until(() => env.lb.me);
+  if (env.db) await env.until(() => env.db.__has("profiles/" + env.lb.me.id));
+  await env.until(() => env.d.querySelector(".me-name"));
   return env.lb.me;
 }
 
@@ -73,7 +77,7 @@ async function makeCard(env, name = "Marcus") {
   env.click(d.getElementById("meRenameBtn"));
   d.getElementById("meRenameInput").value = "Marcus Aurelius";
   env.click(d.getElementById("meRenameSave"));
-  await env.tick(3);
+  await env.until(() => db.__get("profiles/" + me.id).name === "Marcus Aurelius");
   check("a rename reaches the register", db.__get("profiles/" + me.id).name, "Marcus Aurelius");
   check("and the card", d.querySelector(".me-name").textContent, "Marcus Aurelius");
   await env.close();
@@ -108,7 +112,7 @@ async function makeCard(env, name = "Marcus") {
   const me = await makeCard(env);
 
   env.click(d.getElementById("newInviteBtn"));
-  await env.tick(4);
+  await env.until(() => Object.keys(db.__docs).some(p => p.startsWith("invites/")) && d.querySelector(".invite-code"));
   const codes = Object.keys(db.__docs).filter(p => p.startsWith("invites/")).map(p => p.slice(8));
   check("a code is issued", codes.length, 1);
   check("in the house format", CODE_RE.test(codes[0]), "true");
@@ -122,19 +126,19 @@ async function makeCard(env, name = "Marcus") {
   check("with a way to copy it", !!d.querySelector("[data-copy]"), "true");
 
   env.click(d.getElementById("newInviteBtn"));
-  await env.tick(4);
+  await env.until(() => d.querySelectorAll(".invite-row").length === 2);
   check("a second code is a second row", d.querySelectorAll(".invite-row").length, 2);
 
   /* revoking */
   env.click(d.querySelector('[data-revoke="' + codes[0] + '"]'));
-  await env.tick(4);
+  await env.until(() => !db.__has("invites/" + codes[0]) && d.querySelectorAll(".invite-row").length === 1);
   check("a revoked code leaves the register", db.__has("invites/" + codes[0]), "false");
   check("and the list", d.querySelectorAll(".invite-row").length, 1);
 
   /* a spent code offers neither copy nor revoke */
   const live = Object.keys(db.__docs).filter(p => p.startsWith("invites/"))[0].slice(8);
   db.__seed("invites/" + live, Object.assign(db.__get("invites/" + live), { used: true, usedByName: "Livia" }));
-  await env.tick(5);
+  await env.until(() => (d.querySelector(".invite-status") || {}).textContent === "Admitted Livia");
   check("a spent code names who came in", d.querySelector(".invite-status").textContent, "Admitted Livia");
   check("and cannot be handed out again", d.querySelector("[data-copy]"), "null");
   await env.close();
@@ -146,10 +150,13 @@ async function makeCard(env, name = "Marcus") {
   await env.tick(4);
   const { d, db } = env;
   const me = await makeCard(env, "Marcus");
+  /* redemption is a lock, a read, a write and two more writes, and every one of
+     them now goes through the device's own store first - so it takes more turns
+     of the loop than it used to */
   const redeem = async v => {
     d.getElementById("redeemInput").value = v;
     env.click(d.getElementById("redeemBtn"));
-    await env.tick(5);
+    await env.until(() => txt(d, "redeemMsg") !== "Checking\u2026");
     return txt(d, "redeemMsg");
   };
 
@@ -189,21 +196,23 @@ async function makeCard(env, name = "Marcus") {
   check("and yours", db.__has("friends/" + me.id + "/list/p_OTHER00000"), "true");
   check("the toast names them", toastSub(d), "You and Livia are now fellows");
 
-  await env.tick(6);
+  await env.until(() => d.querySelector(".fellow-name")?.textContent === "Livia");
   check("the fellow appears", d.querySelectorAll(".fellow-row").length, 1);
   check("under their name", d.querySelector(".fellow-name").textContent, "Livia");
+  await env.until(() => d.querySelector(".fellow-stats")?.textContent.includes("5 d streak"));
   check("with their standing", d.querySelector(".fellow-stats").textContent.indexOf("5 d streak") !== -1, "true");
   check("the count agrees", txt(d, "fellowCount"), "1 fellow");
   check("and so does the frontispiece", txt(d, "fellowsStat"), "1 fellow");
 
   /* their card changes on their device */
   db.__seed("profiles/p_OTHER00000", { name: "Livia", streak: 9, owned: 40, total: 618, bronze: 3, updatedAt: new Date().toISOString() });
-  await env.tick(6);
+  await env.until(() => d.querySelector(".fellow-stats")?.textContent.includes("9 d streak"));
   check("a fellow's standing updates live", d.querySelector(".fellow-stats").textContent.indexOf("9 d streak") !== -1, "true");
 
   /* and out again */
   env.click(d.querySelector("[data-remove]"));
-  await env.tick(6);
+  await env.until(() => !db.__has("friends/" + me.id + "/list/p_OTHER00000"));
+  await env.until(() => txt(d, "fellowList").indexOf("No fellows yet") === 0);
   check("removing a fellow clears your side", db.__has("friends/" + me.id + "/list/p_OTHER00000"), "false");
   check("and theirs", db.__has("friends/p_OTHER00000/list/" + me.id), "false");
   check("the list is empty again", txt(d, "fellowList"), "No fellows yet. Issue a code and hand it to one.");
@@ -282,7 +291,9 @@ async function makeCard(env, name = "Marcus") {
   db.__failPaths = "friends/";
   d.getElementById("redeemInput").value = "LB-HALF-2345";
   env.click(d.getElementById("redeemBtn"));
-  await env.tick(6);
+  /* the failing path is the long one: two writes refused, both sides rolled
+     back and the code handed back before the message is written */
+  await env.until(() => txt(d, "redeemMsg") !== "Checking\u2026");
   db.__failPaths = null;
   check("a half-finished redemption says so", txt(d, "redeemMsg"), "Something went wrong. Try again.");
   check("and does not leave you a fellow", db.__has("friends/" + me.id + "/list/p_OTHER00000"), "false");
@@ -291,7 +302,7 @@ async function makeCard(env, name = "Marcus") {
   /* and it is: the same code works on the retry */
   d.getElementById("redeemInput").value = "LB-HALF-2345";
   env.click(d.getElementById("redeemBtn"));
-  await env.tick(6);
+  await env.until(() => db.__has("friends/" + me.id + "/list/p_OTHER00000"));
   check("the retry admits them", db.__has("friends/" + me.id + "/list/p_OTHER00000"), "true");
   await env.close();
 }
@@ -303,14 +314,14 @@ async function makeCard(env, name = "Marcus") {
   const { d, db } = env;
   const me = await makeCard(env);
   db.__seed("friends/" + me.id + "/list/p_GHOST00000", { id: "p_GHOST00000", since: "2026-09-01T00:00:00.000Z" });
-  await env.tick(8);
+  await env.until(() => d.querySelector(".fellow-name")?.textContent === "Unknown collector");
   check("a fellow with no card still has a row", d.querySelectorAll(".fellow-row").length, 1);
   check("named as unknown rather than blank", d.querySelector(".fellow-name").textContent, "Unknown collector");
   check("and can be removed", !!d.querySelector("[data-remove]"), "true");
 
   /* the same fellow admitted twice is still one fellow */
   db.__seed("friends/" + me.id + "/list/p_GHOST00000", { id: "p_GHOST00000", since: "2026-09-02T00:00:00.000Z" });
-  await env.tick(6);
+  await env.tick(12);
   check("a second admission is not a second fellow", d.querySelectorAll(".fellow-row").length, 1);
   await env.close();
 }
@@ -326,7 +337,7 @@ async function makeCard(env, name = "Marcus") {
     db.__seed("profiles/" + fid, { name: "Fellow " + i, streak: i, owned: i, total: 618, bronze: 0 });
     db.__seed("friends/" + me.id + "/list/" + fid, { id: fid, since: "2026-09-01T00:00:00.000Z" });
   }
-  await env.tick(8);
+  await env.until(() => d.querySelectorAll(".fellow-row").length === 30);
   check("the fellow list is capped", d.querySelectorAll(".fellow-row").length, 30);
   check("the count does not hide the ones it left out", txt(d, "fellowCount"), "30 of 34 fellows");
   await env.close();

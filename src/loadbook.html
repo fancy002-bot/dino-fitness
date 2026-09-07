@@ -3669,10 +3669,14 @@ var FINISHES = [
       renderInvites(snap.docs.map(function(x){ return Object.assign({code:x.id}, x.data()); }));
     },function(err){ console.error("Loadbook: invites",err); });
     fellowsUnsub=state.db.collection("friends/"+me.id+"/list").onSnapshot(function(snap){
-      fellowUnsubs.forEach(function(u){ u(); }); fellowUnsubs=[]; fellowProfiles={};
+      /* Names already known are kept. Throwing them away on every change to the
+         list meant each fellow's row flashed back to a placeholder until their
+         card arrived again - once per update, for every fellow. */
+      fellowUnsubs.forEach(function(u){ u(); }); fellowUnsubs=[];
       /* only FELLOW_CAP cards are watched and drawn, but the count is told the
          truth - a fellow who silently vanished off the end read as unfriended */
       var total=snap.docs.length, ids=snap.docs.map(function(x){ return x.id; }).slice(0,FELLOW_CAP);
+      Object.keys(fellowProfiles).forEach(function(k){ if(ids.indexOf(k)===-1) delete fellowProfiles[k]; });
       ids.forEach(function(fid){ fellowUnsubs.push(state.db.doc("profiles/"+fid).onSnapshot(function(ps){ fellowProfiles[fid]=ps.exists?ps.data():{name:"Unknown collector"}; renderFellows(ids,total); },function(){})); });
       renderFellows(ids,total);
     },function(err){ console.error("Loadbook: fellows",err); });
@@ -6380,7 +6384,7 @@ var FINISHES = [
     if(typeof indexedDB==="undefined") return remote;   /* no store, no wrapper */
     var NAME="loadbook", MIRROR="docs", OUTBOX="outbox", dbp=null;
     var pending={};       /* path -> {op:"set"|"delete", data} still unsent */
-    var flushing=false, listeners=[];
+    var flushing=false, listeners=[], dead=false;   /* dead: the page is going away */
 
     function open(){
       if(dbp) return dbp;
@@ -6532,14 +6536,14 @@ var FINISHES = [
         acquire: function(o){ return rd.acquire ? rd.acquire(o) : Promise.resolve({acquired:true}); },
         onSnapshot: function(cb,err){
           var live=true, seen=false;
-          mGet(path).then(function(row){ if(live&&!seen&&row) cb(docSnap(path,overlayDoc(path,row.data))); })["catch"](function(){});
+          mGet(path).then(function(row){ if(live&&!dead&&!seen&&row) cb(docSnap(path,overlayDoc(path,row.data))); })["catch"](function(){});
           var un=rd.onSnapshot(function(sn){
             seen=true;
             var d=sn.exists?sn.data():undefined;
             (sn.exists?mPut(path,d):mDel(path))["catch"](function(){});
-            if(live) cb(docSnap(path,overlayDoc(path,d)));
+            if(live&&!dead) cb(docSnap(path,overlayDoc(path,d)));
           },err);
-          var off=function(){ if(live) mGet(path).then(function(row){ cb(docSnap(path,overlayDoc(path,row&&row.data))); }); };
+          var off=function(){ if(live&&!dead) mGet(path).then(function(row){ if(live&&!dead) cb(docSnap(path,overlayDoc(path,row&&row.data))); }); };
           listeners.push(off);
           return function(){ live=false; listeners=listeners.filter(function(f){ return f!==off; }); if(un) un(); };
         }
@@ -6582,14 +6586,14 @@ var FINISHES = [
         },
         onSnapshot: function(cb,err){
           var live=true, seen=false;
-          fromMirror().then(function(sn){ if(live&&!seen&&!sn.empty) cb(sn); })["catch"](function(){});
+          fromMirror().then(function(sn){ if(live&&!dead&&!seen&&!sn.empty) cb(sn); })["catch"](function(){});
           var un=rq.onSnapshot(function(sn){
             seen=true;
             var rows=sn.docs.map(function(d){ return {id:d.id, data:d.data()}; });
             rows.forEach(function(r){ mPut(coll+"/"+r.id, r.data)["catch"](function(){}); });
-            if(live) cb(collSnap(applyOpts(overlay(coll,rows))));
+            if(live&&!dead) cb(collSnap(applyOpts(overlay(coll,rows))));
           },err);
-          var off=function(){ if(live) fromMirror().then(function(sn){ cb(sn); }); };
+          var off=function(){ if(live&&!dead) fromMirror().then(function(sn){ if(live&&!dead) cb(sn); }); };
           listeners.push(off);
           return function(){ live=false; listeners=listeners.filter(function(f){ return f!==off; }); if(un) un(); };
         }
@@ -6603,6 +6607,9 @@ var FINISHES = [
       /* documents still to go out, not writes: a set logged five times is one day */
       pendingCount: function(){ return Object.keys(pending).length; },
       flush: flush,
+      /* A page navigating away should stop being told things. Without this a
+         snapshot read from the device lands on a document that has gone. */
+      stop: function(){ dead=true; listeners=[]; },
       onPending: function(f){ listeners.push(f); return function(){ listeners=listeners.filter(function(x){ return x!==f; }); }; }
     };
     /* a friend code cannot be redeemed without the register; passed through so

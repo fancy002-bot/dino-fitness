@@ -409,7 +409,7 @@ npm test
 ```
 
 Boots the real `src/loadbook.html` in jsdom and asserts it renders and behaves:
-905 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
+977 checks over the catalogue, plates, sheets, buying, the display shelf, filters,
 the debounced search, the routines panel and its workout runner — including a block that
 walks a three-movement routine set by set and asserts the rest clock tracks whichever
 movement was just logged — and `boot-kinds.mjs`, which carries bodyweight reps, weighted
@@ -456,6 +456,44 @@ fellows, restore and preview. Two defects came out of it, both now fixed and pin
 
 The suite needs a larger heap (a dozen 2.7 MB documents), hence the
 `--max-old-space-size` in the npm script; `npm run test:society` runs it alone.
+
+### Two homes, and a device that keeps its own copy
+
+`src/loadbook.html` detects where it is running. Opened as an artifact the viewer
+hands it a db; a build carrying `window.LOADBOOK_SUPABASE` builds one on Supabase
+instead (`supabaseDb()`), and the client script is fetched lazily by that build alone
+so the artifact never asks for it. `supabase/migrations/` holds the schema: one `docs`
+table `(owner, path, data jsonb)`, because the app already spoke doc/collection over
+JSON documents. Reads go by path with no owner clause - row-level security decides
+what a path means. `redeem_invite()` and `remove_fellow()` are security-definer RPCs,
+so redemption is one transaction rather than a sequence that can stop half way.
+
+**`localFirst()` wraps whichever register answered.** Writes land in IndexedDB first
+and replay in order when the register can be reached; snapshots are mirrored on the
+way past, so a reload with no signal still has the ledger. Before it, nothing in
+`localStorage` held sessions - a set logged in a gym basement lived in memory until the
+tab reloaded and then had never happened, silently.
+
+Two rules it is built on, both learned by getting them wrong first:
+
+* **A refusal is not an outage.** Queueing every rejection would park a policy refusal
+  in the outbox for ever while the app claimed the write had landed. Only an
+  unreachable register queues; anything the register actually answered propagates, and
+  the local copy of a refused write is rolled back.
+* **A snapshot is never shown with less in it than the device knows.** Remote rows are
+  overlaid with whatever is still queued, so the register catching up cannot make your
+  work vanish and come back.
+
+`hosted/` carries the config, manifest, icon and service worker; `tools/build-hosted.mjs`
+emits `dist/`. The service worker caches the Supabase client as well as the page,
+because without the client the page cannot build a register offline at all and then
+nothing it writes is kept - which was the entire point. The register itself is never
+cached: a cached ledger read is a lie about what has been recorded.
+
+`fake-indexeddb` makes all of this testable. `boot({idb})` reuses a store so a second
+boot is a *reload of the same device*, and `boot({dbFail})` opens the app with no signal
+at all. `boot-offline.mjs` drives the real scenario: three sets logged with no signal,
+a reload, and the register catching up on its own.
 
 ### Properties, not examples
 
