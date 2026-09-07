@@ -65,7 +65,11 @@ export async function boot({ hooks = false, db = false, seed = null, supabase = 
               number of turns a write takes is an implementation detail, and a
               test that encodes it is flaky by construction. Wait for the thing
               you are actually waiting for. */
-           until: async (fn, ms = 5000) => {
+           /* The bound only matters when something is actually wrong: until()
+              returns the moment the condition holds, so a generous timeout
+              costs nothing on a fast machine and stops a slow CI runner from
+              being reported as a defect. */
+           until: async (fn, ms = 20000) => {
              const t0 = Date.now();
              for (;;) {
                let v; try { v = await fn(); } catch { v = false; }
@@ -82,12 +86,18 @@ export async function boot({ hooks = false, db = false, seed = null, supabase = 
 }
 
 let failed = 0;
+const failures = [];
 export function check(label, actual, expected) {
   const ok = expected === undefined ? !!actual : String(actual) === String(expected);
   console.log((ok ? "  PASS  " : "  FAIL  ") + label + "  ->  " + actual + (ok || expected === undefined ? "" : "  (expected " + expected + ")"));
-  if (!ok) failed++;
+  if (!ok) { failed++; failures.push(label + "  ->  " + actual + (expected === undefined ? "" : "  (expected " + expected + ")")); }
 }
 export function done(name) {
-  console.log(failed ? "\n" + name + ": " + failed + " FAILED" : "\n" + name + ": all passed");
+  if (failed) {
+    /* GitHub's log viewer renders only the tail, so a failure a thousand lines
+       up is invisible where it matters most. Repeat them at the end. */
+    console.log("\n" + name + ": " + failed + " FAILED");
+    failures.forEach(f => console.log("  ->  " + f));
+  } else console.log("\n" + name + ": all passed");
   process.exit(failed ? 1 : 0);
 }

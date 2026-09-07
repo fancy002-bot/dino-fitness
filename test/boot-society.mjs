@@ -211,7 +211,10 @@ async function makeCard(env, name = "Marcus") {
 
   /* and out again */
   env.click(d.querySelector("[data-remove]"));
-  await env.until(() => !db.__has("friends/" + me.id + "/list/p_OTHER00000"));
+  /* both sides are separate writes and no longer land together now that each
+     one goes through the device's own store first */
+  await env.until(() => !db.__has("friends/" + me.id + "/list/p_OTHER00000")
+                     && !db.__has("friends/p_OTHER00000/list/" + me.id));
   await env.until(() => txt(d, "fellowList").indexOf("No fellows yet") === 0);
   check("removing a fellow clears your side", db.__has("friends/" + me.id + "/list/p_OTHER00000"), "false");
   check("and theirs", db.__has("friends/p_OTHER00000/list/" + me.id), "false");
