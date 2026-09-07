@@ -22,7 +22,7 @@
       __docs: docs,
       __writes: [],          /* {op, path, data} in order */
       __failAcquire: false,  /* force the "someone else is redeeming" branch */
-      __failPaths: null,     /* substring: writes to a matching path reject */
+      __failPaths: (global.__DBSHIM_FAIL || null),   /* substring: matching paths reject, from the first read */
       __subCount: function () { return subs.length; },
       /* a write that did not come from this page -- another device, another
          collector -- and therefore still wakes every listener */
@@ -120,7 +120,12 @@
           return Promise.resolve({ acquired: true, release: function () { delete locks[path]; } });
         },
         onSnapshot: function (cb, err) {
-          return subscribe(function () { try { cb(docSnap(path)); } catch (e) { if (err) err(e); } });
+          return subscribe(function () {
+            /* a register that cannot be reached delivers nothing, rather than
+               delivering emptiness - which would look like deleted data */
+            if (fail(path)) { if (err) err(new Error("dbshim: unreachable")); return; }
+            try { cb(docSnap(path)); } catch (e) { if (err) err(e); }
+          });
         }
       };
     }
@@ -139,7 +144,10 @@
                             : Promise.resolve(collSnap(coll, opts));
         },
         onSnapshot: function (cb, err) {
-          return subscribe(function () { try { cb(collSnap(coll, opts)); } catch (e) { if (err) err(e); } });
+          return subscribe(function () {
+            if (fail(coll)) { if (err) err(new Error("dbshim: unreachable")); return; }
+            try { cb(collSnap(coll, opts)); } catch (e) { if (err) err(e); }
+          });
         }
       };
     }

@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { JSDOM, VirtualConsole } from "jsdom";
+import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
 
 export const SRC = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src", "loadbook.html");
 
@@ -15,7 +16,11 @@ export const FAKE = path.join(path.dirname(fileURLToPath(import.meta.url)), "sup
    behind `window.claude.use("db")` -- all of Vol III -- can be driven at all.
    `seed` is written to localStorage before boot, which is the only way to
    arrive with a collector card already in hand. */
-export async function boot({ hooks = false, db = false, seed = null, supabase = false } = {}) {
+/* jsdom has no IndexedDB, and the local-first layer is nothing without one.
+   Pass an existing factory to simulate a reload on the same device: the page is
+   built fresh, the store it wrote to last time is still there. */
+export async function boot({ hooks = false, db = false, seed = null, supabase = false, idb = null, dbFail = null } = {}) {
+  const store = idb || new IDBFactory();
   let html = fs.readFileSync(SRC, "utf8");
   let pre = "";
   if (seed) {
@@ -23,6 +28,7 @@ export async function boot({ hooks = false, db = false, seed = null, supabase = 
       "localStorage.setItem(" + JSON.stringify(k) + "," + JSON.stringify(JSON.stringify(seed[k])) + ");"
     ).join("") + "}catch(e){}<\/script>";
   }
+  if (dbFail) pre += "<script>window.__DBSHIM_FAIL=" + JSON.stringify(dbFail) + ";<\/script>";
   if (db) pre += "<script>" + fs.readFileSync(SHIM, "utf8") + "<\/script>";
   /* the hosted build: no viewer to hand us a register, an in-memory Supabase
      enforcing the migration's own policies, and the config a real deployment
@@ -43,14 +49,19 @@ export async function boot({ hooks = false, db = false, seed = null, supabase = 
   vc.on("error", (...a) => errors.push("console.error: " + a.join(" ")));
   const dom = new JSDOM(
     "<!doctype html><html><head><meta charset=utf-8></head><body>" + pre + html + "</body></html>",
-    { runScripts: "dangerously", pretendToBeVisual: true, virtualConsole: vc, url: "https://example.test/" });
+    { runScripts: "dangerously", pretendToBeVisual: true, virtualConsole: vc, url: "https://example.test/",
+      beforeParse(window) { window.indexedDB = store; window.IDBKeyRange = IDBKeyRange; } });
   await new Promise(r => setTimeout(r, 900));
   const w = dom.window;
-  return { dom, w, d: w.document, errors, lb: w.__lb, db: w.__db, sb: w.__sb,
+  return { dom, w, d: w.document, errors, lb: w.__lb, db: w.__db, sb: w.__sb, idb: store,
            click: el => el.dispatchEvent(new w.MouseEvent("click", { bubbles: true })),
            /* the shim settles writes on a microtask and listeners on a macrotask;
               one tick is a write landing, a few are the renders that follow */
-           tick: (n = 3) => new Promise(r => { let i = 0; const step = () => (++i >= n ? r() : setTimeout(step, 0)); setTimeout(step, 0); }) };
+           tick: (n = 3) => new Promise(r => { let i = 0; const step = () => (++i >= n ? r() : setTimeout(step, 0)); setTimeout(step, 0); }),
+           /* the local-first layer reads IndexedDB asynchronously, so tearing the
+              window down the instant a test ends lands a snapshot callback on a
+              dead document. Let the page settle, then close it. */
+           close: async () => { await new Promise(r => setTimeout(r, 60)); dom.window.close(); } };
 }
 
 let failed = 0;

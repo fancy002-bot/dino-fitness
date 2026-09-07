@@ -46,7 +46,7 @@ async function makeCard(env, name = "Marcus") {
   await env.tick(2);
   check("issuing asks for a card first", toastTitle(d), "Create your card first");
   check("no invite was written", Object.keys(db.__docs).filter(p => p.startsWith("invites/")).length, 0);
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- creating a card ---------- */
@@ -76,7 +76,7 @@ async function makeCard(env, name = "Marcus") {
   await env.tick(3);
   check("a rename reaches the register", db.__get("profiles/" + me.id).name, "Marcus Aurelius");
   check("and the card", d.querySelector(".me-name").textContent, "Marcus Aurelius");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- a name is not markup ---------- */
@@ -97,7 +97,7 @@ async function makeCard(env, name = "Marcus") {
   check("a fellow's scripted name does not execute", w.__pwned, "undefined");
   check("no injected image in the fellow list", d.getElementById("fellowList").querySelector("img"), "null");
   check("nor in the invitation list", d.getElementById("inviteList").querySelector("img"), "null");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- issuing codes ---------- */
@@ -137,7 +137,7 @@ async function makeCard(env, name = "Marcus") {
   await env.tick(5);
   check("a spent code names who came in", d.querySelector(".invite-status").textContent, "Admitted Livia");
   check("and cannot be handed out again", d.querySelector("[data-copy]"), "null");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- redeeming ---------- */
@@ -207,7 +207,7 @@ async function makeCard(env, name = "Marcus") {
   check("removing a fellow clears your side", db.__has("friends/" + me.id + "/list/p_OTHER00000"), "false");
   check("and theirs", db.__has("friends/p_OTHER00000/list/" + me.id), "false");
   check("the list is empty again", txt(d, "fellowList"), "No fellows yet. Issue a code and hand it to one.");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- restoring a card on another device ---------- */
@@ -234,7 +234,7 @@ async function makeCard(env, name = "Marcus") {
   check("under its own name", env.lb.me.name, "Livia");
   check("and is kept on this device", JSON.parse(w.localStorage.getItem("lb-me")).id, "p_RESTORE234");
   check("the card is on the register", txt(d, "meHint"), "On the register");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- the register is unreachable ---------- */
@@ -253,7 +253,7 @@ async function makeCard(env, name = "Marcus") {
   env.click(d.getElementById("redeemBtn"));
   await env.tick(2);
   check("so does redeeming", txt(d, "redeemMsg"), "Not connected to the register.");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- the register reflects the work ---------- */
@@ -267,7 +267,7 @@ async function makeCard(env, name = "Marcus") {
   lb.renderAll();
   await new Promise(r => setTimeout(r, 2800));   /* syncProfile debounces by 2.5s */
   check("acquiring a specimen reaches the register", db.__get("profiles/" + me.id).owned, before + 1);
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- when the register misbehaves ---------- */
@@ -293,7 +293,7 @@ async function makeCard(env, name = "Marcus") {
   env.click(d.getElementById("redeemBtn"));
   await env.tick(6);
   check("the retry admits them", db.__has("friends/" + me.id + "/list/p_OTHER00000"), "true");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- fellows the register cannot describe ---------- */
@@ -312,7 +312,7 @@ async function makeCard(env, name = "Marcus") {
   db.__seed("friends/" + me.id + "/list/p_GHOST00000", { id: "p_GHOST00000", since: "2026-09-02T00:00:00.000Z" });
   await env.tick(6);
   check("a second admission is not a second fellow", d.querySelectorAll(".fellow-row").length, 1);
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- more fellows than the list will show ---------- */
@@ -329,7 +329,7 @@ async function makeCard(env, name = "Marcus") {
   await env.tick(8);
   check("the fellow list is capped", d.querySelectorAll(".fellow-row").length, 30);
   check("the count does not hide the ones it left out", txt(d, "fellowCount"), "30 of 34 fellows");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- a name is trimmed, not truncated mid-use ---------- */
@@ -345,7 +345,7 @@ async function makeCard(env, name = "Marcus") {
   const me = await makeCard(env, "A".repeat(50));
   check("a long name is cut to the field's length", me.name.length, 32);
   check("and stored that way", db.__get("profiles/" + me.id).name.length, 32);
-  env.dom.window.close();
+  await env.close();
 }
 
 done("boot-society");

@@ -1,0 +1,15 @@
+{
+  "name": "Loadbook",
+  "short_name": "Loadbook",
+  "description": "A training ledger and a cabinet of specimens.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#161713",
+  "theme_color": "#161713",
+  "icons": [
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

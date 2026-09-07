@@ -33,7 +33,7 @@ async function makeCard(env, name = "Marcus") {
   check("under the signed-in owner", w.__sb.__rows.find(r => r.path === "profiles/" + me.id).owner, w.__sb.__uid());
   check("with the name on it", w.__sb.__find("profiles/" + me.id).name, "Marcus");
   check("the card says it is on the register", txt(d, "meHint"), "On the register");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- issuing, and the policy that codes are not enumerable ---------- */
@@ -59,7 +59,7 @@ async function makeCard(env, name = "Marcus") {
   env.click(d.querySelector("[data-revoke]"));
   await env.tick(6);
   check("revoking removes it", w.__sb.__has("invites/" + mine[0]), "false");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- redemption goes through the transaction, not the dance ---------- */
@@ -114,7 +114,7 @@ async function makeCard(env, name = "Marcus") {
   check("your side is gone", w.__sb.__has("friends/" + me.id + "/list/p_OTHER00000"), "false");
   check("and theirs", w.__sb.__has("friends/p_OTHER00000/list/" + me.id), "false");
   check("the list is empty again", txt(d, "fellowList"), "No fellows yet. Issue a code and hand it to one.");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- the ledger itself, which is the part RLS keeps private ---------- */
@@ -134,7 +134,7 @@ async function makeCard(env, name = "Marcus") {
   check("two people can hold the same date", w.__sb.__rows.filter(r => r.path === "sessions/2026-09-06").length, 2);
   check("but only yours is readable", seen.length, 1);
   check("and it is yours", seen[0].data.entries[0].exerciseId, "back-squat");
-  env.dom.window.close();
+  await env.close();
 }
 
 /* ---------- unconfigured, it is still a working ledger ---------- */
@@ -146,7 +146,7 @@ async function makeCard(env, name = "Marcus") {
   check("the ledger still works", !!d.getElementById("logForm"), "true");
   check("and says the card is not on a register", txt(d, "meHint"), "");
   check("nothing threw on the way", env.errors.length, 0);
-  env.dom.window.close();
+  await env.close();
 }
 
 done("boot-supabase");

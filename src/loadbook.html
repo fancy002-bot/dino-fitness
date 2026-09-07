@@ -3329,7 +3329,13 @@ var FINISHES = [
       }
     }
     upsertSessionLocal(date,function(s){s.entries.push(entry);});
-    if(state.dbAvailable){ var ref=state.db.doc("sessions/"+date); ref.get().then(function(snap){ var ex=snap.exists?snap.data():{date:date,sample:false,entries:[],createdAt:new Date().toISOString()}; var en=(ex.entries||[]).slice(); en.push(entry); return ref.set({date:date,sample:ex.sample||false,entries:en,createdAt:ex.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()}); })["catch"](function(err){console.error("Loadbook: save set",err);}); }
+    /* This used to read the day back from the register, append one set and write
+       that. Three sets of a 3x5 logged in quick succession all read the same
+       starting state and the last write won, so the register kept one of them
+       and the other two existed only until the tab reloaded. The day in memory
+       is the authority; persistSession writes the whole of it, which is
+       idempotent however the writes interleave. */
+    persistSession(date);
     /* only the new entry was ever judged, so everything it superseded kept its
        badge and three rising records all wore one at once */
     recomputePRs(entry.exerciseId, entry.type);
@@ -3338,15 +3344,7 @@ var FINISHES = [
   /* put a struck entry back exactly as it was, id and all */
   function restoreEntry(date,entry){
     upsertSessionLocal(date,function(s){ if(!s.entries.some(function(e){return e.id===entry.id;})) s.entries.push(entry); });
-    if(state.dbAvailable){
-      var ref=state.db.doc("sessions/"+date);
-      ref.get().then(function(snap){
-        var ex=snap.exists?snap.data():{date:date,sample:false,entries:[],createdAt:new Date().toISOString()};
-        var en=(ex.entries||[]).slice();
-        if(!en.some(function(e){ return e.id===entry.id; })) en.push(entry);
-        return ref.set({date:date,sample:ex.sample||false,entries:en,prep:ex.prep||null,createdAt:ex.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()});
-      })["catch"](function(err){ console.error("Loadbook: restore",err); });
-    }
+    persistSession(date);   /* same race as addEntry had: write the whole day */
     syncRunnerWith(entry,1);
     /* it comes back carrying its pre-strike badge, which the promotion done at
        strike time has already given to something else */
@@ -6364,6 +6362,256 @@ var FINISHES = [
     };
   }
 
+  /* ---------- the register you can carry ----------
+     A phone in a gym basement has no register. Everything above this line goes
+     through doc()/collection(), so this is a wrapper rather than a rewrite: a
+     write lands on the device first and is replayed when the register can be
+     reached again, and every snapshot is mirrored on the way past so a reload
+     with no signal still has your ledger.
+
+     Before this, a set logged with no signal lived in memory until the tab
+     reloaded and then had never happened - the worst thing a training log can
+     do, and invisible while it was doing it.
+
+     The invariant that matters: a snapshot is never shown with less in it than
+     this device knows. Remote rows are overlaid with anything still queued, so
+     the register catching up cannot make your work disappear and come back. */
+  function localFirst(remote){
+    if(typeof indexedDB==="undefined") return remote;   /* no store, no wrapper */
+    var NAME="loadbook", MIRROR="docs", OUTBOX="outbox", dbp=null;
+    var pending={};       /* path -> {op:"set"|"delete", data} still unsent */
+    var flushing=false, listeners=[];
+
+    function open(){
+      if(dbp) return dbp;
+      dbp=new Promise(function(res,rej){
+        var rq=indexedDB.open(NAME,1);
+        rq.onupgradeneeded=function(){
+          var d=rq.result;
+          if(!d.objectStoreNames.contains(MIRROR)) d.createObjectStore(MIRROR,{keyPath:"path"});
+          if(!d.objectStoreNames.contains(OUTBOX)) d.createObjectStore(OUTBOX,{keyPath:"seq",autoIncrement:true});
+        };
+        rq.onsuccess=function(){ res(rq.result); };
+        rq.onerror=function(){ rej(rq.error); };
+      });
+      return dbp;
+    }
+    function run(store,mode,fn){
+      return open().then(function(d){
+        return new Promise(function(res,rej){
+          var t=d.transaction(store,mode), rq=fn(t.objectStore(store)), val;
+          if(rq) rq.onsuccess=function(){ val=rq.result; };
+          t.oncomplete=function(){ res(val); };
+          t.onerror=function(){ rej(t.error); };
+          t.onabort=function(){ rej(t.error); };
+        });
+      });
+    }
+    function mPut(path,data){ return run(MIRROR,"readwrite",function(s){ return s.put({path:path,data:data}); }); }
+    function mDel(path){ return run(MIRROR,"readwrite",function(s){ return s["delete"](path); }); }
+    function mGet(path){ return run(MIRROR,"readonly",function(s){ return s.get(path); }); }
+    function mAll(){ return run(MIRROR,"readonly",function(s){ return s.getAll(); }); }
+
+    function child(coll,path){ return path.indexOf(coll+"/")===0 && path.slice(coll.length+1).indexOf("/")===-1; }
+    function docSnap(path,data){
+      var has=data!==undefined&&data!==null;
+      return { exists:has, id:path.split("/").pop(), data:function(){ return has?data:undefined; } };
+    }
+    function collSnap(rows){
+      return { empty:rows.length===0, size:rows.length,
+               docs: rows.map(function(r){ return { id:r.id, exists:true, data:function(){ return r.data; } }; }) };
+    }
+
+    /* what the device believes about a collection, register plus anything queued */
+    function overlay(coll,rows){
+      var out=rows.slice();
+      Object.keys(pending).forEach(function(path){
+        if(!child(coll,path)) return;
+        var id=path.slice(coll.length+1), p=pending[path];
+        var at=-1; out.forEach(function(r,i){ if(r.id===id) at=i; });
+        if(p.op==="delete"){ if(at!==-1) out.splice(at,1); }
+        else if(at!==-1) out[at]={id:id,data:p.data};
+        else out.push({id:id,data:p.data});
+      });
+      return out;
+    }
+    function overlayDoc(path,data){
+      var p=pending[path];
+      if(!p) return data;
+      return p.op==="delete" ? undefined : p.data;
+    }
+
+    /* Queue a write only when the register could not be reached. A register that
+       answered and said no - a policy refusal, a broken constraint - is not
+       going to say yes to the same write in ten minutes, and parking it in the
+       outbox would leave the app quietly claiming work it never stored. Those
+       propagate, so the caller's own handling runs. */
+    function unreachable(err){
+      if(typeof navigator!=="undefined" && navigator.onLine===false) return true;
+      if(!err) return false;
+      if(err.name==="TypeError") return true;              /* fetch could not connect */
+      return /network|failed to fetch|offline|timeout|connection|unreachable/i.test(String(err.message||err));
+    }
+    function queue(op,path,data){
+      pending[path]={op:op,data:data};
+      return run(OUTBOX,"readwrite",function(s){ return s.put({op:op,path:path,data:data,at:Date.now()}); })
+        ["catch"](function(){})
+        .then(function(){ notify(); });
+    }
+    function notify(){ listeners.forEach(function(f){ try{ f(); }catch(e){} }); }
+
+    /* replay in the order the work was done, and stop at the first refusal so a
+       later write cannot land before an earlier one it depends on */
+    function flush(){
+      if(flushing) return Promise.resolve();
+      flushing=true;
+      return run(OUTBOX,"readonly",function(s){ return s.getAll(); }).then(function(items){
+        items=(items||[]).sort(function(a,b){ return a.seq-b.seq; });
+        return items.reduce(function(chain,it){
+          return chain.then(function(stop){
+            if(stop) return true;
+            var r=it.op==="delete" ? remote.doc(it.path)["delete"]() : remote.doc(it.path).set(it.data);
+            return r.then(function(){
+              return run(OUTBOX,"readwrite",function(s){ return s["delete"](it.seq); }).then(function(){
+                /* only clear the overlay if nothing newer replaced it meanwhile */
+                var p=pending[it.path];
+                if(p && p.op===it.op && JSON.stringify(p.data)===JSON.stringify(it.data)) delete pending[it.path];
+                return false;
+              });
+            },function(){ return true; });
+          });
+        }, Promise.resolve(false));
+      })["catch"](function(){ return true; }).then(function(){
+        flushing=false; notify();
+      });
+    }
+    /* anything left from a previous visit goes out before this one starts */
+    run(OUTBOX,"readonly",function(s){ return s.getAll(); }).then(function(items){
+      (items||[]).forEach(function(it){ pending[it.path]={op:it.op,data:it.data}; });
+      if(items&&items.length) flush();
+    })["catch"](function(){});
+    if(typeof window!=="undefined"&&window.addEventListener) window.addEventListener("online",flush);
+
+    function docRef(path){
+      var rd=remote.doc(path);
+      return {
+        get: function(){
+          return rd.get().then(function(sn){
+            var d=sn.exists?sn.data():undefined;
+            (sn.exists?mPut(path,d):mDel(path))["catch"](function(){});
+            return docSnap(path,overlayDoc(path,d));
+          },function(){
+            return mGet(path).then(function(row){ return docSnap(path,overlayDoc(path,row&&row.data)); });
+          });
+        },
+        set: function(data){
+          var prior;
+          return mGet(path).then(function(row){ prior=row?row.data:undefined; },function(){})
+            .then(function(){ return mPut(path,data)["catch"](function(){}); })
+            .then(function(){
+              return rd.set(data).then(function(){ return flush(); },function(err){
+                if(unreachable(err)) return queue("set",path,data);
+                /* refused: do not keep a local copy of something the register rejected */
+                return (prior===undefined?mDel(path):mPut(path,prior))["catch"](function(){})
+                  .then(function(){ throw err; });
+              });
+            });
+        },
+        "delete": function(){
+          var prior;
+          return mGet(path).then(function(row){ prior=row?row.data:undefined; },function(){})
+            .then(function(){ return mDel(path)["catch"](function(){}); })
+            .then(function(){
+              return rd["delete"]().then(function(){ return flush(); },function(err){
+                if(unreachable(err)) return queue("delete",path,null);
+                return (prior===undefined?Promise.resolve():mPut(path,prior))["catch"](function(){})
+                  .then(function(){ throw err; });
+              });
+            });
+        },
+        acquire: function(o){ return rd.acquire ? rd.acquire(o) : Promise.resolve({acquired:true}); },
+        onSnapshot: function(cb,err){
+          var live=true, seen=false;
+          mGet(path).then(function(row){ if(live&&!seen&&row) cb(docSnap(path,overlayDoc(path,row.data))); })["catch"](function(){});
+          var un=rd.onSnapshot(function(sn){
+            seen=true;
+            var d=sn.exists?sn.data():undefined;
+            (sn.exists?mPut(path,d):mDel(path))["catch"](function(){});
+            if(live) cb(docSnap(path,overlayDoc(path,d)));
+          },err);
+          var off=function(){ if(live) mGet(path).then(function(row){ cb(docSnap(path,overlayDoc(path,row&&row.data))); }); };
+          listeners.push(off);
+          return function(){ live=false; listeners=listeners.filter(function(f){ return f!==off; }); if(un) un(); };
+        }
+      };
+    }
+
+    function query(coll,opts,rq){
+      function fromMirror(){
+        return mAll().then(function(rows){
+          var kept=(rows||[]).filter(function(r){ return child(coll,r.path); })
+                             .map(function(r){ return {id:r.path.slice(coll.length+1), data:r.data}; });
+          return collSnap(applyOpts(overlay(coll,kept)));
+        });
+      }
+      function applyOpts(rows){
+        (opts.wheres||[]).forEach(function(w){
+          rows=rows.filter(function(r){
+            var v=r.data?r.data[w[0]]:undefined;
+            switch(w[1]){ case "==": return v===w[2]; case "!=": return v!==w[2];
+              case ">": return v>w[2]; case ">=": return v>=w[2];
+              case "<": return v<w[2]; case "<=": return v<=w[2]; default: return true; }
+          });
+        });
+        if(opts.order){ var f=opts.order[0], dir=opts.order[1]==="desc"?-1:1;
+          rows=rows.slice().sort(function(a,b){ var x=a.data?a.data[f]:undefined, y=b.data?b.data[f]:undefined;
+            return x===y?0:(x>y?dir:-dir); }); }
+        if(opts.limit) rows=rows.slice(0,opts.limit);
+        return rows;
+      }
+      return {
+        where: function(f,op,v){ return query(coll, Object.assign({},opts,{wheres:(opts.wheres||[]).concat([[f,op,v]])}), rq.where(f,op,v)); },
+        orderBy: function(f,dir){ return query(coll, Object.assign({},opts,{order:[f,dir]}), rq.orderBy(f,dir)); },
+        limit: function(n){ return query(coll, Object.assign({},opts,{limit:n}), rq.limit(n)); },
+        get: function(){
+          return rq.get().then(function(sn){
+            var rows=sn.docs.map(function(d){ return {id:d.id, data:d.data()}; });
+            rows.forEach(function(r){ mPut(coll+"/"+r.id, r.data)["catch"](function(){}); });
+            return collSnap(applyOpts(overlay(coll,rows)));
+          }, fromMirror);
+        },
+        onSnapshot: function(cb,err){
+          var live=true, seen=false;
+          fromMirror().then(function(sn){ if(live&&!seen&&!sn.empty) cb(sn); })["catch"](function(){});
+          var un=rq.onSnapshot(function(sn){
+            seen=true;
+            var rows=sn.docs.map(function(d){ return {id:d.id, data:d.data()}; });
+            rows.forEach(function(r){ mPut(coll+"/"+r.id, r.data)["catch"](function(){}); });
+            if(live) cb(collSnap(applyOpts(overlay(coll,rows))));
+          },err);
+          var off=function(){ if(live) fromMirror().then(function(sn){ cb(sn); }); };
+          listeners.push(off);
+          return function(){ live=false; listeners=listeners.filter(function(f){ return f!==off; }); if(un) un(); };
+        }
+      };
+    }
+
+    var wrapped={
+      doc: docRef,
+      collection: function(coll){ return query(coll,{},remote.collection(coll)); },
+      /* what is queued, for the masthead to say so out loud */
+      /* documents still to go out, not writes: a set logged five times is one day */
+      pendingCount: function(){ return Object.keys(pending).length; },
+      flush: flush,
+      onPending: function(f){ listeners.push(f); return function(){ listeners=listeners.filter(function(x){ return x!==f; }); }; }
+    };
+    /* a friend code cannot be redeemed without the register; passed through so
+       it fails honestly rather than being queued into a promise nobody awaits */
+    if(remote.redeem) wrapped.redeem=function(a,b){ return remote.redeem(a,b); };
+    if(remote.removeFellow) wrapped.removeFellow=function(a,b){ return remote.removeFellow(a,b); };
+    return wrapped;
+  }
+
   /* ---------- boot ---------- */
   document.getElementById("logType").innerHTML=kindOptions("strength");
   syncLogFields();
@@ -6382,7 +6630,7 @@ var FINISHES = [
     state.db.doc("settings/rewards").get().then(function(snap){ if(snap.exists){ var d=snap.data(); state.rewards={tokens:d.tokens||0,lastClaimedDate:d.lastClaimedDate||null,owned:d.owned||[],variants:d.variants||{},finish:d.finish||{},freezes:d.freezes||0,frozenDates:d.frozenDates||[],bonusClaimed:!!d.bonusClaimed,shelf:d.shelf||[],erasUnlocked:d.erasUnlocked||[]}; renderAll(); checkCompletionBonus(); checkEras(); } })["catch"](function(err){console.error("Loadbook: rewards",err);});
   }
   function connectRegister(db){
-    state.db=db; state.dbAvailable=true;
+    state.db=localFirst(db); state.dbAvailable=true;
     renderTopbar(); hydrateFromDb(); renderSociety(); subscribeSociety(); syncProfile(true);
   }
   /* Hosted, there is no viewer to hand us a db, so we build one - but only when
@@ -6421,5 +6669,14 @@ var FINISHES = [
   if (window.claude && typeof window.claude.use==="function"){
     window.claude.use("db").then(function(db){ if(db) connectRegister(db); else openHostedRegister(); })["catch"](openHostedRegister);
   } else openHostedRegister();
+
+  /* Installed to a home screen, this is the only thing that makes the app open
+     at all without a signal. It is registered only by a hosted build: an
+     artifact has no separate file to register and no scope to claim. */
+  if (window.LOADBOOK_SUPABASE && navigator.serviceWorker && location.protocol==="https:"){
+    window.addEventListener("load",function(){
+      navigator.serviceWorker.register("./sw.js")["catch"](function(err){ console.error("Loadbook: offline shell",err); });
+    });
+  }
 })();
 </script>
