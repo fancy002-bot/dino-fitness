@@ -150,7 +150,16 @@ check("in pounds it is still a five", lb.loadStep("Bench Press"), 5);
 /* ---- the reward loop must not punish rest days ---- */
 lb.state.sessions = [];
 lb.state.goals.sessions = 4;
-[7, 8, 10, 11].forEach((n, i) => lb.state.sessions.push({ date: daysAgo(n), sample: false,
+/* Weeks are Monday-start, so "n days ago" splits across two of them depending on
+   what day today is - the check passed most days and failed the rest, whichever
+   timezone you ran it in. Anchor to a Monday instead and it is four days in one
+   week, always. */
+const lastMonday = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - 7); return d; })();
+const inThatWeek = k => {
+  const d = new Date(lastMonday); d.setDate(d.getDate() + k);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+};
+[0, 1, 3, 4].forEach((k, i) => lb.state.sessions.push({ date: inThatWeek(k), sample: false,
   entries: [{ id: "wk" + i, exerciseId: "squat", exerciseName: "Squat", type: "strength", weight: 200, reps: 5 }] }));
 check("four days in a week counts, without five in a row", lb.streakBlocks() >= 1, "true");
 check("and no five-day run was needed", Math.max.apply(null, lb.allStreaks()) < 5, "true");

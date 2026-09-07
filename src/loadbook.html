@@ -4686,8 +4686,15 @@ var FINISHES = [
   var DATE_RE=/^\d{4}-\d{2}-\d{2}$/;
   function validDate(d){
     if(typeof d!=="string"||!DATE_RE.test(d)) return false;
-    var t=new Date(d+"T00:00:00");
-    return !isNaN(t.getTime()) && t.toISOString().slice(0,10)===d;
+    var t=new Date(d+"T00:00:00");            /* local midnight, as todayISO() means it */
+    if(isNaN(t.getTime())) return false;
+    /* Comparing that back through toISOString() asked UTC what a local date was.
+       West of Greenwich the two agree and nothing looked wrong; east of it every
+       date came back as the day before and validDate rejected all of them - so an
+       import in Tokyo, Berlin or Sydney dropped the entire ledger and said it had
+       skipped unreadable rows. Round-trip on the same clock that made it. */
+    var back=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+    return back===d;
   }
   /* an export from another tool may hand us "225" where we want 225, and 1e308
      where we want nothing at all */
