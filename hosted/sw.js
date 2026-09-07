@@ -4,7 +4,7 @@
    and then nothing it writes is kept. That was the whole point of the exercise.
    The register itself is never cached; stale training data is worse than none. */
 const CACHE = "loadbook-__BUILD__";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-512.png", "./icon.svg"];
+const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-512.png", "./icon-192.png", "./icon.svg"];
 const CLIENT = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
 
 self.addEventListener("install", e => {

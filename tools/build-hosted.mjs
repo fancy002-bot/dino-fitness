@@ -64,7 +64,7 @@ const sw = fs.readFileSync(path.join(root, "hosted/sw.js"), "utf8")
   .replace(/const CLIENT = "[^"]*";/, 'const CLIENT = ' + JSON.stringify(client) + ';');
 fs.writeFileSync(path.join(dist, "sw.js"), sw);
 
-for (const f of ["manifest.webmanifest", "icon.svg", "icon-512.png"]) {
+for (const f of ["manifest.webmanifest", "icon.svg", "icon-512.png", "icon-192.png", "screenshot-narrow.png"]) {
   const from = path.join(root, "hosted", f);
   if (fs.existsSync(from)) fs.copyFileSync(from, path.join(dist, f));
   else console.warn("missing " + f + " - the install prompt will be poorer for it");
