@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Loadbook</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IM+Fell+English:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -57,6 +57,11 @@
   }
 
   *{box-sizing:border-box;}
+  /* No zoom. user-scalable=no alone is ignored by iOS Safari, and double-tap
+     zoom is a separate mechanism from pinch, so all three are shut off: the
+     meta for Android, touch-action for the double tap, and the gesture handlers
+     below for iOS pinch. Text still reflows at the OS font size. */
+  html{touch-action:manipulation; -webkit-text-size-adjust:100%; text-size-adjust:100%;}
   @media (prefers-reduced-motion: reduce){ *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;} }
   body{margin:0; background:var(--ground); color:var(--ink); font-family:var(--font-body); -webkit-font-smoothing:antialiased; font-feature-settings:'tnum' 1; position:relative; min-height:100vh;}
   body::before{content:""; position:fixed; inset:0; background:var(--spot); pointer-events:none; z-index:0;}
@@ -5517,7 +5522,7 @@ var FINISHES = [
   }
 
   /* ---------- the workout runner and its timer ---------- */
-  var timer={running:false, mode:"rest", targetMs:0, leftMs:0, endsAt:0, iv:null, elapsed:false, armed:false, drill:null};
+  var timer={running:false, mode:"rest", targetMs:0, leftMs:0, endsAt:0, iv:null, elapsed:false, armed:false, drill:null, work:null};
   var audioCtx=null;
   function chime(){
     try{
@@ -5542,14 +5547,21 @@ var FINISHES = [
     return -1;
   }
   function timerStop(){ timer.running=false; if(timer.iv){ clearInterval(timer.iv); timer.iv=null; } }
+  /* A rest always wins, over a drill and over a work interval - but the row that
+     was holding the clock still says "Stop" until it is redrawn. */
+  function releaseWork(){
+    if(!timer.work) return;
+    timer.work=null;
+    if(state.runner && document.getElementById("runSteps")) renderRunSteps();
+  }
   function timerRun(){ clearInterval(timer.iv); timer.iv=setInterval(timerTick,200); }
   function timerArm(ms){
-    timerStop(); timer.drill=null;
+    timerStop(); timer.drill=null; releaseWork();
     timer.targetMs=Math.max(1000,ms||0); timer.baseMs=timer.targetMs;
     timer.leftMs=timer.targetMs; timer.elapsed=false; timer.armed=true; paintTimer();
   }
   function timerStart(ms,mode,drill){
-    timer.mode=mode||"rest"; timer.drill=drill||null;
+    timer.mode=mode||"rest"; timer.drill=drill||null; releaseWork();
     timer.targetMs=Math.max(1000,ms||0); timer.baseMs=timer.targetMs; timer.leftMs=timer.targetMs;
     timer.endsAt=Date.now()+timer.leftMs; timer.running=true; timer.elapsed=false; timer.armed=false;
     timerRun(); paintTimer();
@@ -5573,12 +5585,14 @@ var FINISHES = [
     if(timer.leftMs>0){ paintTimer(); return; }
     timerStop(); timer.elapsed=true; paintTimer(); chime();
     if(timer.drill){ var dl=timer.drill; timer.drill=null; completeDrill(dl.which, dl.i, true); return; }
+    if(timer.work){ finishWork(); return; }
     showToast(STAR_SVG,"Rest complete",state.runner?state.runner.name+" · next set":"Back to work");
   }
   /* one description of what the clock reads, so the runner's dial and the log
      form's rest bar can never disagree about it */
   function timerModeText(){
-    return timer.elapsed?"rest complete":timer.running?(timer.mode==="rest"?"resting":"working"):
+    return timer.elapsed?(timer.mode==="rest"?"rest complete":"time up"):
+           timer.running?(timer.mode==="rest"?"resting":"working"):
            timer.armed?"ready":(timer.leftMs>0?"paused":"standing by");
   }
   function timerToggleText(){
@@ -5800,6 +5814,56 @@ var FINISHES = [
     renderAsides(); paintNow();
   }
   function stopDrill(){ timer.drill=null; timerStop(); paintTimer(); renderAsides(); paintNow(); }
+
+  /* Timed work, as opposed to the rest between it. A hollow hold and a half hour
+     run are both a stretch of time you are meant to be doing something for, and
+     until now the only clock in the app was the one that ran afterwards - you
+     had to time the work on your phone's own timer and then come back to log it.
+     Counting down to the target rather than up, so the number in front of you is
+     what is left; stop early and what you actually did is what gets written. */
+  function workSecs(st){
+    var k=kindOf(st.type), v;
+    /* zero means there is nothing to run; rounding it up to one second would
+       start a clock against a target the routine does not have */
+    if(k==="hold"){ v=Number(st.secs)||0; return v>0?Math.round(v):0; }
+    if(k==="cardio"){ v=Number(st.duration)||0; return v>0?Math.round(v*60):0; }
+    return 0;
+  }
+  function isTimedKind(k){ return k==="hold"||k==="cardio"; }
+  function startWork(i){
+    var run=state.runner; if(!run) return;
+    var st=run.steps[i]; if(!st||!isTimedKind(kindOf(st.type))) return;
+    var secs=workSecs(st);
+    if(!secs){ showToast(STAR_SVG,"No target to run",'Give "'+st.name+'" a time first'); return; }
+    timerStart(secs*1000,"work");
+    timer.work={i:i, planned:secs};
+    renderRunSteps(); paintNow();
+  }
+  /* elapsed, not remaining: a hold abandoned at thirty-eight seconds of a planned
+     forty-five is thirty-eight seconds of work, and refusing to write that down
+     is the same mistake the log form used to make */
+  function workElapsed(){
+    if(!timer.work) return 0;
+    return Math.max(0, Math.round((timer.targetMs-timer.leftMs)/1000));
+  }
+  function stopWork(){
+    if(!timer.work) return;
+    var w=timer.work, run=state.runner, st=run&&run.steps[w.i];
+    var did=workElapsed();
+    timer.work=null; timerStop(); timer.elapsed=false; paintTimer();
+    if(st&&did>0) st.timed=did;
+    renderRunSteps(); paintNow();
+  }
+  function finishWork(){
+    var w=timer.work, run=state.runner, st=run&&run.steps[w.i];
+    timer.work=null;
+    if(st){
+      st.timed=w.planned;
+      showToast(STAR_SVG, kindOf(st.type)==="cardio"?"Run complete":"Hold complete",
+        st.name+" \u00b7 "+fmtSecs(w.planned)+" \u00b7 log it when you are ready");
+    }
+    renderRunSteps(); paintNow();
+  }
   /* a drill counts the moment it is ticked, however it got ticked */
   function tickDrill(which,i,on){
     var dr=drillList(which)[i]; if(!dr) return;
@@ -5878,18 +5942,28 @@ var FINISHES = [
         '</div></div>'+
         '<div class="run-right"><div class="pips">'+pips+'</div><div class="run-inputs">'+
         (k==="cardio"
-          ? '<input type="number" class="r-dur" min="1" step="1" aria-label="'+escapeHtml(st.name)+' minutes" value="'+(st.duration||"")+'">'+
+          ? '<input type="number" class="r-dur" min="1" step="1" aria-label="'+escapeHtml(st.name)+' minutes" value="'+(st.timed!=null?Math.max(1,Math.round(st.timed/60)):(st.duration||""))+'">'+
             '<input type="number" class="r-dist" min="0" step="any" placeholder="'+unitD()+'" aria-label="'+escapeHtml(st.name)+' distance" value="'+dField(st.distance)+'">' 
         : k==="hold"
           ? '<input type="number" class="r-add" step="any" placeholder="+'+unitW()+'" aria-label="'+escapeHtml(st.name)+' added weight" value="'+wField(st.added)+'">'+
-            '<input type="number" class="r-secs" min="1" step="1" aria-label="'+escapeHtml(st.name)+' seconds" value="'+(st.secs||"")+'">' 
+            '<input type="number" class="r-secs" min="1" step="1" aria-label="'+escapeHtml(st.name)+' seconds" value="'+(st.timed!=null?st.timed:(st.secs||""))+'">' 
         : k==="bodyweight"
           ? '<input type="number" class="r-add" step="any" placeholder="+'+unitW()+'" aria-label="'+escapeHtml(st.name)+' added weight" value="'+wField(st.added)+'">'+
             '<input type="number" class="r-reps" min="1" step="1" aria-label="'+escapeHtml(st.name)+' reps" value="'+(st.reps||"")+'">'
           : '<input type="number" class="r-wt" min="0" step="any" placeholder="'+unitW()+'" aria-label="'+escapeHtml(st.name)+' weight" value="'+wField(st.weight)+'">'+
             '<input type="number" class="r-reps" min="1" step="1" aria-label="'+escapeHtml(st.name)+' reps" value="'+(st.reps||"")+'">')+
-        '</div><button type="button" class="btn-secondary r-log" aria-label="Log a set of '+escapeHtml(st.name)+'">Log</button></div>';
+        '</div>'+
+        (isTimedKind(k)
+          ? '<button type="button" class="btn-secondary r-time" aria-label="'+
+            (timer.work&&timer.work.i===i?'Stop timing ':'Time ')+escapeHtml(st.name)+'">'+
+            (timer.work&&timer.work.i===i?"Stop":"Time it")+'</button>'
+          : '')+
+        '<button type="button" class="btn-secondary r-log" aria-label="Log a set of '+escapeHtml(st.name)+'">Log</button></div>';
       row.querySelector(".r-log").addEventListener("click",function(ev){ logRunnerSet(i,row,!!(ev&&ev.detail)); });
+      var tb=row.querySelector(".r-time");
+      if(tb) tb.addEventListener("click",function(){
+        if(timer.work&&timer.work.i===i) stopWork(); else startWork(i);
+      });
       wrap.appendChild(row);
     });
     var done=run.steps.reduce(function(a,s){ return a+s.done; },0);
@@ -5994,6 +6068,10 @@ var FINISHES = [
     run.refocus = focusIdx>=0 ? {i:focusIdx, cls:focusCls} : null;
     if(fromPointer){ lastLogAt=Date.now(); lastLogRow=row; }   /* only a set that landed */
     st.done+=1; run.logged+=1; saveRunProgress();
+    /* the interval this set was measuring is over: clear it before the next set
+       inherits a number the user did not do */
+    if(timer.work&&timer.work.i===i) timer.work=null;
+    st.timed=null;
     addEntry(todayISO(),entry);
     renderRunSteps();
     var rest=Number(st.restSec)||0;
@@ -6625,6 +6703,14 @@ var FINISHES = [
     if(remote.removeFellow) wrapped.removeFellow=function(a,b){ return remote.removeFellow(a,b); };
     return wrapped;
   }
+
+  /* iOS Safari honours neither user-scalable=no nor maximum-scale, so pinch is
+     refused at the event instead. touch-action above already has the double tap. */
+  ["gesturestart","gesturechange","gestureend"].forEach(function(ev){
+    document.addEventListener(ev,function(e){ e.preventDefault(); },{passive:false});
+  });
+  /* a second touch point is a pinch beginning */
+  document.addEventListener("touchmove",function(e){ if(e.touches&&e.touches.length>1) e.preventDefault(); },{passive:false});
 
   /* ---------- boot ---------- */
   document.getElementById("logType").innerHTML=kindOptions("strength");

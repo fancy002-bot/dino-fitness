@@ -1,7 +1,8 @@
 /* Round three. Twelve testers drove the published build as real users; this file
    pins what they found so it cannot come back. Every check below is a defect that
    shipped, not a feature that was planned. */
-import { boot, check, done } from "./harness.mjs";
+import fs from "fs";
+import { boot, check, done, SRC } from "./harness.mjs";
 
 const { d, w, lb, click, errors } = await boot({ hooks: true });
 const q = sel => Array.from(d.querySelectorAll(sel));
@@ -458,4 +459,19 @@ check("at any target", lb.rewardAmountForWeek(6), 50);
 lb.state.goals.sessions = 4;
 
 check("no console errors along the way", errors.length, 0);
+/* ---- no zoom, asked for directly ----
+   Three separate mechanisms, and shutting off one does nothing on its own:
+   iOS Safari ignores user-scalable and maximum-scale, double-tap zoom is not
+   pinch, and pinch is not the meta tag. */
+{
+  const src = fs.readFileSync(SRC, "utf8");
+  const meta = (src.match(/<meta name="viewport"[^>]*>/) || [""])[0];
+  check("the viewport refuses scaling", /user-scalable=no/.test(meta), "true");
+  check("and pins the maximum", /maximum-scale=1/.test(meta), "true");
+  check("double tap cannot zoom", /touch-action:\s*manipulation/.test(src), "true");
+  check("iOS pinch is refused at the event", /gesturestart/.test(src), "true");
+  check("a second finger is refused too", /e\.touches\.length>1/.test(src), "true");
+  check("but text still follows the OS size", /text-size-adjust:\s*100%/.test(src), "true");
+}
+
 done("boot-hardening");
