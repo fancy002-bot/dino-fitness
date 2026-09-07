@@ -120,6 +120,9 @@ async function makeCard(env, name = "Marcus") {
   check("in the collector's name", inv.from, me.id);
   check("carrying the name for the other end", inv.fromName, "Marcus");
   check("and unused", inv.used, "false");
+  /* issuing a code writes it to the clipboard before it announces it, so the
+     card-creation toast is still up for a moment after the code exists */
+  await env.until(() => toastSub(d) === codes[0]);
   check("the toast hands it over", toastSub(d), codes[0]);
   check("the list shows it", d.querySelector(".invite-code").textContent, codes[0]);
   check("marked unused", d.querySelector(".invite-status").textContent, "Unused");
